@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Filer
+Comment=VitusOS File Manager
+Exec=vitus-filer %U
+Icon=system-file-manager
+Terminal=false
+Type=Application
+Categories=System;FileManager;
+MimeType=inode/directory;
+Keywords=file;files;folder;directory;browser;
+StartupNotify=true

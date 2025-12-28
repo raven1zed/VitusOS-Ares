@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Terminal
+Comment=VitusOS Terminal Emulator
+Exec=vitus-terminal
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+Keywords=terminal;console;shell;command;
+StartupNotify=true
