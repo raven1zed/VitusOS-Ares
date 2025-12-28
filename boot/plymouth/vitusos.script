@@ -1,0 +1,112 @@
+# VitusOS Plymouth Boot Script
+# Text logo "VitusOS" centered with loading animation below
+
+# ============================================================================
+# OS1-inspired color palette
+# ============================================================================
+bg_r = 0.98;  # Warm off-white
+bg_g = 0.97;
+bg_b = 0.96;
+
+text_r = 0.13;  # Dark gray
+text_g = 0.13;
+text_b = 0.14;
+
+accent_r = 0.98;  # Soft coral
+accent_g = 0.71;
+accent_b = 0.67;
+
+# ============================================================================
+# Screen setup
+# ============================================================================
+Window.SetBackgroundTopColor(bg_r, bg_g, bg_b);
+Window.SetBackgroundBottomColor(bg_r - 0.03, bg_g - 0.03, bg_b - 0.02);
+
+# ============================================================================
+# Text Logo "VitusOS"
+# ============================================================================
+logo_text = Image.Text("VitusOS", text_r, text_g, text_b, 1, "Inter Bold 48");
+logo_sprite = Sprite(logo_text);
+
+# Center the text
+logo_x = Window.GetWidth() / 2 - logo_text.GetWidth() / 2;
+logo_y = Window.GetHeight() / 2 - logo_text.GetHeight() / 2 - 30;
+logo_sprite.SetPosition(logo_x, logo_y, 10);
+
+# Fade in effect
+logo_opacity = 0;
+
+# ============================================================================
+# Loading animation (3 dots pulsing)
+# ============================================================================
+dot1 = Image.Text("●", accent_r, accent_g, accent_b, 1, "Sans 16");
+dot2 = Image.Text("●", accent_r, accent_g, accent_b, 1, "Sans 16");
+dot3 = Image.Text("●", accent_r, accent_g, accent_b, 1, "Sans 16");
+
+dot1_sprite = Sprite(dot1);
+dot2_sprite = Sprite(dot2);
+dot3_sprite = Sprite(dot3);
+
+# Position dots below logo
+dots_y = logo_y + logo_text.GetHeight() + 40;
+dot_spacing = 20;
+dots_center_x = Window.GetWidth() / 2;
+
+dot1_sprite.SetPosition(dots_center_x - dot_spacing, dots_y, 10);
+dot2_sprite.SetPosition(dots_center_x, dots_y, 10);
+dot3_sprite.SetPosition(dots_center_x + dot_spacing, dots_y, 10);
+
+# Animation state
+animation_time = 0;
+
+# ============================================================================
+# Animation loop
+# ============================================================================
+fun refresh_callback(time, delta) {
+    global.animation_time = animation_time + delta;
+    
+    # Fade in logo
+    if (logo_opacity < 1) {
+        logo_opacity = Math.Min(logo_opacity + delta * 2, 1);
+        logo_sprite.SetOpacity(logo_opacity);
+    }
+    
+    # Pulsing dots animation
+    # Each dot pulses with offset timing
+    dot1_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3));
+    dot2_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3 - 0.5));
+    dot3_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3 - 1.0));
+    
+    dot1_sprite.SetOpacity(dot1_opacity * logo_opacity);
+    dot2_sprite.SetOpacity(dot2_opacity * logo_opacity);
+    dot3_sprite.SetOpacity(dot3_opacity * logo_opacity);
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# ============================================================================
+# Progress callback (optional - dots serve as loading indicator)
+# ============================================================================
+fun progress_callback(duration, progress) {
+    # Progress is shown via pulsing dots
+    # Could add text like "Starting..." at certain progress points
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+# ============================================================================
+# Hide all text messages (polished boot)
+# ============================================================================
+fun message_callback(text) {
+    # Intentionally empty - no systemd messages shown
+}
+Plymouth.SetMessageFunction(message_callback);
+
+fun display_normal_callback() {
+    # Continue showing splash
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+fun display_password_callback(prompt, bullets) {
+    # TODO: Show disk encryption password prompt
+    # Style with OS1 aesthetic
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);

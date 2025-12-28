@@ -1,0 +1,28 @@
+# Build outputs
+build/
+cmake-build-*/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Nix
+result
+result-*
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled
+*.o
+*.obj
+*.so
+*.dylib
+*.a
+
+# Package manager
+node_modules/
