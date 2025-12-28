@@ -1,15 +1,15 @@
-# openSEF Framework
-# Open SeagrEnv (Seamless Integration Environment) Framework
-# Core GUI framework for VitusOS
+# openSEF - Open SeagrEnv Framework (C++ Version)
+# Build order matters due to dependencies
 
-# Build order matters - base first, then backend (no deps on appkit)
-# then ui (uses base), then appkit (uses base+backend)
-add_subdirectory(opensef-base)
-add_subdirectory(opensef-backend)
-add_subdirectory(opensef-ui)
-add_subdirectory(opensef-appkit)
+project(opensef)
 
-# Test programs (optional, only if building tests)
+# Components in dependency order
+add_subdirectory(opensef-base)      # No dependencies
+add_subdirectory(opensef-ui)        # Depends on base (interface only)
+add_subdirectory(opensef-appkit)    # Depends on base, ui
+add_subdirectory(opensef-backend)   # Depends on base
+
+# Test programs
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()

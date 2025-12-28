@@ -1,29 +1,30 @@
-# opensef-backend: Display Backend (Wayland-only)
-# Surface management, input handling, Vulkan rendering
-# NOTE: Built before appkit (no circular dependency)
+# opensef-backend: Display Backend (C++ Version)
 
 project(opensef-backend)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(WAYLAND REQUIRED wayland-client)
+pkg_check_modules(XKB REQUIRED xkbcommon)
+
 add_library(opensef-backend SHARED
-    src/OSFBackend.m
-    src/OSFWaylandSurface.m
-    src/OSFVulkanRenderer.m
+    src/OSFBackend.cpp
+    src/OSFVulkanRenderer.cpp
 )
 
 target_include_directories(opensef-backend PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${WAYLAND_INCLUDE_DIRS}
-    ${Vulkan_INCLUDE_DIRS}
-)
-
-target_compile_options(opensef-backend PRIVATE
-    -fobjc-runtime=gnustep-2.0
-    -fobjc-arc
-    -fblocks
 )
 
 target_link_libraries(opensef-backend PUBLIC
     opensef-base
     ${WAYLAND_LIBRARIES}
-    Vulkan::Vulkan
+    ${XKB_LIBRARIES}
+)
+
+target_compile_options(opensef-backend PRIVATE
+    -Wall -Wextra
 )

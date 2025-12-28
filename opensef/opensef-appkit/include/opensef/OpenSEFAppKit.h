@@ -1,259 +1,166 @@
 /**
- * openSEF AppKit: GUI Widget Layer
+ * openSEF AppKit: GUI Widgets (C++ Version)
  *
- * Windows, views, and UI components for openSEF framework.
- * Forked from GNUStep-gui, modernized for VitusOS.
+ * Windows, views, buttons for VitusOS
  */
 
-#ifndef OPENSEF_APPKIT_H
-#define OPENSEF_APPKIT_H
+#pragma once
 
-#import <opensef/OpenSEFBase.h>
+#include <functional>
+#include <memory>
+#include <opensef/OpenSEFBase.h>
+#include <opensef/OpenSEFUI.h>
+#include <string>
+#include <vector>
+
+
+namespace opensef {
 
 // Forward declarations
-@class OSFWindow;
-@class OSFView;
-@class OSFBackend;
+class OSFView;
+class OSFWindow;
 
 // ============================================================================
 // OSFView - Base class for all visual elements
 // ============================================================================
 
-@interface OSFView : OSFObject
+class OSFView : public OSFObject {
+public:
+  OSFView();
+  virtual ~OSFView();
 
-@property(nonatomic) CGRect frame;
-@property(nonatomic, weak) OSFView *superview;
-@property(nonatomic, strong) NSMutableArray<OSFView *> *subviews;
-@property(nonatomic) CGFloat alpha;
-@property(nonatomic) BOOL hidden;
+  // Geometry
+  OSFRect frame() const { return frame_; }
+  void setFrame(const OSFRect &frame) { frame_ = frame; }
 
-- (void)addSubview:(OSFView *)view;
-- (void)removeFromSuperview;
-- (void)draw:(CGContextRef)context;
+  // Visibility
+  float alpha() const { return alpha_; }
+  void setAlpha(float alpha) { alpha_ = alpha; }
+  bool isHidden() const { return hidden_; }
+  void setHidden(bool hidden) { hidden_ = hidden; }
 
-@end
+  // Hierarchy
+  OSFView *superview() const { return superview_; }
+  const std::vector<std::shared_ptr<OSFView>> &subviews() const {
+    return subviews_;
+  }
+  void addSubview(std::shared_ptr<OSFView> view);
+  void removeFromSuperview();
+
+  // Drawing
+  virtual void draw();
+
+protected:
+  OSFRect frame_;
+  float alpha_ = 1.0f;
+  bool hidden_ = false;
+  OSFView *superview_ = nullptr;
+  std::vector<std::shared_ptr<OSFView>> subviews_;
+};
 
 // ============================================================================
 // OSFWindow - Top-level window
 // ============================================================================
 
-@interface OSFWindow : OSFView
+class OSFWindow : public OSFView {
+public:
+  OSFWindow();
+  OSFWindow(const std::string &title, const OSFRect &frame);
+  virtual ~OSFWindow();
 
-@property(nonatomic, copy) NSString *title;
-@property(nonatomic) BOOL visible;
-@property(nonatomic, readonly) OSFBackend *backend;
+  static std::shared_ptr<OSFWindow> create(const std::string &title,
+                                           const OSFRect &frame);
 
-+ (instancetype)windowWithTitle:(NSString *)title frame:(CGRect)frame;
+  // Properties
+  const std::string &title() const { return title_; }
+  void setTitle(const std::string &title) { title_ = title; }
+  bool isVisible() const { return visible_; }
 
-- (void)show;
-- (void)close;
-- (void)setContentView:(OSFView *)view;
+  // Actions
+  void show();
+  void close();
+  void setContentView(std::shared_ptr<OSFView> view);
 
-@end
+private:
+  std::string title_;
+  bool visible_ = false;
+  std::shared_ptr<OSFView> contentView_;
+  void *waylandSurface_ = nullptr; // Wayland surface handle
+};
 
 // ============================================================================
 // OSFButton - Clickable button
 // ============================================================================
 
-@interface OSFButton : OSFView
+class OSFButton : public OSFView {
+public:
+  OSFButton();
+  OSFButton(const std::string &label, std::function<void()> action);
+  virtual ~OSFButton();
 
-@property(nonatomic, copy) NSString *label;
-@property(nonatomic, copy) void (^action)(void);
+  static std::shared_ptr<OSFButton> create(const std::string &label,
+                                           std::function<void()> action);
 
-+ (instancetype)buttonWithLabel:(NSString *)label action:(void (^)(void))action;
+  const std::string &label() const { return label_; }
+  void setLabel(const std::string &label) { label_ = label; }
+  void setAction(std::function<void()> action) { action_ = action; }
 
-@end
+  void click();
+  virtual void draw() override;
 
-// ============================================================================
-// OSFGlassPanel - OS1-style frosted glass panel
-// ============================================================================
-
-@interface OSFGlassPanel : OSFView
-
-@property(nonatomic) CGFloat blurRadius;
-@property(nonatomic) CGFloat tintAlpha;
-@property(nonatomic, strong) NSColor *tintColor;
-
-+ (instancetype)glassPanelWithFrame:(CGRect)frame;
-
-@end
-
-// ============================================================================
-// OSFTextField - Text input field
-// ============================================================================
-
-@interface OSFTextField : OSFView
-
-@property(nonatomic, copy) NSString *text;
-@property(nonatomic, copy) NSString *placeholder;
-@property(nonatomic, copy) void (^onTextChanged)(NSString *text);
-
-@end
+private:
+  std::string label_;
+  std::function<void()> action_;
+  bool pressed_ = false;
+};
 
 // ============================================================================
-// OSFLabel - Text label
+// OSFLabel - Text display
 // ============================================================================
 
-@interface OSFLabel : OSFView
+class OSFLabel : public OSFView {
+public:
+  OSFLabel();
+  OSFLabel(const std::string &text);
+  virtual ~OSFLabel();
 
-@property(nonatomic, copy) NSString *text;
-@property(nonatomic, strong) NSFont *font;
-@property(nonatomic, strong) NSColor *textColor;
+  const std::string &text() const { return text_; }
+  void setText(const std::string &text) { text_ = text; }
 
-@end
+  OSFColor textColor() const { return textColor_; }
+  void setTextColor(const OSFColor &color) { textColor_ = color; }
 
-// ============================================================================
-// OSFTableView - List/table view for SeaDrop history
-// ============================================================================
+  virtual void draw() override;
 
-@interface OSFTableView : OSFView
-
-@property(nonatomic, strong) NSArray *items;
-@property(nonatomic) NSInteger selectedIndex;
-@property(nonatomic, copy) void (^onSelection)(NSInteger index);
-
-- (void)reloadData;
-
-@end
+private:
+  std::string text_;
+  OSFColor textColor_ = OSFColors::textPrimary();
+  float fontSize_ = 14.0f;
+};
 
 // ============================================================================
-// OSFProgressBar - Progress indicator (for installer, loading)
+// OSFGlassPanel - Frosted glass effect (Ares signature)
 // ============================================================================
 
-@interface OSFProgressBar : OSFView
+class OSFGlassPanel : public OSFView {
+public:
+  OSFGlassPanel();
+  virtual ~OSFGlassPanel();
 
-@property(nonatomic) CGFloat progress;   // 0.0 to 1.0
-@property(nonatomic) BOOL indeterminate; // Spinning/pulsing mode
-@property(nonatomic, strong) NSColor *trackColor;
-@property(nonatomic, strong) NSColor *progressColor; // Space Orange default
+  static std::shared_ptr<OSFGlassPanel> create(const OSFRect &frame);
 
-- (void)setProgress:(CGFloat)progress animated:(BOOL)animated;
+  float blurRadius() const { return blurRadius_; }
+  void setBlurRadius(float radius) { blurRadius_ = radius; }
 
-@end
+  OSFColor tintColor() const { return tintColor_; }
+  void setTintColor(const OSFColor &color) { tintColor_ = color; }
 
-// ============================================================================
-// OSFSwitch - Toggle switch (like iOS)
-// ============================================================================
+  virtual void draw() override;
 
-@interface OSFSwitch : OSFView
+private:
+  float blurRadius_ = OSFStyle::blurRadiusMedium();
+  float tintAlpha_ = 0.85f;
+  OSFColor tintColor_ = OSFColors::surface();
+};
 
-@property(nonatomic) BOOL on;
-@property(nonatomic, copy) void (^onToggle)(BOOL on);
-@property(nonatomic, strong) NSColor *onColor; // Space Orange
-
-- (void)setOn:(BOOL)on animated:(BOOL)animated;
-
-@end
-
-// ============================================================================
-// OSFSlider - Value slider
-// ============================================================================
-
-@interface OSFSlider : OSFView
-
-@property(nonatomic) CGFloat value; // 0.0 to 1.0
-@property(nonatomic) CGFloat minValue;
-@property(nonatomic) CGFloat maxValue;
-@property(nonatomic, copy) void (^onValueChanged)(CGFloat value);
-@property(nonatomic, strong) NSColor *trackColor;
-@property(nonatomic, strong) NSColor *thumbColor;
-
-@end
-
-// ============================================================================
-// OSFCheckbox - Checkbox with label
-// ============================================================================
-
-@interface OSFCheckbox : OSFView
-
-@property(nonatomic) BOOL checked;
-@property(nonatomic, copy) NSString *label;
-@property(nonatomic, copy) void (^onToggle)(BOOL checked);
-
-@end
-
-// ============================================================================
-// OSFDropdown - Dropdown/select menu
-// ============================================================================
-
-@interface OSFDropdown : OSFView
-
-@property(nonatomic, strong) NSArray<NSString *> *options;
-@property(nonatomic) NSInteger selectedIndex;
-@property(nonatomic, copy) void (^onSelection)(NSInteger index);
-@property(nonatomic, copy) NSString *placeholder;
-
-@end
-
-// ============================================================================
-// OSFImageView - Image display
-// ============================================================================
-
-@interface OSFImageView : OSFView
-
-@property(nonatomic, strong) NSImage *image;
-@property(nonatomic) CGFloat cornerRadius;
-@property(nonatomic) BOOL aspectFit; // vs aspectFill
-
-@end
-
-// ============================================================================
-// OSFScrollView - Scrollable container
-// ============================================================================
-
-@interface OSFScrollView : OSFView
-
-@property(nonatomic, strong) OSFView *contentView;
-@property(nonatomic) CGSize contentSize;
-@property(nonatomic) CGPoint contentOffset;
-@property(nonatomic) BOOL showsVerticalScrollIndicator;
-@property(nonatomic) BOOL showsHorizontalScrollIndicator;
-
-@end
-
-// ============================================================================
-// OSFMenu - Menu container
-// ============================================================================
-
-@interface OSFMenu : OSFObject
-
-@property(nonatomic, copy) NSString *title;
-@property(nonatomic, strong) NSMutableArray *items;
-
-- (instancetype)initWithTitle:(NSString *)title;
-- (void)addItem:(id)item;
-- (void)addSeparator;
-
-@end
-
-// ============================================================================
-// OSFMenuItem - Individual menu item
-// ============================================================================
-
-@interface OSFMenuItem : OSFObject
-
-@property(nonatomic, copy) NSString *title;
-@property(nonatomic, copy) NSString *shortcut;
-@property(nonatomic, copy) void (^triggered)(void);
-@property(nonatomic) BOOL enabled;
-@property(nonatomic) BOOL checked;
-
-- (instancetype)initWithTitle:(NSString *)title;
-
-@end
-
-// ============================================================================
-// OSFMenuBar - Global menu bar (VitusOS uses global menus)
-// ============================================================================
-
-@interface OSFMenuBar : OSFObject
-
-+ (instancetype)shared;
-
-- (void)addMenu:(OSFMenu *)menu;
-- (void)removeMenu:(OSFMenu *)menu;
-- (void)setApplicationMenu:(OSFMenu *)menu;
-
-@end
-
-#endif /* OPENSEF_APPKIT_H */
+} // namespace opensef

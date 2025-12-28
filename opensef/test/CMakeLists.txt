@@ -1,26 +1,21 @@
-# openSEF Tests
+# openSEF hello-window test
+
+project(hello-window)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(hello-window
-    hello-window.m
+    hello-window.cpp
+)
+
+target_link_libraries(hello-window PRIVATE
+    opensef-base
+    opensef-ui
+    opensef-appkit
+    opensef-backend
 )
 
 target_compile_options(hello-window PRIVATE
-    -fobjc-runtime=gnustep-2.0
-    -fobjc-arc
-    -fblocks
-)
-
-target_include_directories(hello-window PRIVATE
-    ${CMAKE_SOURCE_DIR}/opensef/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-base/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-appkit/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-backend/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-ui/include
-)
-
-target_link_libraries(hello-window
-    opensef-base
-    opensef-appkit
-    opensef-backend
-    opensef-ui
+    -Wall -Wextra
 )

@@ -1,148 +1,102 @@
 /**
- * openSEF UI: Ares Design System
+ * openSEF UI: Ares Design System (C++ Version)
  *
- * Colors, typography, spacing, and animations for VitusOS.
+ * Colors, typography, spacing for VitusOS
  * Theme: Ares (The Martian) - Space Orange + Lunar Gray
  */
 
-#ifndef OPENSEF_UI_H
-#define OPENSEF_UI_H
+#pragma once
 
-#import <opensef/OpenSEFBase.h>
+#include <opensef/OpenSEFBase.h>
+
+namespace opensef {
 
 // ============================================================================
-// OSFTheme - Current active theme
+// OSFColors - Ares Color Palette
 // ============================================================================
 
-typedef NS_ENUM(NSInteger, OSFThemeMode) {
-  OSFThemeModeLight,
-  OSFThemeModeDark,
-  OSFThemeModeAuto
+class OSFColors {
+public:
+  // Primary (Ares/Martian tones)
+  static OSFColor primary() {
+    return OSFColor::fromHex(0xE85D04);
+  } // Space Orange
+  static OSFColor secondary() {
+    return OSFColor::fromHex(0x3D5A80);
+  } // Mission Blue
+  static OSFColor accent() { return OSFColor::fromHex(0xFB8500); } // Mars Dust
+
+  // Backgrounds
+  static OSFColor background() {
+    return OSFColor::fromHex(0xF0F0F0);
+  } // Lunar Gray
+  static OSFColor backgroundDark() {
+    return OSFColor::fromHex(0x1A1A2E);
+  } // Space Charcoal
+  static OSFColor surface() { return OSFColor::fromHex(0xFAFAFA, 0.85f); }
+  static OSFColor elevated() { return OSFColor::fromHex(0xFFFFFF, 0.95f); }
+
+  // Text
+  static OSFColor textPrimary() { return OSFColor::fromHex(0x1A1A2E); }
+  static OSFColor textSecondary() { return OSFColor::fromHex(0x6B7280); }
+  static OSFColor textDisabled() { return OSFColor::fromHex(0x9CA3AF); }
+
+  // Semantic
+  static OSFColor success() { return OSFColor::fromHex(0x10B981); }
+  static OSFColor warning() { return OSFColor::fromHex(0xF59E0B); }
+  static OSFColor error() { return OSFColor::fromHex(0xEF4444); }
+
+  // Ares extras
+  static OSFColor marsRed() { return OSFColor::fromHex(0xC1440E); }
+  static OSFColor spaceBlack() { return OSFColor::fromHex(0x0D0D1A); }
+  static OSFColor nasaBlue() { return OSFColor::fromHex(0x0B3D91); }
 };
-
-@interface OSFTheme : OSFObject
-
-@property(nonatomic) OSFThemeMode mode;
-@property(nonatomic, readonly) BOOL isDark;
-
-+ (instancetype)currentTheme;
-- (void)apply;
-
-@end
-
-// ============================================================================
-// OSFColors - Ares Color Palette (The Martian inspired)
-// ============================================================================
-
-@interface OSFColors : NSObject
-
-// Primary palette (Ares/Martian tones)
-+ (NSColor *)primary;   // Space Orange #E85D04
-+ (NSColor *)secondary; // Mission Blue #3D5A80
-+ (NSColor *)accent;    // Mars Dust #FB8500
-
-// Backgrounds
-+ (NSColor *)background; // Lunar Gray #F0F0F0 / Space Charcoal #1A1A2E
-+ (NSColor *)surface;    // Glass panel base (85% alpha)
-+ (NSColor *)elevated;   // Modal/popover (95% alpha)
-
-// Text
-+ (NSColor *)textPrimary;
-+ (NSColor *)textSecondary;
-+ (NSColor *)textDisabled;
-
-// Semantic (Mission status)
-+ (NSColor *)success; // Mission success green
-+ (NSColor *)warning; // Caution orange
-+ (NSColor *)error;   // Critical red
-
-// Ares extras
-+ (NSColor *)marsRed;    // Actual Mars surface #C1440E
-+ (NSColor *)spaceBlack; // Deep space #0D0D1A
-+ (NSColor *)nasaBlue;   // NASA logo blue #0B3D91
-
-@end
-
-// ============================================================================
-// OSFTypography - Font System (Inter family)
-// ============================================================================
-
-@interface OSFTypography : NSObject
-
-// Display (57pt, 45pt, 36pt)
-+ (NSFont *)displayLarge;
-+ (NSFont *)displayMedium;
-+ (NSFont *)displaySmall;
-
-// Headlines (32pt, 28pt, 24pt)
-+ (NSFont *)headlineLarge;
-+ (NSFont *)headlineMedium;
-+ (NSFont *)headlineSmall;
-
-// Body (16pt, 14pt, 12pt)
-+ (NSFont *)bodyLarge;
-+ (NSFont *)bodyMedium;
-+ (NSFont *)bodySmall;
-
-// Labels
-+ (NSFont *)labelLarge;
-+ (NSFont *)labelMedium;
-+ (NSFont *)labelSmall;
-
-@end
 
 // ============================================================================
 // OSFSpacing - Consistent spacing scale
 // ============================================================================
 
-@interface OSFSpacing : NSObject
+class OSFSpacing {
+public:
+  static float xs() { return 4.0f; }
+  static float sm() { return 8.0f; }
+  static float md() { return 16.0f; }
+  static float lg() { return 24.0f; }
+  static float xl() { return 32.0f; }
+  static float xxl() { return 48.0f; }
+};
 
-+ (CGFloat)xs;  // 4pt
-+ (CGFloat)sm;  // 8pt
-+ (CGFloat)md;  // 16pt
-+ (CGFloat)lg;  // 24pt
-+ (CGFloat)xl;  // 32pt
-+ (CGFloat)xxl; // 48pt
+// ============================================================================
+// OSFStyle - Design constants
+// ============================================================================
 
-@end
+class OSFStyle {
+public:
+  // Corner radius
+  static float cornerRadiusSmall() { return 4.0f; }
+  static float cornerRadiusMedium() { return 8.0f; }
+  static float cornerRadiusLarge() { return 16.0f; }
+
+  // Blur
+  static float blurRadiusLight() { return 8.0f; }
+  static float blurRadiusMedium() { return 16.0f; }
+  static float blurRadiusHeavy() { return 24.0f; }
+
+  // Shadow
+  static float shadowBlur() { return 12.0f; }
+  static OSFPoint shadowOffset() { return OSFPoint(0, 2); }
+  static float shadowOpacity() { return 0.15f; }
+};
 
 // ============================================================================
 // OSFAnimation - Animation presets
 // ============================================================================
 
-@interface OSFAnimation : NSObject
+class OSFAnimation {
+public:
+  static float durationFast() { return 0.1f; }
+  static float durationNormal() { return 0.2f; }
+  static float durationSlow() { return 0.3f; }
+};
 
-+ (NSTimeInterval)durationFast;   // 100ms
-+ (NSTimeInterval)durationNormal; // 200ms
-+ (NSTimeInterval)durationSlow;   // 300ms
-
-+ (CAMediaTimingFunction *)easeOut;
-+ (CAMediaTimingFunction *)easeInOut;
-+ (CAMediaTimingFunction *)spring;
-
-@end
-
-// ============================================================================
-// OSFStyle - Ares Design Constants
-// ============================================================================
-
-@interface OSFStyle : NSObject
-
-// Corner radius
-+ (CGFloat)cornerRadiusSmall;  // 4pt
-+ (CGFloat)cornerRadiusMedium; // 8pt  Default for buttons/panels
-+ (CGFloat)cornerRadiusLarge;  // 16pt For modals
-
-// Blur radius for glass panels
-+ (CGFloat)blurRadiusLight;  // 8pt
-+ (CGFloat)blurRadiusMedium; // 16pt Default
-+ (CGFloat)blurRadiusHeavy;  // 24pt
-
-// Shadow
-+ (CGFloat)shadowBlur;    // 12pt
-+ (CGPoint)shadowOffset;  // (0, 2)
-+ (CGFloat)shadowOpacity; // 15%
-
-@end
-
-#endif /* OPENSEF_UI_H */
+} // namespace opensef

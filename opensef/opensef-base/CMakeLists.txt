@@ -1,31 +1,18 @@
-# opensef-base: Foundation layer (forked from gnustep-base)
-# Core data types, object system
+# opensef-base: Foundation Layer (C++ Version)
 
 project(opensef-base)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_library(opensef-base SHARED
-    src/OSFObject.m
-    src/OSFString.m
-    src/OSFArray.m
+    src/OSFObject.cpp
 )
 
-# GNUStep includes and flags
 target_include_directories(opensef-base PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${GNUSTEP_BASE_INCLUDE_DIRS}
 )
 
 target_compile_options(opensef-base PRIVATE
-    ${GNUSTEP_BASE_CFLAGS}
-    -fobjc-runtime=gnustep-2.0
-    -fobjc-arc
-    -fblocks
+    -Wall -Wextra -Wpedantic
 )
-
-target_link_libraries(opensef-base PUBLIC
-    ${GNUSTEP_BASE_LIBRARIES}
-    objc  # libobjc2
-)
-
-# Export include directory for other components
-set(OPENSEF_BASE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include PARENT_SCOPE)

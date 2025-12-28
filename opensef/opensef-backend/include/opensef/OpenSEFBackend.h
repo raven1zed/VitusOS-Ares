@@ -1,107 +1,112 @@
 /**
- * openSEF Backend: Display Backend
+ * openSEF Backend: Display Server (C++ Version)
  *
- * Wayland surface management and Vulkan rendering.
- * This is where pixels actually get to the screen.
+ * Wayland surface management and Vulkan rendering
  */
 
-#ifndef OPENSEF_BACKEND_H
-#define OPENSEF_BACKEND_H
+#pragma once
 
-#import <opensef/OpenSEFBase.h>
+#include <functional>
+#include <memory>
+#include <opensef/OpenSEFBase.h>
+
+
+namespace opensef {
 
 // ============================================================================
-// OSFBackend - Main display backend coordinator
+// OSFBackend - Display backend coordinator
 // ============================================================================
 
-@interface OSFBackend : OSFObject
+class OSFBackend {
+public:
+  static OSFBackend &shared();
 
-/** Shared backend instance */
-+ (instancetype)sharedBackend;
+  bool connect();
+  void disconnect();
+  void run(); // Event loop
 
-/** Initialize Wayland connection */
-- (BOOL)connect;
+  bool isWayland() const { return true; } // VitusOS is Wayland-only
+  bool isConnected() const { return connected_; }
 
-/** Main event loop */
-- (void)run;
-
-/** Disconnect and cleanup */
-- (void)disconnect;
-
-/** Check if running on Wayland */
-- (BOOL)isWayland;
-
-@end
+private:
+  OSFBackend() = default;
+  bool connected_ = false;
+  void *wlDisplay_ = nullptr;
+  void *wlRegistry_ = nullptr;
+};
 
 // ============================================================================
 // OSFWaylandSurface - Wayland surface wrapper
 // ============================================================================
 
-@interface OSFWaylandSurface : OSFObject
+class OSFWaylandSurface : public OSFObject {
+public:
+  OSFWaylandSurface();
+  ~OSFWaylandSurface();
 
-@property(nonatomic) CGSize size;
-@property(nonatomic, copy) NSString *title;
-@property(nonatomic, readonly) void *wl_surface;
+  static std::shared_ptr<OSFWaylandSurface> create(const OSFSize &size,
+                                                   const std::string &title);
 
-+ (instancetype)surfaceWithSize:(CGSize)size title:(NSString *)title;
+  void commit();
+  void destroy();
 
-- (void)commit;
-- (void)destroy;
-- (void)setOpaque:(BOOL)opaque;
+  void setSize(const OSFSize &size) { size_ = size; }
+  void setTitle(const std::string &title) { title_ = title; }
 
-@end
+private:
+  OSFSize size_;
+  std::string title_;
+  void *wlSurface_ = nullptr;
+  void *xdgSurface_ = nullptr;
+  void *xdgToplevel_ = nullptr;
+};
 
 // ============================================================================
 // OSFVulkanRenderer - Vulkan rendering backend
 // ============================================================================
 
-@interface OSFVulkanRenderer : OSFObject
+class OSFVulkanRenderer {
+public:
+  static OSFVulkanRenderer &shared();
 
-@property(nonatomic, readonly) BOOL available;
-@property(nonatomic, readonly) BOOL supportsBlur;
+  bool initialize();
+  void shutdown();
 
-+ (instancetype)sharedRenderer;
+  bool isAvailable() const { return available_; }
+  bool supportsBlur() const { return true; } // We'll implement this
 
-- (BOOL)initialize;
-- (void)beginFrame;
-- (void)endFrame;
+  void beginFrame();
+  void endFrame();
 
-/** Draw blur effect (OS1 glass panels) */
-- (void)drawBlurWithRadius:(CGFloat)radius inRect:(CGRect)rect;
+  // Drawing primitives
+  void drawRect(const OSFRect &rect, const OSFColor &color);
+  void drawRoundedRect(const OSFRect &rect, float radius,
+                       const OSFColor &color);
+  void drawBlur(const OSFRect &rect, float radius);
 
-/** Draw solid color */
-- (void)drawColor:(NSColor *)color inRect:(CGRect)rect;
-
-/** Draw rounded rectangle */
-- (void)drawRoundedRect:(CGRect)rect
-                 radius:(CGFloat)radius
-                  color:(NSColor *)color;
-
-/** Draw shadow */
-- (void)drawShadow:(CGRect)rect
-              blur:(CGFloat)blur
-             color:(NSColor *)color
-            offset:(CGPoint)offset;
-
-@end
+private:
+  OSFVulkanRenderer() = default;
+  bool available_ = false;
+  void *vkInstance_ = nullptr;
+  void *vkDevice_ = nullptr;
+};
 
 // ============================================================================
-// OSFInputHandler - Keyboard/mouse/touch input
+// OSFInputHandler - Input events
 // ============================================================================
 
-@interface OSFInputHandler : OSFObject
+class OSFInputHandler {
+public:
+  static OSFInputHandler &shared();
 
-+ (instancetype)sharedHandler;
+  std::function<void(const std::string &key, unsigned modifiers)> onKeyDown;
+  std::function<void(const std::string &key, unsigned modifiers)> onKeyUp;
+  std::function<void(const OSFPoint &location)> onMouseMove;
+  std::function<void(const OSFPoint &location, int button)> onMouseDown;
+  std::function<void(const OSFPoint &location, int button)> onMouseUp;
 
-@property(nonatomic, copy) void (^onKeyDown)
-    (NSString *key, NSUInteger modifiers);
-@property(nonatomic, copy) void (^onKeyUp)(NSString *key, NSUInteger modifiers);
-@property(nonatomic, copy) void (^onMouseMove)(CGPoint location);
-@property(nonatomic, copy) void (^onMouseDown)
-    (CGPoint location, NSInteger button);
-@property(nonatomic, copy) void (^onMouseUp)(CGPoint location, NSInteger button)
-    ;
+private:
+  OSFInputHandler() = default;
+};
 
-@end
-
-#endif /* OPENSEF_BACKEND_H */
+} // namespace opensef

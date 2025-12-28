@@ -1,49 +1,101 @@
 /**
- * openSEF Base: Foundation Layer
+ * openSEF Base: Foundation Layer (C++ Version)
  *
- * Open SeagrEnv (Seamless Integration Environment) Framework
- * Core object system forked from GNUStep-base, modernized for VitusOS.
+ * Open SeagrEnv Framework - Core object system
+ * Originally designed for GNUstep, now pure C++ for portability
  */
 
-#ifndef OPENSEF_BASE_H
-#define OPENSEF_BASE_H
+#pragma once
 
-#import <Foundation/Foundation.h>
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+
+namespace opensef {
 
 // ============================================================================
 // OSFObject - Root class for all openSEF objects
 // ============================================================================
 
-@interface OSFObject : NSObject
+class OSFObject {
+public:
+  OSFObject();
+  virtual ~OSFObject();
 
-/** Unique identifier for this object */
-@property(nonatomic, readonly) NSString *objectID;
+  /** Unique identifier for this object */
+  const std::string &objectID() const { return objectID_; }
 
-/** Create a new openSEF object */
-+ (instancetype)create;
+  /** Create a new openSEF object */
+  static std::shared_ptr<OSFObject> create();
 
-@end
+protected:
+  std::string objectID_;
 
-// ============================================================================
-// OSFString - Enhanced string with openSEF features
-// ============================================================================
-
-@interface OSFString : NSString
-
-/** Create from C++ std::string (for C++ interop) */
-+ (instancetype)stringWithStdString:(const char *)str;
-
-@end
+private:
+  static std::atomic<uint64_t> nextID_;
+};
 
 // ============================================================================
-// OSFArray - Enhanced array with openSEF features
+// OSFString - Enhanced string (thin wrapper for now)
 // ============================================================================
 
-@interface OSFArray<ObjectType> : NSArray <ObjectType>
+using OSFString = std::string;
 
-/** Reactive observation support (future) */
-- (void)observe:(void (^)(ObjectType obj, NSUInteger idx))block;
+// ============================================================================
+// OSFArray - Enhanced array (thin wrapper for now)
+// ============================================================================
 
-@end
+template <typename T> using OSFArray = std::vector<T>;
 
-#endif /* OPENSEF_BASE_H */
+// ============================================================================
+// Basic types (replacing Foundation types)
+// ============================================================================
+
+struct OSFRect {
+  float x = 0, y = 0;
+  float width = 0, height = 0;
+
+  OSFRect() = default;
+  OSFRect(float x, float y, float w, float h)
+      : x(x), y(y), width(w), height(h) {}
+
+  static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
+};
+
+struct OSFPoint {
+  float x = 0, y = 0;
+
+  OSFPoint() = default;
+  OSFPoint(float x, float y) : x(x), y(y) {}
+};
+
+struct OSFSize {
+  float width = 0, height = 0;
+
+  OSFSize() = default;
+  OSFSize(float w, float h) : width(w), height(h) {}
+};
+
+// ============================================================================
+// Color (RGBA)
+// ============================================================================
+
+struct OSFColor {
+  float r = 0, g = 0, b = 0, a = 1;
+
+  OSFColor() = default;
+  OSFColor(float r, float g, float b, float a = 1.0f)
+      : r(r), g(g), b(b), a(a) {}
+
+  static OSFColor fromHex(uint32_t hex, float alpha = 1.0f) {
+    return OSFColor(((hex >> 16) & 0xFF) / 255.0f, ((hex >> 8) & 0xFF) / 255.0f,
+                    (hex & 0xFF) / 255.0f, alpha);
+  }
+
+  OSFColor withAlpha(float alpha) const { return OSFColor(r, g, b, alpha); }
+};
+
+} // namespace opensef
