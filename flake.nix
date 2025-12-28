@@ -17,22 +17,18 @@
           
           buildInputs = with pkgs; [
             # Compiler toolchain (Clang required for ObjC 2.0)
-            clang_16
-            llvm_16
-            lld_16
+            clang
+            llvm
+            lld
+            
+            # Objective-C runtime
+            libobjc  # Basic ObjC runtime
             
             # Build system
             cmake
             ninja
             pkg-config
             gnumake
-            
-            # GNUStep + libobjc2
-            gnustep.libobjc
-            gnustep.base
-            gnustep.gui
-            gnustep.back
-            gnustep.make
             
             # Wayland (VitusOS is Wayland-only)
             wayland
@@ -56,12 +52,8 @@
             git
             gdb
             valgrind
-            bear  # For compile_commands.json
           ];
 
-          # Required for GNUStep
-          GNUSTEP_MAKEFILES = "${pkgs.gnustep.make}/share/GNUstep/Makefiles";
-          
           shellHook = ''
             echo ""
             echo "╔════════════════════════════════════════════════════════╗"
@@ -69,8 +61,6 @@
             echo "║                                                        ║"
             echo "║  Theme:   Ares (The Martian)                           ║"
             echo "║  openSEF: Open SeagrEnv Framework                      ║"
-            echo "║  Wayland: $(pkg-config --modversion wayland-client 2>/dev/null || echo 'available')"
-            echo "║  Vulkan:  Available                                    ║"
             echo "╚════════════════════════════════════════════════════════╝"
             echo ""
             echo "Quick Start:"
@@ -81,12 +71,7 @@
             export CC=clang
             export CXX=clang++
             export OBJC=clang
-            export OBJCFLAGS="-fobjc-runtime=gnustep-2.0 -fobjc-arc -fblocks"
-            
-            # Source GNUStep environment if available
-            if [ -f "${pkgs.gnustep.make}/share/GNUstep/Makefiles/GNUstep.sh" ]; then
-              source "${pkgs.gnustep.make}/share/GNUstep/Makefiles/GNUstep.sh"
-            fi
+            export OBJCFLAGS="-fobjc-arc -fblocks"
           '';
         };
       }
