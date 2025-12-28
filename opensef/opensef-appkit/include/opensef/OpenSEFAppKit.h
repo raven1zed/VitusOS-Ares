@@ -117,6 +117,101 @@
 @end
 
 // ============================================================================
+// OSFProgressBar - Progress indicator (for installer, loading)
+// ============================================================================
+
+@interface OSFProgressBar : OSFView
+
+@property(nonatomic) CGFloat progress;   // 0.0 to 1.0
+@property(nonatomic) BOOL indeterminate; // Spinning/pulsing mode
+@property(nonatomic, strong) NSColor *trackColor;
+@property(nonatomic, strong) NSColor *progressColor; // Space Orange default
+
+- (void)setProgress:(CGFloat)progress animated:(BOOL)animated;
+
+@end
+
+// ============================================================================
+// OSFSwitch - Toggle switch (like iOS)
+// ============================================================================
+
+@interface OSFSwitch : OSFView
+
+@property(nonatomic) BOOL on;
+@property(nonatomic, copy) void (^onToggle)(BOOL on);
+@property(nonatomic, strong) NSColor *onColor; // Space Orange
+
+- (void)setOn:(BOOL)on animated:(BOOL)animated;
+
+@end
+
+// ============================================================================
+// OSFSlider - Value slider
+// ============================================================================
+
+@interface OSFSlider : OSFView
+
+@property(nonatomic) CGFloat value; // 0.0 to 1.0
+@property(nonatomic) CGFloat minValue;
+@property(nonatomic) CGFloat maxValue;
+@property(nonatomic, copy) void (^onValueChanged)(CGFloat value);
+@property(nonatomic, strong) NSColor *trackColor;
+@property(nonatomic, strong) NSColor *thumbColor;
+
+@end
+
+// ============================================================================
+// OSFCheckbox - Checkbox with label
+// ============================================================================
+
+@interface OSFCheckbox : OSFView
+
+@property(nonatomic) BOOL checked;
+@property(nonatomic, copy) NSString *label;
+@property(nonatomic, copy) void (^onToggle)(BOOL checked);
+
+@end
+
+// ============================================================================
+// OSFDropdown - Dropdown/select menu
+// ============================================================================
+
+@interface OSFDropdown : OSFView
+
+@property(nonatomic, strong) NSArray<NSString *> *options;
+@property(nonatomic) NSInteger selectedIndex;
+@property(nonatomic, copy) void (^onSelection)(NSInteger index);
+@property(nonatomic, copy) NSString *placeholder;
+
+@end
+
+// ============================================================================
+// OSFImageView - Image display
+// ============================================================================
+
+@interface OSFImageView : OSFView
+
+@property(nonatomic, strong) NSImage *image;
+@property(nonatomic) CGFloat cornerRadius;
+@property(nonatomic) BOOL aspectFit; // vs aspectFill
+
+@end
+
+// ============================================================================
+// OSFScrollView - Scrollable container
+// ============================================================================
+
+@interface OSFScrollView : OSFView
+
+@property(nonatomic, strong) OSFView *contentView;
+@property(nonatomic) CGSize contentSize;
+@property(nonatomic) CGPoint contentOffset;
+@property(nonatomic) BOOL showsVerticalScrollIndicator;
+@property(nonatomic) BOOL showsHorizontalScrollIndicator;
+
+@end
+
+// ============================================================================
 // OSFMenu - Menu container
 // ============================================================================
 
