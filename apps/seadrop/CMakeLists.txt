@@ -31,6 +31,7 @@ add_executable(seadrop
     src/SeaDropApp.cpp
     src/SeaDropWindow.cpp
     src/SeaDropTray.cpp
+    src/SeaDropSettings.cpp
 )
 
 target_include_directories(seadrop PRIVATE

@@ -116,4 +116,49 @@
 
 @end
 
+// ============================================================================
+// OSFMenu - Menu container
+// ============================================================================
+
+@interface OSFMenu : OSFObject
+
+@property(nonatomic, copy) NSString *title;
+@property(nonatomic, strong) NSMutableArray *items;
+
+- (instancetype)initWithTitle:(NSString *)title;
+- (void)addItem:(id)item;
+- (void)addSeparator;
+
+@end
+
+// ============================================================================
+// OSFMenuItem - Individual menu item
+// ============================================================================
+
+@interface OSFMenuItem : OSFObject
+
+@property(nonatomic, copy) NSString *title;
+@property(nonatomic, copy) NSString *shortcut;
+@property(nonatomic, copy) void (^triggered)(void);
+@property(nonatomic) BOOL enabled;
+@property(nonatomic) BOOL checked;
+
+- (instancetype)initWithTitle:(NSString *)title;
+
+@end
+
+// ============================================================================
+// OSFMenuBar - Global menu bar (VitusOS uses global menus)
+// ============================================================================
+
+@interface OSFMenuBar : OSFObject
+
++ (instancetype)shared;
+
+- (void)addMenu:(OSFMenu *)menu;
+- (void)removeMenu:(OSFMenu *)menu;
+- (void)setApplicationMenu:(OSFMenu *)menu;
+
+@end
+
 #endif /* OPENSEF_APPKIT_H */

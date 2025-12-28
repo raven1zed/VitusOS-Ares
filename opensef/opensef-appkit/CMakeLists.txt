@@ -7,6 +7,7 @@ add_library(opensef-appkit SHARED
     src/OSFWindow.m
     src/OSFView.m
     src/OSFButton.m
+    src/OSFMenu.m
 )
 
 target_include_directories(opensef-appkit PUBLIC

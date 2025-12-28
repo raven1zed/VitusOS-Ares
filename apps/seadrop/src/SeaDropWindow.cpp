@@ -1,34 +1,50 @@
 /**
  * SeaDropWindow.cpp - Main window (openSEF native)
+ *
+ * SeaDrop for VitusOS - Ares theme (Space Orange + Lunar Gray)
  */
 
 #include "SeaDrop.h"
+#include <iostream>
 
 namespace vitusos::seadrop {
 
-SeaDropWindow::SeaDropWindow() {
-  setupUI();
-  setupMenu();
-}
+SeaDropWindow::SeaDropWindow() { setupUI(); }
 
 SeaDropWindow::~SeaDropWindow() {
   // openSEF handles cleanup via ARC
 }
 
 void SeaDropWindow::setupUI() {
-  // Create window with OS1 glass effect
+  // Create window with Ares glass effect
   window_ =
       [OSFWindow windowWithTitle:@"SeaDrop" frame:CGRectMake(0, 0, 400, 600)];
 
-  // Glass background panel
+  // Glass background panel (Lunar Gray with blur)
   backgroundPanel_ =
       [OSFGlassPanel glassPanelWithFrame:CGRectMake(0, 0, 400, 600)];
   backgroundPanel_.blurRadius = [OSFStyle blurRadiusMedium];
+  backgroundPanel_.tintColor = [OSFColors surface];
   [window_ setContentView:backgroundPanel_];
 
-  // Search field at top
+  // Header with app name
+  OSFLabel *headerLabel = [[OSFLabel alloc] init];
+  headerLabel.frame = CGRectMake(16, 16, 200, 32);
+  headerLabel.text = @"SeaDrop";
+  headerLabel.font = [OSFTypography headlineMedium];
+  headerLabel.textColor = [OSFColors textPrimary];
+  [backgroundPanel_ addSubview:headerLabel];
+
+  // Connection indicator (Space Orange dot when connected)
+  OSFLabel *connectionDot = [[OSFLabel alloc] init];
+  connectionDot.frame = CGRectMake(360, 24, 20, 20);
+  connectionDot.text = @"●";
+  connectionDot.textColor = [OSFColors textDisabled]; // Gray when disconnected
+  [backgroundPanel_ addSubview:connectionDot];
+
+  // Search field
   searchField_ = [[OSFTextField alloc] init];
-  searchField_.frame = CGRectMake(16, 16, 368, 36);
+  searchField_.frame = CGRectMake(16, 56, 368, 40);
   searchField_.placeholder = @"Search clipboard history...";
   searchField_.onTextChanged = ^(NSString *text) {
     onSearchChanged([text UTF8String]);
@@ -37,7 +53,7 @@ void SeaDropWindow::setupUI() {
 
   // Clipboard history table
   historyTableView_ = [[OSFTableView alloc] init];
-  historyTableView_.frame = CGRectMake(16, 68, 368, 480);
+  historyTableView_.frame = CGRectMake(16, 112, 368, 428);
   historyTableView_.onSelection = ^(NSInteger index) {
     onHistoryItemSelected(static_cast<int>(index));
   };
@@ -45,54 +61,50 @@ void SeaDropWindow::setupUI() {
 
   // Status bar at bottom
   statusLabel_ = [[OSFLabel alloc] init];
-  statusLabel_.frame = CGRectMake(16, 564, 280, 24);
-  statusLabel_.text = @"Connecting...";
+  statusLabel_.frame = CGRectMake(16, 556, 250, 24);
+  statusLabel_.text = @"Starting...";
   statusLabel_.font = [OSFTypography bodySmall];
   statusLabel_.textColor = [OSFColors textSecondary];
   [backgroundPanel_ addSubview:statusLabel_];
 
-  // Sync button
+  // Sync button (Space Orange accent)
   syncButton_ = [OSFButton buttonWithLabel:@"Sync"
                                     action:^{
                                       onSyncClicked();
                                     }];
-  syncButton_.frame = CGRectMake(320, 560, 64, 32);
+  syncButton_.frame = CGRectMake(300, 550, 84, 36);
+  // TODO: Set button color to primary (Space Orange)
   [backgroundPanel_ addSubview:syncButton_];
 }
 
-void SeaDropWindow::setupMenu() {
-  // File menu
-  auto *fileMenu = [[OSFMenu alloc] initWithTitle:@"File"];
-
-  auto *quitItem = [[OSFMenuItem alloc] initWithTitle:@"Quit SeaDrop"];
-  quitItem.shortcut = @"Cmd+Q";
-  quitItem.triggered = ^{
-    // Quit application
-  };
-  [fileMenu addItem:quitItem];
-
-  // Edit menu
-  auto *editMenu = [[OSFMenu alloc] initWithTitle:@"Edit"];
-  [editMenu addItem:[[OSFMenuItem alloc] initWithTitle:@"Copy"]];
-  [editMenu addItem:[[OSFMenuItem alloc] initWithTitle:@"Paste"]];
-  [editMenu addItem:[[OSFMenuItem alloc] initWithTitle:@"Clear History"]];
-
-  // Register with global menu bar
-  [[OSFMenuBar shared] addMenu:fileMenu];
-  [[OSFMenuBar shared] addMenu:editMenu];
+void SeaDropWindow::show() {
+  [window_ show];
+  std::cout << "[SeaDrop] Window shown" << std::endl;
 }
 
-void SeaDropWindow::show() { [window_ show]; }
-
-void SeaDropWindow::hide() { [window_ close]; }
+void SeaDropWindow::hide() {
+  [window_ close];
+  std::cout << "[SeaDrop] Window hidden" << std::endl;
+}
 
 bool SeaDropWindow::isVisible() const { return window_.visible; }
 
-void SeaDropWindow::updateHistory(
-    const std::vector<seadrop::ClipboardEntry> &entries) {
+void SeaDropWindow::updateHistory(const std::vector<ClipboardEntry> &entries) {
   NSMutableArray *items = [NSMutableArray array];
   for (const auto &entry : entries) {
-    [items addObject:[NSString stringWithUTF8String:entry.preview.c_str()]];
+    // Format: icon + preview text
+    NSString *icon;
+    if (entry.type == "image") {
+      icon = @"🖼️";
+    } else if (entry.type == "file") {
+      icon = @"📄";
+    } else {
+      icon = @"📋";
+    }
+
+    NSString *preview = [NSString stringWithUTF8String:entry.preview.c_str()];
+    NSString *item = [NSString stringWithFormat:@"%@ %@", icon, preview];
+    [items addObject:item];
   }
   historyTableView_.items = items;
   [historyTableView_ reloadData];
@@ -101,8 +113,8 @@ void SeaDropWindow::updateHistory(
 void SeaDropWindow::setStatus(const std::string &status, int deviceCount) {
   NSString *text;
   if (deviceCount > 0) {
-    text = [NSString
-        stringWithFormat:@"%s (%d devices)", status.c_str(), deviceCount];
+    text = [NSString stringWithFormat:@"%s • %d device%s", status.c_str(),
+                                      deviceCount, deviceCount > 1 ? "s" : ""];
   } else {
     text = [NSString stringWithUTF8String:status.c_str()];
   }
@@ -114,19 +126,33 @@ void SeaDropWindow::setSearchQuery(const std::string &query) {
 }
 
 void SeaDropWindow::onHistoryItemSelected(int index) {
-  // Copy selected item to system clipboard
+  std::cout << "[SeaDrop] Selected item: " << index << std::endl;
+
+#if HAVE_LIBSEADROP
+  // Copy to system clipboard via libseadrop
   auto &entry = SeaDropApp::instance().backend().getHistory()[index];
   SeaDropApp::instance().backend().copyToClipboard(entry);
+#else
+  // UI-only mode - just log
+  std::cout << "[SeaDrop] UI-only mode - clipboard not synced" << std::endl;
+#endif
 }
 
 void SeaDropWindow::onSearchChanged(const std::string &query) {
-  // Filter history
-  // TODO: Implement filtering
+  std::cout << "[SeaDrop] Search: " << query << std::endl;
+  // TODO: Filter history by query
 }
 
 void SeaDropWindow::onSyncClicked() {
+  std::cout << "[SeaDrop] Manual sync requested" << std::endl;
   statusLabel_.text = @"Syncing...";
+
+#if HAVE_LIBSEADROP
   SeaDropApp::instance().backend().requestSync();
+#else
+  // UI-only mode
+  statusLabel_.text = @"UI-only mode (no sync)";
+#endif
 }
 
 } // namespace vitusos::seadrop
