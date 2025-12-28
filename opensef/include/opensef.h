@@ -2,6 +2,8 @@
  * openSEF.h - Unified Framework Header
  *
  * Open SeagrEnv (Seamless Integration Environment) Framework
+ * Theme: Ares (The Martian)
+ *
  * Include this single header to access all openSEF functionality.
  */
 
@@ -17,7 +19,7 @@
 // Display Backend
 #import <opensef/OpenSEFBackend.h>
 
-// OS1 Design System
+// Ares Design System
 #import <opensef/OpenSEFUI.h>
 
 // Version info
@@ -29,5 +31,6 @@
 // Framework info
 #define OPENSEF_NAME "openSEF"
 #define OPENSEF_FULL_NAME "Open SeagrEnv Framework"
+#define OPENSEF_THEME "Ares"
 
 #endif /* OPENSEF_H */

@@ -71,9 +71,12 @@ Inspired by *The Martian* (2015) - **"I'm gonna have to science the shit out of 
 ## 🚀 Quick Start
 
 ```bash
-# Clone
-git clone https://github.com/raven1zed/vitusos-ares.git
+# Clone with submodules (includes SeaDrop/libseadrop)
+git clone --recursive https://github.com/raven1zed/vitusos-ares.git
 cd vitusos-ares
+
+# Or if already cloned:
+git submodule update --init --recursive
 
 # Enter dev environment (requires Nix)
 nix develop
@@ -82,11 +85,20 @@ nix develop
 cmake -B build -G Ninja
 cmake --build build
 
-# Test
+# Test openSEF
 ./build/opensef/test/hello-window
 ```
 
-See [LINUX_VALIDATION.md](LINUX_VALIDATION.md) for detailed VM setup.
+### Building with SeaDrop
+
+```bash
+# Enable apps in build
+cmake -B build -G Ninja -DBUILD_APPS=ON
+cmake --build build
+
+# Run SeaDrop
+./build/apps/seadrop/seadrop
+```
 
 ---
 

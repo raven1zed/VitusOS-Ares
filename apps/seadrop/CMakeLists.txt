@@ -1,61 +1,68 @@
 # SeaDrop for VitusOS
-# openSEF Native Frontend + libseadrop Backend
+# openSEF Native Frontend + libseadrop Backend (from SeagrEnv submodule)
 
 project(seadrop-vitusos VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ============================================================================
-# libseadrop (submodule from SeagrEnv)
+# libseadrop (from SeagrEnv submodule)
 # ============================================================================
 
-# Option 1: Submodule (recommended for development)
-# add_subdirectory(${CMAKE_SOURCE_DIR}/../SeagrEnv/libseadrop libseadrop)
+set(SEAGRENV_DIR ${CMAKE_SOURCE_DIR}/external/SeagrEnv)
+set(LIBSEADROP_DIR ${SEAGRENV_DIR}/libseadrop)
 
-# Option 2: Find installed library
-find_library(LIBSEADROP seadrop HINTS /usr/local/lib)
-find_path(LIBSEADROP_INCLUDE seadrop/seadrop.h HINTS /usr/local/include)
+if(EXISTS ${LIBSEADROP_DIR}/CMakeLists.txt)
+    message(STATUS "Found libseadrop at ${LIBSEADROP_DIR}")
+    add_subdirectory(${LIBSEADROP_DIR} ${CMAKE_BINARY_DIR}/libseadrop)
+    set(LIBSEADROP_FOUND TRUE)
+else()
+    message(WARNING "libseadrop not found. Run: git submodule update --init --recursive")
+    set(LIBSEADROP_FOUND FALSE)
+endif()
 
 # ============================================================================
 # SeaDrop VitusOS (openSEF frontend)
 # ============================================================================
 
-add_executable(seadrop-vitusos
+add_executable(seadrop
     src/main.cpp
     src/SeaDropApp.cpp
     src/SeaDropWindow.cpp
     src/SeaDropTray.cpp
 )
 
-target_include_directories(seadrop-vitusos PRIVATE
+target_include_directories(seadrop PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${LIBSEADROP_INCLUDE}
 )
 
-target_link_libraries(seadrop-vitusos
-    # openSEF framework
+# Link openSEF framework
+target_link_libraries(seadrop PRIVATE
     opensef-base
     opensef-appkit
     opensef-backend
     opensef-ui
-    
-    # libseadrop core
-    ${LIBSEADROP}
-    
-    # libseadrop dependencies
-    sodium      # libsodium encryption
-    bluetooth   # BlueZ
 )
+
+# Link libseadrop if available
+if(LIBSEADROP_FOUND)
+    target_include_directories(seadrop PRIVATE
+        ${LIBSEADROP_DIR}/include
+    )
+    target_link_libraries(seadrop PRIVATE
+        seadrop  # libseadrop library
+    )
+    target_compile_definitions(seadrop PRIVATE HAVE_LIBSEADROP=1)
+else()
+    # Stub mode - UI only, no sync
+    target_compile_definitions(seadrop PRIVATE HAVE_LIBSEADROP=0)
+endif()
 
 # ============================================================================
 # Install
 # ============================================================================
 
-install(TARGETS seadrop-vitusos DESTINATION /usr/bin RENAME seadrop)
-install(FILES resources/seadrop.desktop DESTINATION /usr/share/applications)
-install(FILES resources/seadrop.svg DESTINATION /usr/share/icons/hicolor/scalable/apps)
-
-# ============================================================================
-# Note: For full build, clone SeagrEnv as submodule
-# ============================================================================
-# git submodule add https://github.com/raven1zed/SeagrEnv external/SeagrEnv
+install(TARGETS seadrop DESTINATION bin)
+install(FILES resources/seadrop.desktop DESTINATION share/applications)
+install(FILES resources/seadrop.svg DESTINATION share/icons/hicolor/scalable/apps)

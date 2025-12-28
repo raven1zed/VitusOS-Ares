@@ -1,8 +1,8 @@
 /**
- * openSEF UI: OS1 Design System
+ * openSEF UI: Ares Design System
  *
  * Colors, typography, spacing, and animations for VitusOS.
- * Inspired by OS1 (Her), Aqua, and Aero aesthetics.
+ * Theme: Ares (The Martian) - Space Orange + Lunar Gray
  */
 
 #ifndef OPENSEF_UI_H
@@ -31,19 +31,19 @@ typedef NS_ENUM(NSInteger, OSFThemeMode) {
 @end
 
 // ============================================================================
-// OSFColors - OS1 Color Palette
+// OSFColors - Ares Color Palette (The Martian inspired)
 // ============================================================================
 
 @interface OSFColors : NSObject
 
-// Primary palette (OS1-inspired warm tones)
-+ (NSColor *)primary;   // Soft coral #FAB5AC
-+ (NSColor *)secondary; // Muted teal #8FC2C2
-+ (NSColor *)accent;    // Warm peach #FFD9BA
+// Primary palette (Ares/Martian tones)
++ (NSColor *)primary;   // Space Orange #E85D04
++ (NSColor *)secondary; // Mission Blue #3D5A80
++ (NSColor *)accent;    // Mars Dust #FB8500
 
 // Backgrounds
-+ (NSColor *)background; // Warm off-white / Deep charcoal
-+ (NSColor *)surface;    // Glass panel base (80% alpha)
++ (NSColor *)background; // Lunar Gray #F0F0F0 / Space Charcoal #1A1A2E
++ (NSColor *)surface;    // Glass panel base (85% alpha)
 + (NSColor *)elevated;   // Modal/popover (95% alpha)
 
 // Text
@@ -51,10 +51,15 @@ typedef NS_ENUM(NSInteger, OSFThemeMode) {
 + (NSColor *)textSecondary;
 + (NSColor *)textDisabled;
 
-// Semantic
-+ (NSColor *)success;
-+ (NSColor *)warning;
-+ (NSColor *)error;
+// Semantic (Mission status)
++ (NSColor *)success; // Mission success green
++ (NSColor *)warning; // Caution orange
++ (NSColor *)error;   // Critical red
+
+// Ares extras
++ (NSColor *)marsRed;    // Actual Mars surface #C1440E
++ (NSColor *)spaceBlack; // Deep space #0D0D1A
++ (NSColor *)nasaBlue;   // NASA logo blue #0B3D91
 
 @end
 
@@ -118,7 +123,7 @@ typedef NS_ENUM(NSInteger, OSFThemeMode) {
 @end
 
 // ============================================================================
-// OSFStyle - OS1 Design Constants
+// OSFStyle - Ares Design Constants
 // ============================================================================
 
 @interface OSFStyle : NSObject

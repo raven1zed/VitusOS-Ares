@@ -1,3 +1,4 @@
 [submodule "external/SeagrEnv"]
 	path = external/SeagrEnv
 	url = https://github.com/raven1zed/SeagrEnv.git
+	branch = main
