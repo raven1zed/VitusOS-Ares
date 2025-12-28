@@ -14,7 +14,7 @@
 
 ---
 
-## 🌋 What is VitusOS?
+## What is VitusOS?
 
 VitusOS is an attempt to create a **unified, beautiful Linux experience** - inspired by macOS polish, OS1 (Her 2013) minimalism, and The Martian's Ares mission aesthetic.
 
@@ -24,7 +24,7 @@ VitusOS is an attempt to create a **unified, beautiful Linux experience** - insp
 
 ---
 
-## ✅ Current Status
+## Current Status
 
 | Milestone | Status |
 |-----------|--------|
@@ -49,25 +49,25 @@ VitusOS is an attempt to create a **unified, beautiful Linux experience** - insp
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  VitusOS Apps (SeaDrop, Terminal, Filer)         [C++17]   │
+│  VitusOS Apps (SeaDrop, Terminal, Filer)         [C++17]    │
 ├─────────────────────────────────────────────────────────────┤
 │  openSEF Framework                                [C++17]   │
-│  ├── opensef-base      (Foundation)                        │
-│  ├── opensef-appkit    (GUI Widgets)                       │
-│  ├── opensef-backend   (Wayland + Vulkan)                  │
-│  └── opensef-ui        (Ares Design System)                │
+│  ├── opensef-base      (Foundation)                         │
+│  ├── opensef-appkit    (GUI Widgets)                        │
+│  ├── opensef-backend   (Wayland + Vulkan)                   │
+│  └── opensef-ui        (Ares Design System)                 │
 ├─────────────────────────────────────────────────────────────┤
-│  NixOS (Declarative Linux)                                 │
+│  NixOS (Declarative Linux)                                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎨 Ares Theme
+## Ares Theme
 
 Inspired by *The Martian* - **"I'm gonna have to science the shit out of this."**
 
@@ -82,7 +82,7 @@ Inspired by *The Martian* - **"I'm gonna have to science the shit out of this."*
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 **Requires:** NixOS or Nix on Linux with Wayland session
 
@@ -104,7 +104,7 @@ cmake --build build
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 vitusos-ares/
@@ -124,7 +124,7 @@ vitusos-ares/
 
 ---
 
-## 🎯 Roadmap
+## Roadmap
 
 | Phase | Target | Status |
 |-------|--------|--------|
@@ -137,7 +137,7 @@ vitusos-ares/
 
 ---
 
-## 📜 License
+## License
 
 GPL-3.0 - See [LICENSE](LICENSE)
 
