@@ -26,7 +26,7 @@
             ninja
             pkg-config
             
-            # Wayland
+            # Wayland (with protocols for XDG shell)
             wayland
             wayland-protocols
             wayland-scanner
@@ -39,6 +39,9 @@
             # Fonts
             fontconfig
             freetype
+            
+            # FFI (required by wayland-client)
+            libffi
             
             # Tools
             git

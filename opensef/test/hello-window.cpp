@@ -1,10 +1,11 @@
 /**
- * hello-window.cpp - Basic openSEF test
+ * hello-window.cpp - Visual openSEF test
  *
- * Creates a window and displays text to verify the framework works.
+ * Creates an actual window with Space Orange background!
  */
 
 #include <iostream>
+#include <memory>
 #include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
@@ -31,51 +32,35 @@ int main() {
     return 1;
   }
 
-  // Initialize Vulkan
-  if (!OSFVulkanRenderer::shared().initialize()) {
-    std::cerr << "Warning: Vulkan initialization failed (continuing anyway)"
-              << std::endl;
+  // Create window with XDG shell
+  auto surface = OSFWaylandSurface::create(400, 300, "Hello VitusOS");
+  if (!surface) {
+    std::cerr << "Error: Failed to create window" << std::endl;
+    OSFBackend::shared().disconnect();
+    return 1;
   }
 
-  // Create window
-  auto window = OSFWindow::create("Hello VitusOS", OSFRect(0, 0, 400, 300));
-
-  // Create glass panel (Ares style)
-  auto glass = OSFGlassPanel::create(OSFRect(0, 0, 400, 300));
-  glass->setTintColor(OSFColors::surface());
-
-  // Create label
-  auto label = std::make_shared<OSFLabel>("Welcome to VitusOS Ares!");
-  label->setFrame(OSFRect(50, 100, 300, 40));
-  label->setTextColor(OSFColors::primary()); // Space Orange
-
-  // Create button
-  auto button = OSFButton::create("Click Me", []() {
-    std::cout << "[hello-window] Button clicked!" << std::endl;
-  });
-  button->setFrame(OSFRect(150, 180, 100, 40));
-
-  // Build view hierarchy
-  glass->addSubview(label);
-  glass->addSubview(button);
-  window->setContentView(glass);
-
-  // Show window
-  window->show();
+  // Fill with Space Orange (Ares primary color)
+  OSFColor spaceOrange = OSFColors::primary();
+  surface->draw(spaceOrange);
 
   std::cout << std::endl;
-  std::cout << "Window created successfully!" << std::endl;
-  std::cout << "Theme: Ares (The Martian)" << std::endl;
-  std::cout << "Primary color: Space Orange #E85D04" << std::endl;
-  std::cout << std::endl;
-  std::cout << "Press Ctrl+C to exit." << std::endl;
+  std::cout << "╔════════════════════════════════════════════╗" << std::endl;
+  std::cout << "║  Window created!                           ║" << std::endl;
+  std::cout << "║                                            ║" << std::endl;
+  std::cout << "║  Theme: Ares (The Martian)                 ║" << std::endl;
+  std::cout << "║  Color: Space Orange #E85D04               ║" << std::endl;
+  std::cout << "║                                            ║" << std::endl;
+  std::cout << "║  Close the window to exit.                 ║" << std::endl;
+  std::cout << "╚════════════════════════════════════════════╝" << std::endl;
 
-  // Run event loop
+  // Run event loop until window is closed
   OSFBackend::shared().run();
 
   // Cleanup
-  OSFVulkanRenderer::shared().shutdown();
+  surface.reset();
   OSFBackend::shared().disconnect();
 
+  std::cout << "[openSEF] Goodbye!" << std::endl;
   return 0;
 }
