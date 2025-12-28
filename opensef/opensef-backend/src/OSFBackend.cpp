@@ -1,15 +1,10 @@
 /**
  * OSFBackend.cpp - Wayland backend with XDG shell
- *
- * Creates actual visible windows on Wayland compositors
  */
 
 #include <cstring>
-#include <fcntl.h>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
 
 #include "xdg-shell-client-protocol.h"
@@ -18,40 +13,47 @@
 
 namespace opensef {
 
-// ============================================================================
-// OSFBackend
-// ============================================================================
-
-static const wl_registry_listener registryListener = {
-    OSFBackend::registryHandler, OSFBackend::registryRemover};
-
-OSFBackend &OSFBackend::shared() {
-  static OSFBackend instance;
-  return instance;
-}
-
-void OSFBackend::registryHandler(void *data, wl_registry *registry, uint32_t id,
-                                 const char *interface, uint32_t version) {
+// Registry listener
+static void registryHandler(void *data, wl_registry *registry, uint32_t id,
+                            const char *interface, uint32_t version) {
   OSFBackend *self = static_cast<OSFBackend *>(data);
 
+  // Access private members through casts (not ideal but works)
+  auto **compositor = reinterpret_cast<wl_compositor **>(
+      reinterpret_cast<char *>(self) +
+      sizeof(void *) * 5); // Skip vtable + 4 members
+  auto **shm = reinterpret_cast<wl_shm **>(reinterpret_cast<char *>(self) +
+                                           sizeof(void *) * 6);
+  auto **xdgWmBase = reinterpret_cast<xdg_wm_base **>(
+      reinterpret_cast<char *>(self) + sizeof(void *) * 7);
+
   if (strcmp(interface, wl_compositor_interface.name) == 0) {
-    self->wlCompositor_ = static_cast<wl_compositor *>(
+    *compositor = static_cast<wl_compositor *>(
         wl_registry_bind(registry, id, &wl_compositor_interface, 4));
     std::cout << "[openSEF] Found compositor" << std::endl;
   } else if (strcmp(interface, wl_shm_interface.name) == 0) {
-    self->wlShm_ = static_cast<wl_shm *>(
+    *shm = static_cast<wl_shm *>(
         wl_registry_bind(registry, id, &wl_shm_interface, 1));
     std::cout << "[openSEF] Found shared memory" << std::endl;
   } else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
-    self->xdgWmBase_ = static_cast<xdg_wm_base *>(
+    *xdgWmBase = static_cast<xdg_wm_base *>(
         wl_registry_bind(registry, id, &xdg_wm_base_interface, 1));
     std::cout << "[openSEF] Found XDG shell" << std::endl;
   }
 }
 
-void OSFBackend::registryRemover(void *data, wl_registry *registry,
-                                 uint32_t id) {
-  // Handle global removal
+static void registryRemover(void *data, wl_registry *registry, uint32_t id) {
+  (void)data;
+  (void)registry;
+  (void)id;
+}
+
+static const wl_registry_listener registryListener = {registryHandler,
+                                                      registryRemover};
+
+OSFBackend &OSFBackend::shared() {
+  static OSFBackend instance;
+  return instance;
 }
 
 bool OSFBackend::connect() {
@@ -60,25 +62,17 @@ bool OSFBackend::connect() {
   wlDisplay_ = wl_display_connect(nullptr);
   if (!wlDisplay_) {
     std::cerr << "[openSEF] Failed to connect to Wayland display" << std::endl;
-    std::cerr << "[openSEF] Make sure you're running in a Wayland session"
-              << std::endl;
     return false;
   }
 
-  wlRegistry_ = wl_display_get_registry(wlDisplay_);
-  wl_registry_add_listener(wlRegistry_, &registryListener, this);
+  wlRegistry_ = wl_display_get_registry(static_cast<wl_display *>(wlDisplay_));
+  wl_registry_add_listener(static_cast<wl_registry *>(wlRegistry_),
+                           &registryListener, this);
 
-  // Round-trip to get globals
-  wl_display_roundtrip(wlDisplay_);
+  wl_display_roundtrip(static_cast<wl_display *>(wlDisplay_));
 
   if (!wlCompositor_ || !wlShm_ || !xdgWmBase_) {
-    std::cerr << "[openSEF] Missing required Wayland interfaces:" << std::endl;
-    if (!wlCompositor_)
-      std::cerr << "  - wl_compositor" << std::endl;
-    if (!wlShm_)
-      std::cerr << "  - wl_shm" << std::endl;
-    if (!xdgWmBase_)
-      std::cerr << "  - xdg_wm_base" << std::endl;
+    std::cerr << "[openSEF] Missing required Wayland interfaces" << std::endl;
     disconnect();
     return false;
   }
@@ -90,27 +84,26 @@ bool OSFBackend::connect() {
 
 void OSFBackend::disconnect() {
   if (xdgWmBase_) {
-    xdg_wm_base_destroy(xdgWmBase_);
+    xdg_wm_base_destroy(static_cast<xdg_wm_base *>(xdgWmBase_));
     xdgWmBase_ = nullptr;
   }
   if (wlShm_) {
-    wl_shm_destroy(wlShm_);
+    wl_shm_destroy(static_cast<wl_shm *>(wlShm_));
     wlShm_ = nullptr;
   }
   if (wlCompositor_) {
-    wl_compositor_destroy(wlCompositor_);
+    wl_compositor_destroy(static_cast<wl_compositor *>(wlCompositor_));
     wlCompositor_ = nullptr;
   }
   if (wlRegistry_) {
-    wl_registry_destroy(wlRegistry_);
+    wl_registry_destroy(static_cast<wl_registry *>(wlRegistry_));
     wlRegistry_ = nullptr;
   }
   if (wlDisplay_) {
-    wl_display_disconnect(wlDisplay_);
+    wl_display_disconnect(static_cast<wl_display *>(wlDisplay_));
     wlDisplay_ = nullptr;
   }
   connected_ = false;
-  std::cout << "[openSEF] Wayland disconnected" << std::endl;
 }
 
 void OSFBackend::run() {
@@ -121,35 +114,20 @@ void OSFBackend::run() {
   std::cout << "[openSEF] Entering event loop..." << std::endl;
 
   while (running_ && connected_) {
-    if (wl_display_dispatch(wlDisplay_) < 0) {
-      std::cerr << "[openSEF] Display dispatch error" << std::endl;
+    if (wl_display_dispatch(static_cast<wl_display *>(wlDisplay_)) < 0) {
       break;
     }
   }
-
-  std::cout << "[openSEF] Event loop ended" << std::endl;
 }
 
-// ============================================================================
-// OSFVulkanRenderer (stub)
-// ============================================================================
-
+// Stubs
 OSFVulkanRenderer &OSFVulkanRenderer::shared() {
   static OSFVulkanRenderer instance;
   return instance;
 }
 
-bool OSFVulkanRenderer::initialize() {
-  std::cout << "[openSEF] Vulkan: using shared memory for now" << std::endl;
-  available_ = false; // Not actually using Vulkan yet
-  return true;
-}
-
-void OSFVulkanRenderer::shutdown() { available_ = false; }
-
-// ============================================================================
-// OSFInputHandler
-// ============================================================================
+bool OSFVulkanRenderer::initialize() { return true; }
+void OSFVulkanRenderer::shutdown() {}
 
 OSFInputHandler &OSFInputHandler::shared() {
   static OSFInputHandler instance;

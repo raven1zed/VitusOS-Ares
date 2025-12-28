@@ -3,8 +3,6 @@
  */
 
 #include <cstring>
-#include <errno.h>
-#include <fcntl.h>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
 #include <sys/mman.h>
@@ -17,14 +15,51 @@
 
 namespace opensef {
 
-// XDG surface listener
-static const xdg_surface_listener xdgSurfaceListener = {
-    OSFWaylandSurface::xdgSurfaceConfigure};
+// XDG surface callbacks
+static void xdgSurfaceHandleConfigure(void *data, xdg_surface *surface,
+                                      uint32_t serial) {
+  OSFWaylandSurface *self = static_cast<OSFWaylandSurface *>(data);
+  xdg_surface_ack_configure(surface, serial);
+  self->onConfigure(serial);
+}
 
-// XDG toplevel listener
+static const xdg_surface_listener xdgSurfaceListener = {
+    xdgSurfaceHandleConfigure};
+
+// XDG toplevel callbacks
+static void xdgToplevelHandleConfigure(void *data, xdg_toplevel *toplevel,
+                                       int32_t width, int32_t height,
+                                       wl_array *states) {
+  (void)data;
+  (void)toplevel;
+  (void)width;
+  (void)height;
+  (void)states;
+  // We ignore resize requests for now
+}
+
+static void xdgToplevelHandleClose(void *data, xdg_toplevel *toplevel) {
+  (void)toplevel;
+  OSFWaylandSurface *self = static_cast<OSFWaylandSurface *>(data);
+  self->onClose();
+}
+
 static const xdg_toplevel_listener xdgToplevelListener = {
-    OSFWaylandSurface::xdgToplevelConfigure,
-    OSFWaylandSurface::xdgToplevelClose};
+    xdgToplevelHandleConfigure, xdgToplevelHandleClose};
+
+// Create shared memory file
+static int createShmFile(size_t size) {
+  int fd = memfd_create("opensef-buffer", MFD_CLOEXEC);
+  if (fd < 0) {
+    char name[] = "/dev/shm/opensef-XXXXXX";
+    fd = mkstemp(name);
+    if (fd >= 0)
+      unlink(name);
+  }
+  if (fd >= 0)
+    ftruncate(fd, size);
+  return fd;
+}
 
 OSFWaylandSurface::OSFWaylandSurface() = default;
 
@@ -39,69 +74,39 @@ OSFWaylandSurface::create(int width, int height, const std::string &title) {
   return surface;
 }
 
-// Create anonymous file for shared memory
-static int createShmFile(size_t size) {
-  // Try memfd_create first (Linux 3.17+)
-  int fd = memfd_create("opensef-buffer", MFD_CLOEXEC);
-  if (fd < 0) {
-    // Fallback to /dev/shm
-    char name[] = "/dev/shm/opensef-XXXXXX";
-    fd = mkstemp(name);
-    if (fd >= 0) {
-      unlink(name);
-    }
-  }
-
-  if (fd < 0) {
-    std::cerr << "[openSEF] Failed to create shared memory file" << std::endl;
-    return -1;
-  }
-
-  if (ftruncate(fd, size) < 0) {
-    std::cerr << "[openSEF] Failed to resize shared memory: " << strerror(errno)
-              << std::endl;
-    close(fd);
-    return -1;
-  }
-
-  return fd;
-}
-
 bool OSFWaylandSurface::createBuffer() {
-  int stride = width_ * 4; // ARGB8888
+  int stride = width_ * 4;
   shmSize_ = stride * height_;
 
   shmFd_ = createShmFile(shmSize_);
-  if (shmFd_ < 0) {
+  if (shmFd_ < 0)
     return false;
-  }
 
   shmData_ =
       mmap(nullptr, shmSize_, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd_, 0);
   if (shmData_ == MAP_FAILED) {
-    std::cerr << "[openSEF] Failed to mmap shared memory" << std::endl;
     close(shmFd_);
     shmFd_ = -1;
     return false;
   }
 
   auto &backend = OSFBackend::shared();
-  shmPool_ = wl_shm_create_pool(backend.shm(), shmFd_, shmSize_);
-  buffer_ = wl_shm_pool_create_buffer(shmPool_, 0, width_, height_, stride,
-                                      WL_SHM_FORMAT_ARGB8888);
+  wl_shm *shm = static_cast<wl_shm *>(backend.shm());
+  shmPool_ = wl_shm_create_pool(shm, shmFd_, shmSize_);
+  buffer_ =
+      wl_shm_pool_create_buffer(static_cast<wl_shm_pool *>(shmPool_), 0, width_,
+                                height_, stride, WL_SHM_FORMAT_ARGB8888);
 
-  std::cout << "[openSEF] Created " << width_ << "x" << height_ << " buffer"
-            << std::endl;
   return true;
 }
 
 void OSFWaylandSurface::destroyBuffer() {
   if (buffer_) {
-    wl_buffer_destroy(buffer_);
+    wl_buffer_destroy(static_cast<wl_buffer *>(buffer_));
     buffer_ = nullptr;
   }
   if (shmPool_) {
-    wl_shm_pool_destroy(shmPool_);
+    wl_shm_pool_destroy(static_cast<wl_shm_pool *>(shmPool_));
     shmPool_ = nullptr;
   }
   if (shmData_ && shmData_ != MAP_FAILED) {
@@ -121,60 +126,55 @@ bool OSFWaylandSurface::initialize(int width, int height,
   title_ = title;
 
   auto &backend = OSFBackend::shared();
+  wl_compositor *compositor =
+      static_cast<wl_compositor *>(backend.compositor());
+  xdg_wm_base *xdgWmBase = static_cast<xdg_wm_base *>(backend.xdgWmBase());
 
-  // Create Wayland surface
-  wlSurface_ = wl_compositor_create_surface(backend.compositor());
-  if (!wlSurface_) {
-    std::cerr << "[openSEF] Failed to create Wayland surface" << std::endl;
+  wlSurface_ = wl_compositor_create_surface(compositor);
+  if (!wlSurface_)
     return false;
-  }
 
-  // Create XDG surface
-  xdgSurface_ = xdg_wm_base_get_xdg_surface(backend.xdgWmBase(), wlSurface_);
-  if (!xdgSurface_) {
-    std::cerr << "[openSEF] Failed to create XDG surface" << std::endl;
+  xdgSurface_ = xdg_wm_base_get_xdg_surface(
+      xdgWmBase, static_cast<wl_surface *>(wlSurface_));
+  if (!xdgSurface_)
     return false;
-  }
-  xdg_surface_add_listener(xdgSurface_, &xdgSurfaceListener, this);
+  xdg_surface_add_listener(static_cast<xdg_surface *>(xdgSurface_),
+                           &xdgSurfaceListener, this);
 
-  // Create XDG toplevel (actual window)
-  xdgToplevel_ = xdg_surface_get_toplevel(xdgSurface_);
-  if (!xdgToplevel_) {
-    std::cerr << "[openSEF] Failed to create XDG toplevel" << std::endl;
+  xdgToplevel_ =
+      xdg_surface_get_toplevel(static_cast<xdg_surface *>(xdgSurface_));
+  if (!xdgToplevel_)
     return false;
-  }
-  xdg_toplevel_add_listener(xdgToplevel_, &xdgToplevelListener, this);
-  xdg_toplevel_set_title(xdgToplevel_, title.c_str());
-  xdg_toplevel_set_app_id(xdgToplevel_, "vitusos.opensef");
+  xdg_toplevel_add_listener(static_cast<xdg_toplevel *>(xdgToplevel_),
+                            &xdgToplevelListener, this);
+  xdg_toplevel_set_title(static_cast<xdg_toplevel *>(xdgToplevel_),
+                         title.c_str());
+  xdg_toplevel_set_app_id(static_cast<xdg_toplevel *>(xdgToplevel_),
+                          "vitusos.opensef");
 
-  // Create buffer
-  if (!createBuffer()) {
+  if (!createBuffer())
     return false;
-  }
 
-  // Commit to trigger configure
-  wl_surface_commit(wlSurface_);
+  wl_surface_commit(static_cast<wl_surface *>(wlSurface_));
+  wl_display_roundtrip(static_cast<wl_display *>(backend.display()));
 
-  // Wait for configure
-  wl_display_roundtrip(backend.display());
-
-  std::cout << "[openSEF] Window '" << title << "' created" << std::endl;
+  std::cout << "[openSEF] Window '" << title << "' created (" << width << "x"
+            << height << ")" << std::endl;
   return true;
 }
 
 void OSFWaylandSurface::destroy() {
   destroyBuffer();
-
   if (xdgToplevel_) {
-    xdg_toplevel_destroy(xdgToplevel_);
+    xdg_toplevel_destroy(static_cast<xdg_toplevel *>(xdgToplevel_));
     xdgToplevel_ = nullptr;
   }
   if (xdgSurface_) {
-    xdg_surface_destroy(xdgSurface_);
+    xdg_surface_destroy(static_cast<xdg_surface *>(xdgSurface_));
     xdgSurface_ = nullptr;
   }
   if (wlSurface_) {
-    wl_surface_destroy(wlSurface_);
+    wl_surface_destroy(static_cast<wl_surface *>(wlSurface_));
     wlSurface_ = nullptr;
   }
 }
@@ -182,15 +182,18 @@ void OSFWaylandSurface::destroy() {
 void OSFWaylandSurface::setTitle(const std::string &title) {
   title_ = title;
   if (xdgToplevel_) {
-    xdg_toplevel_set_title(xdgToplevel_, title.c_str());
+    xdg_toplevel_set_title(static_cast<xdg_toplevel *>(xdgToplevel_),
+                           title.c_str());
   }
 }
 
 void OSFWaylandSurface::commit() {
   if (wlSurface_ && buffer_) {
-    wl_surface_attach(wlSurface_, buffer_, 0, 0);
-    wl_surface_damage_buffer(wlSurface_, 0, 0, width_, height_);
-    wl_surface_commit(wlSurface_);
+    wl_surface_attach(static_cast<wl_surface *>(wlSurface_),
+                      static_cast<wl_buffer *>(buffer_), 0, 0);
+    wl_surface_damage_buffer(static_cast<wl_surface *>(wlSurface_), 0, 0,
+                             width_, height_);
+    wl_surface_commit(static_cast<wl_surface *>(wlSurface_));
   }
 }
 
@@ -198,45 +201,27 @@ void OSFWaylandSurface::draw(const OSFColor &color) {
   if (!shmData_)
     return;
 
-  // Convert to ARGB8888
   uint32_t pixel = (uint32_t)(color.a * 255) << 24 |
                    (uint32_t)(color.r * 255) << 16 |
                    (uint32_t)(color.g * 255) << 8 | (uint32_t)(color.b * 255);
 
-  // Fill buffer with color
   uint32_t *pixels = static_cast<uint32_t *>(shmData_);
-  int count = width_ * height_;
-  for (int i = 0; i < count; i++) {
+  for (int i = 0; i < width_ * height_; i++) {
     pixels[i] = pixel;
   }
 
   commit();
 }
 
-// XDG callbacks
-void OSFWaylandSurface::xdgSurfaceConfigure(void *data, xdg_surface *surface,
-                                            uint32_t serial) {
-  OSFWaylandSurface *self = static_cast<OSFWaylandSurface *>(data);
-  xdg_surface_ack_configure(surface, serial);
-  self->configured_ = true;
+void OSFWaylandSurface::onConfigure(uint32_t serial) {
+  (void)serial;
+  configured_ = true;
   std::cout << "[openSEF] Surface configured" << std::endl;
 }
 
-void OSFWaylandSurface::xdgToplevelConfigure(void *data, xdg_toplevel *toplevel,
-                                             int32_t width, int32_t height,
-                                             wl_array *states) {
-  OSFWaylandSurface *self = static_cast<OSFWaylandSurface *>(data);
-
-  if (width > 0 && height > 0) {
-    // Compositor wants us to resize
-    // For now, ignore and keep our size
-  }
-}
-
-void OSFWaylandSurface::xdgToplevelClose(void *data, xdg_toplevel *toplevel) {
-  OSFWaylandSurface *self = static_cast<OSFWaylandSurface *>(data);
-  self->shouldClose_ = true;
-  std::cout << "[openSEF] Window close requested" << std::endl;
+void OSFWaylandSurface::onClose() {
+  shouldClose_ = true;
+  std::cout << "[openSEF] Close requested" << std::endl;
   OSFBackend::shared().stop();
 }
 

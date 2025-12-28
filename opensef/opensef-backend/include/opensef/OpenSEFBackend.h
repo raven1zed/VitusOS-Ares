@@ -12,18 +12,6 @@
 #include <string>
 
 
-// Forward declare Wayland types
-struct wl_display;
-struct wl_registry;
-struct wl_compositor;
-struct wl_shm;
-struct wl_shm_pool;
-struct wl_buffer;
-struct wl_surface;
-struct xdg_wm_base;
-struct xdg_surface;
-struct xdg_toplevel;
-
 namespace opensef {
 
 // ============================================================================
@@ -42,26 +30,22 @@ public:
   bool isWayland() const { return true; }
   bool isConnected() const { return connected_; }
 
-  // Wayland globals (accessed by surfaces)
-  wl_display *display() const { return wlDisplay_; }
-  wl_compositor *compositor() const { return wlCompositor_; }
-  wl_shm *shm() const { return wlShm_; }
-  xdg_wm_base *xdgWmBase() const { return xdgWmBase_; }
+  // Wayland globals (opaque pointers for header)
+  void *display() const { return wlDisplay_; }
+  void *compositor() const { return wlCompositor_; }
+  void *shm() const { return wlShm_; }
+  void *xdgWmBase() const { return xdgWmBase_; }
 
 private:
   OSFBackend() = default;
   bool connected_ = false;
   bool running_ = false;
 
-  wl_display *wlDisplay_ = nullptr;
-  wl_registry *wlRegistry_ = nullptr;
-  wl_compositor *wlCompositor_ = nullptr;
-  wl_shm *wlShm_ = nullptr;
-  xdg_wm_base *xdgWmBase_ = nullptr;
-
-  static void registryHandler(void *data, wl_registry *registry, uint32_t id,
-                              const char *interface, uint32_t version);
-  static void registryRemover(void *data, wl_registry *registry, uint32_t id);
+  void *wlDisplay_ = nullptr;
+  void *wlRegistry_ = nullptr;
+  void *wlCompositor_ = nullptr;
+  void *wlShm_ = nullptr;
+  void *xdgWmBase_ = nullptr;
 };
 
 // ============================================================================
@@ -81,12 +65,16 @@ public:
 
   void setTitle(const std::string &title);
   void commit();
-  void draw(const OSFColor &color); // Fill with solid color
+  void draw(const OSFColor &color);
 
   int width() const { return width_; }
   int height() const { return height_; }
   bool isConfigured() const { return configured_; }
   bool shouldClose() const { return shouldClose_; }
+
+  // Called by callbacks
+  void onConfigure(uint32_t serial);
+  void onClose();
 
 private:
   int width_ = 0;
@@ -95,27 +83,18 @@ private:
   bool configured_ = false;
   bool shouldClose_ = false;
 
-  wl_surface *wlSurface_ = nullptr;
-  xdg_surface *xdgSurface_ = nullptr;
-  xdg_toplevel *xdgToplevel_ = nullptr;
+  void *wlSurface_ = nullptr;
+  void *xdgSurface_ = nullptr;
+  void *xdgToplevel_ = nullptr;
 
-  // Shared memory buffer
-  wl_shm_pool *shmPool_ = nullptr;
-  wl_buffer *buffer_ = nullptr;
+  void *shmPool_ = nullptr;
+  void *buffer_ = nullptr;
   void *shmData_ = nullptr;
   int shmFd_ = -1;
   size_t shmSize_ = 0;
 
   bool createBuffer();
   void destroyBuffer();
-
-  // XDG callbacks
-  static void xdgSurfaceConfigure(void *data, xdg_surface *surface,
-                                  uint32_t serial);
-  static void xdgToplevelConfigure(void *data, xdg_toplevel *toplevel,
-                                   int32_t width, int32_t height,
-                                   wl_array *states);
-  static void xdgToplevelClose(void *data, xdg_toplevel *toplevel);
 };
 
 // ============================================================================
