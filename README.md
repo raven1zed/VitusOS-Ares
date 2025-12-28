@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square" alt="License">
 </p>
 
-🌐 **Website:** [vitusos.lovable.app](https://vitusos.lovable.app)
+**Website:** [vitusos.lovable.app](https://vitusos.lovable.app)
 
 ---
 
@@ -39,7 +39,7 @@ VitusOS is an attempt to create a **unified, beautiful Linux experience** - insp
 
 ---
 
-## 🤖 Built with AI
+## Built with AI
 
 **Full transparency:** Human-AI collaboration.
 
