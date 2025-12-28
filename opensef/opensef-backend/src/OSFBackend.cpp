@@ -6,10 +6,8 @@
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
 
-
 #include "xdg-shell-client-protocol.h"
 #include <wayland-client.h>
-
 
 namespace opensef {
 
@@ -155,11 +153,6 @@ void OSFBackend::run() {
   }
 
   std::cout << "[openSEF] Event loop ended" << std::endl;
-}
-
-void OSFBackend::stop() {
-  g_running = false;
-  running_ = false;
 }
 
 // Stubs
