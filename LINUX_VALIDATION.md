@@ -15,12 +15,6 @@
 ## Step 1: Clone from GitHub
 
 ```bash
-# In NixOS VM terminal
-git clone https://github.com/raven1zed/VitusOS-Ares.git
-cd VitusOS-Ares
-
-# If repo name is different:
-# git clone https://github.com/raven1zed/YOUR_REPO_NAME.git
 ```
 
 ---
