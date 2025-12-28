@@ -1,6 +1,8 @@
 /**
- * OSFColors.m - OS1-inspired color palette
- * openSEF Framework
+ * OSFColors.m - Ares/Martian color palette
+ *
+ * Inspired by "The Martian" (2015) - Ares III mission
+ * Gray lunar tones + Space Orange accent
  */
 
 #import <opensef/OpenSEFUI.h>
@@ -8,47 +10,53 @@
 @implementation OSFColors
 
 // ============================================================================
-// Primary Palette (OS1-inspired warm pastels)
+// Primary Palette (Ares/Martian-inspired)
 // ============================================================================
 
 + (NSColor *)primary {
-  // Soft coral - warm, inviting #FAB5AC
-  return [NSColor colorWithRed:0.98 green:0.71 blue:0.67 alpha:1.0];
+  // Space Orange - Mars surface, Ares mission
+  // #E85D04
+  return [NSColor colorWithRed:0.91 green:0.36 blue:0.02 alpha:1.0];
 }
 
 + (NSColor *)secondary {
-  // Muted teal - calm, stable #8FC2C2
-  return [NSColor colorWithRed:0.56 green:0.76 blue:0.76 alpha:1.0];
+  // Mission Blue - NASA mission control, space suits
+  // #3D5A80
+  return [NSColor colorWithRed:0.24 green:0.35 blue:0.50 alpha:1.0];
 }
 
 + (NSColor *)accent {
-  // Warm peach - friendly #FFD9BA
-  return [NSColor colorWithRed:1.0 green:0.85 blue:0.73 alpha:1.0];
+  // Mars Dust - subtle orange highlight
+  // #FB8500
+  return [NSColor colorWithRed:0.98 green:0.52 blue:0.0 alpha:1.0];
 }
 
 // ============================================================================
-// Backgrounds
+// Backgrounds (Lunar Gray tones)
 // ============================================================================
 
 + (NSColor *)background {
   if ([OSFTheme currentTheme].isDark) {
-    // Deep charcoal with warmth #1C1C1E
-    return [NSColor colorWithRed:0.11 green:0.11 blue:0.12 alpha:1.0];
+    // Deep space charcoal #1A1A2E
+    return [NSColor colorWithRed:0.10 green:0.10 blue:0.18 alpha:1.0];
   }
-  // Warm off-white #FAF8F5
-  return [NSColor colorWithRed:0.98 green:0.97 blue:0.96 alpha:1.0];
+  // Lunar gray - clean, technical #F0F0F0
+  return [NSColor colorWithRed:0.94 green:0.94 blue:0.94 alpha:1.0];
 }
 
 + (NSColor *)surface {
   if ([OSFTheme currentTheme].isDark) {
-    return [NSColor colorWithRed:0.16 green:0.16 blue:0.18 alpha:0.8];
+    // HAB module interior #252538
+    return [NSColor colorWithRed:0.15 green:0.15 blue:0.22 alpha:0.85];
   }
-  return [NSColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.8];
+  // Clean white panels
+  return [NSColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.85];
 }
 
 + (NSColor *)elevated {
   if ([OSFTheme currentTheme].isDark) {
-    return [NSColor colorWithRed:0.22 green:0.22 blue:0.24 alpha:0.95];
+    // Elevated surface #2D2D44
+    return [NSColor colorWithRed:0.18 green:0.18 blue:0.27 alpha:0.95];
   }
   return [NSColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.95];
 }
@@ -59,36 +67,62 @@
 
 + (NSColor *)textPrimary {
   if ([OSFTheme currentTheme].isDark) {
-    return [NSColor colorWithRed:0.97 green:0.97 blue:0.97 alpha:1.0];
+    // Clean white on dark
+    return [NSColor colorWithRed:0.95 green:0.95 blue:0.97 alpha:1.0];
   }
-  return [NSColor colorWithRed:0.13 green:0.13 blue:0.14 alpha:1.0];
+  // Dark charcoal on light #1A1A2E
+  return [NSColor colorWithRed:0.10 green:0.10 blue:0.18 alpha:1.0];
 }
 
 + (NSColor *)textSecondary {
   if ([OSFTheme currentTheme].isDark) {
-    return [NSColor colorWithRed:0.70 green:0.70 blue:0.72 alpha:1.0];
+    // Muted gray #8D8D9B
+    return [NSColor colorWithRed:0.55 green:0.55 blue:0.61 alpha:1.0];
   }
-  return [NSColor colorWithRed:0.45 green:0.45 blue:0.47 alpha:1.0];
+  // Medium gray #5A5A6E
+  return [NSColor colorWithRed:0.35 green:0.35 blue:0.43 alpha:1.0];
 }
 
 + (NSColor *)textDisabled {
-  return [NSColor colorWithRed:0.60 green:0.60 blue:0.62 alpha:0.5];
+  return [NSColor colorWithRed:0.50 green:0.50 blue:0.55 alpha:0.5];
 }
 
 // ============================================================================
-// Semantic
+// Semantic (Mission status colors)
 // ============================================================================
 
 + (NSColor *)success {
-  return [NSColor colorWithRed:0.52 green:0.78 blue:0.52 alpha:1.0];
+  // Mission success green #06D6A0
+  return [NSColor colorWithRed:0.02 green:0.84 blue:0.63 alpha:1.0];
 }
 
 + (NSColor *)warning {
-  return [NSColor colorWithRed:0.95 green:0.77 blue:0.42 alpha:1.0];
+  // Caution orange (Mars dust storm) #FFB703
+  return [NSColor colorWithRed:1.0 green:0.72 blue:0.01 alpha:1.0];
 }
 
 + (NSColor *)error {
-  return [NSColor colorWithRed:0.90 green:0.45 blue:0.45 alpha:1.0];
+  // Critical red (mission abort) #EF476F
+  return [NSColor colorWithRed:0.94 green:0.28 blue:0.44 alpha:1.0];
+}
+
+// ============================================================================
+// Ares Mission Colors (additional)
+// ============================================================================
+
++ (NSColor *)marsRed {
+  // Actual Mars surface color #C1440E
+  return [NSColor colorWithRed:0.76 green:0.27 blue:0.05 alpha:1.0];
+}
+
++ (NSColor *)spaceBlack {
+  // Deep space #0D0D1A
+  return [NSColor colorWithRed:0.05 green:0.05 blue:0.10 alpha:1.0];
+}
+
++ (NSColor *)nasaBlue {
+  // NASA logo blue #0B3D91
+  return [NSColor colorWithRed:0.04 green:0.24 blue:0.57 alpha:1.0];
 }
 
 @end

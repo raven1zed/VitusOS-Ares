@@ -1,55 +1,26 @@
-# VitusOS Ares - Linux Validation Checklist
+# VitusOS Ares - NixOS VM Setup
 
 ## ⚠️ Use a VM First!
 
-**Don't risk your main system.** Test in a VM before bare metal.
+**Test in VM before bare metal.**
 
-### Option A: QEMU/KVM (Recommended - fastest)
-```bash
-# Install on Windows (via WSL2 or MSYS2)
-# Or on existing Linux:
-sudo apt install qemu-kvm virt-manager
-
-# Create VM with NixOS or Ubuntu
-virt-manager  # GUI to create VM
-```
-
-### Option B: VirtualBox
+### Recommended: VirtualBox + NixOS
 1. Download [VirtualBox](https://www.virtualbox.org/)
-2. Download NixOS ISO or Ubuntu 24.04
-3. Create VM: 4GB RAM, 40GB disk, enable 3D acceleration
-
-### Option C: WSL2 (Limited - no Wayland)
-```powershell
-# On Windows
-wsl --install -d Ubuntu-24.04
-```
-**Note:** WSL2 can build openSEF but can't run Wayland tests.
+2. Download [NixOS Plasma ISO](https://nixos.org/download) (has GUI)
+3. Create VM: **4GB RAM**, **40GB disk**, enable **3D acceleration**
+4. Boot and install NixOS
 
 ---
 
-## Pre-requisites
-- [ ] VM running Linux (NixOS recommended, Ubuntu/Fedora also works)
-- [ ] Git configured
-- [ ] Internet connection
-
----
-
-## Step 1: Clone and Setup
+## Step 1: Clone from GitHub
 
 ```bash
-# If starting fresh
-git clone https://github.com/YOUR_USERNAME/VitusOS-Ares.git
+# In NixOS VM terminal
+git clone https://github.com/raven1zed/VitusOS-Ares.git
 cd VitusOS-Ares
 
-# Or if using existing local copy, init git
-git init
-git add .
-git commit -m "Initial scaffolding"
-
-# Add SeagrEnv as submodule
-git submodule add https://github.com/raven1zed/SeagrEnv.git external/SeagrEnv
-git submodule update --init --recursive
+# If repo name is different:
+# git clone https://github.com/raven1zed/YOUR_REPO_NAME.git
 ```
 
 ---
@@ -57,77 +28,60 @@ git submodule update --init --recursive
 ## Step 2: Enter Nix Dev Shell
 
 ```bash
-# Enter development environment
 nix develop
 
-# Expected output:
+# You should see:
 # ╔════════════════════════════════════════════════════════════╗
 # ║       VitusOS Ares - openSEF Development Shell             ║
-# ║  openSEF: Open SeagrEnv Framework                          ║
-# ║  Wayland: 1.xx.x                                           ║
-# ║  Vulkan:  Available                                        ║
+# ║  Theme:   Ares (The Martian)                               ║
 # ╚════════════════════════════════════════════════════════════╝
-
-# Verify toolchain
-clang --version    # Should be 16+
-pkg-config --modversion wayland-client
-vulkaninfo | head
 ```
 
 ---
 
-## Step 3: Build openSEF
+## Step 3: Build
 
 ```bash
-# Configure
-cmake -B build -S . -G Ninja
+# Configure with Ninja (faster)
+cmake -B build -G Ninja
 
 # Build
 cmake --build build
 
-# Expected: Build succeeds (may have warnings, but no errors)
+# Expected: Libraries built in build/opensef/
 ```
 
 ---
 
-## Step 4: Run Test (Hello Window)
+## Step 4: Run Test
 
 ```bash
-# If on Wayland desktop:
+# Must be in Wayland session!
 ./build/opensef/test/hello-window
-
-# Expected: A window appears with VitusOS styling
 ```
 
 ---
 
 ## Troubleshooting
 
-### "GNUStep not found"
-```bash
-# Check gnustep packages
-pkg-config --cflags gnustep-base
-# If missing, add to flake.nix
-```
-
-### "Wayland display not found"
-```bash
-# Must run on Wayland session, not X11
-echo $XDG_SESSION_TYPE  # Should be "wayland"
-```
-
-### "Vulkan not available"
-```bash
-# Check NVIDIA driver
-nvidia-smi
-# Ensure vulkan-loader is installed
-```
+| Error | Fix |
+|-------|-----|
+| `nix develop` fails | Run `nix flake update` first |
+| `Clang not found` | You're not in nix shell |
+| `Wayland not found` | Run in desktop (not TTY) |
+| `GNUStep not found` | Check nix shell includes gnustep.* |
 
 ---
 
-## Success Criteria
+## Quick Commands
 
-- [ ] `nix develop` enters shell without errors
-- [ ] `cmake -B build` configures successfully
-- [ ] `cmake --build build` compiles all components
-- [ ] openSEF libraries created in `build/opensef/`
+```bash
+# Enter shell
+nix develop
+
+# Full rebuild
+rm -rf build && cmake -B build -G Ninja && cmake --build build
+
+# Run test
+./build/opensef/test/hello-window
+```

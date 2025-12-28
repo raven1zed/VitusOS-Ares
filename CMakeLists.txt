@@ -8,11 +8,17 @@ project(VitusOS
 
 # ============================================================================
 # openSEF: Open SeagrEnv (Seamless Integration Environment) Framework
+# Theme: Ares / The Martian
 # ============================================================================
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Build options
+option(BUILD_TESTING "Build test programs" ON)
+option(BUILD_APPS "Build VitusOS applications" OFF)
 
 # Clang is required for Objective-C 2.0 features
 if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
@@ -47,14 +53,14 @@ pkg_check_modules(GNUSTEP_BASE gnustep-base)
 # Subdirectories
 # ============================================================================
 
-# openSEF Framework
+# openSEF Framework (always build)
 add_subdirectory(opensef)
 
-# SeaDrop (pre-installed, core to VitusOS)
-# add_subdirectory(apps/seadrop)
-
-# Desktop shell (vitus-shell)
-# add_subdirectory(vitus-shell)
+# VitusOS Applications (optional)
+if(BUILD_APPS)
+    add_subdirectory(apps/seadrop)
+    add_subdirectory(apps/vitus-installer)
+endif()
 
 # ============================================================================
 # Summary
@@ -66,8 +72,11 @@ message(STATUS "║              VitusOS Ares Build Summary                ║")
 message(STATUS "╠════════════════════════════════════════════════════════╣")
 message(STATUS "║  Version:    ${PROJECT_VERSION}")
 message(STATUS "║  Framework:  openSEF (SeagrEnv Framework)")
+message(STATUS "║  Theme:      Ares (The Martian)")
 message(STATUS "║  Compiler:   ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "║  Wayland:    ${WAYLAND_VERSION}")
 message(STATUS "║  Vulkan:     ${Vulkan_VERSION}")
+message(STATUS "║  Tests:      ${BUILD_TESTING}")
+message(STATUS "║  Apps:       ${BUILD_APPS}")
 message(STATUS "╚════════════════════════════════════════════════════════╝")
 message(STATUS "")

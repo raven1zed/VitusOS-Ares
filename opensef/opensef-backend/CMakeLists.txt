@@ -1,5 +1,6 @@
 # opensef-backend: Display Backend (Wayland-only)
 # Surface management, input handling, Vulkan rendering
+# NOTE: Built before appkit (no circular dependency)
 
 project(opensef-backend)
 
@@ -15,7 +16,13 @@ target_include_directories(opensef-backend PUBLIC
     ${Vulkan_INCLUDE_DIRS}
 )
 
-target_link_libraries(opensef-backend
+target_compile_options(opensef-backend PRIVATE
+    -fobjc-runtime=gnustep-2.0
+    -fobjc-arc
+    -fblocks
+)
+
+target_link_libraries(opensef-backend PUBLIC
     opensef-base
     ${WAYLAND_LIBRARIES}
     Vulkan::Vulkan

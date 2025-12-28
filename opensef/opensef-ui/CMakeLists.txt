@@ -1,4 +1,4 @@
-# opensef-ui: OS1 Design System
+# opensef-ui: Ares Design System
 # Colors, typography, animations, themes
 
 project(opensef-ui)
@@ -13,6 +13,12 @@ target_include_directories(opensef-ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(opensef-ui
+target_compile_options(opensef-ui PRIVATE
+    -fobjc-runtime=gnustep-2.0
+    -fobjc-arc
+    -fblocks
+)
+
+target_link_libraries(opensef-ui PUBLIC
     opensef-base
 )

@@ -1,26 +1,27 @@
 # VitusOS Plymouth Boot Script
-# Text logo "VitusOS" centered with loading animation below
+# Ares/Martian theme - "Bring it home"
 
 # ============================================================================
-# OS1-inspired color palette
+# Ares color palette (The Martian inspired)
 # ============================================================================
-bg_r = 0.98;  # Warm off-white
-bg_g = 0.97;
-bg_b = 0.96;
+bg_r = 0.94;  # Lunar gray
+bg_g = 0.94;
+bg_b = 0.94;
 
-text_r = 0.13;  # Dark gray
-text_g = 0.13;
-text_b = 0.14;
+text_r = 0.10;  # Space charcoal
+text_g = 0.10;
+text_b = 0.18;
 
-accent_r = 0.98;  # Soft coral
-accent_g = 0.71;
-accent_b = 0.67;
+# Space Orange (Mars surface)
+accent_r = 0.91;
+accent_g = 0.36;
+accent_b = 0.02;
 
 # ============================================================================
 # Screen setup
 # ============================================================================
 Window.SetBackgroundTopColor(bg_r, bg_g, bg_b);
-Window.SetBackgroundBottomColor(bg_r - 0.03, bg_g - 0.03, bg_b - 0.02);
+Window.SetBackgroundBottomColor(bg_r - 0.05, bg_g - 0.05, bg_b - 0.03);
 
 # ============================================================================
 # Text Logo "VitusOS"
@@ -37,7 +38,7 @@ logo_sprite.SetPosition(logo_x, logo_y, 10);
 logo_opacity = 0;
 
 # ============================================================================
-# Loading animation (3 dots pulsing)
+# Loading animation (3 dots in Space Orange)
 # ============================================================================
 dot1 = Image.Text("●", accent_r, accent_g, accent_b, 1, "Sans 16");
 dot2 = Image.Text("●", accent_r, accent_g, accent_b, 1, "Sans 16");
@@ -72,7 +73,6 @@ fun refresh_callback(time, delta) {
     }
     
     # Pulsing dots animation
-    # Each dot pulses with offset timing
     dot1_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3));
     dot2_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3 - 0.5));
     dot3_opacity = 0.3 + 0.7 * Math.Abs(Math.Sin(animation_time * 3 - 1.0));
@@ -84,29 +84,26 @@ fun refresh_callback(time, delta) {
 Plymouth.SetRefreshFunction(refresh_callback);
 
 # ============================================================================
-# Progress callback (optional - dots serve as loading indicator)
+# Progress callback
 # ============================================================================
 fun progress_callback(duration, progress) {
-    # Progress is shown via pulsing dots
-    # Could add text like "Starting..." at certain progress points
+    # Progress shown via pulsing dots
 }
 Plymouth.SetBootProgressFunction(progress_callback);
 
 # ============================================================================
-# Hide all text messages (polished boot)
+# Hide all text messages (polished boot - Ares mission style)
 # ============================================================================
 fun message_callback(text) {
-    # Intentionally empty - no systemd messages shown
+    # No systemd messages - clean like mission control displays
 }
 Plymouth.SetMessageFunction(message_callback);
 
 fun display_normal_callback() {
-    # Continue showing splash
 }
 Plymouth.SetDisplayNormalFunction(display_normal_callback);
 
 fun display_password_callback(prompt, bullets) {
-    # TODO: Show disk encryption password prompt
-    # Style with OS1 aesthetic
+    # TODO: Disk encryption password prompt
 }
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
