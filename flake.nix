@@ -2,7 +2,8 @@
   description = "VitusOS Ares - openSEF Development Environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Use NixOS 24.05 stable - has GNUstep packages
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -21,14 +22,16 @@
             llvm
             lld
             
-            # Objective-C runtime
-            libobjc  # Basic ObjC runtime
-            
             # Build system
             cmake
             ninja
             pkg-config
             gnumake
+            
+            # GNUStep (available in 24.05 stable)
+            gnustep-libobjc
+            gnustep.base
+            gnustep.make
             
             # Wayland (VitusOS is Wayland-only)
             wayland
@@ -40,27 +43,27 @@
             vulkan-loader
             vulkan-headers
             vulkan-tools
-            vulkan-validation-layers
             shaderc
             
-            # Font rendering (Inter font for Ares theme)
+            # Font rendering
             fontconfig
             freetype
-            inter
             
             # Dev tools
             git
             gdb
-            valgrind
           ];
 
+          # GNUStep environment
+          GNUSTEP_MAKEFILES = "${pkgs.gnustep.make}/share/GNUstep/Makefiles";
+          
           shellHook = ''
             echo ""
             echo "╔════════════════════════════════════════════════════════╗"
             echo "║       VitusOS Ares - openSEF Development Shell         ║"
             echo "║                                                        ║"
+            echo "║  GNUstep: Available (nixos-24.05)                      ║"
             echo "║  Theme:   Ares (The Martian)                           ║"
-            echo "║  openSEF: Open SeagrEnv Framework                      ║"
             echo "╚════════════════════════════════════════════════════════╝"
             echo ""
             echo "Quick Start:"
@@ -71,7 +74,12 @@
             export CC=clang
             export CXX=clang++
             export OBJC=clang
-            export OBJCFLAGS="-fobjc-arc -fblocks"
+            export OBJCFLAGS="-fobjc-runtime=gnustep-2.0 -fobjc-arc -fblocks"
+            
+            # Source GNUStep environment
+            if [ -f "${pkgs.gnustep.make}/share/GNUstep/Makefiles/GNUstep.sh" ]; then
+              source "${pkgs.gnustep.make}/share/GNUstep/Makefiles/GNUstep.sh"
+            fi
           '';
         };
       }
