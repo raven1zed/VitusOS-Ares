@@ -1,13 +1,16 @@
 # VitusOS Ares
 
-**Bringing Life to the Beautiful Future We Were Promised**
+**A cohesive Linux desktop. One framework. One design system. One vision.**
 
 <p align="center">
+  <a href="https://vitusos.lovable.app"><img src="https://img.shields.io/badge/Website-vitusos.lovable.app-blue?style=flat-square" alt="Website"></a>
   <img src="https://img.shields.io/badge/Status-Pre--Alpha-orange?style=flat-square" alt="Status">
   <img src="https://img.shields.io/badge/Framework-openSEF-blue?style=flat-square" alt="Framework">
   <img src="https://img.shields.io/badge/Theme-Ares-red?style=flat-square" alt="Theme">
   <img src="https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square" alt="License">
 </p>
+
+🌐 **Website:** [vitusos.lovable.app](https://vitusos.lovable.app) | **Coming soon:** vitusos.qzz.io
 
 ---
 
