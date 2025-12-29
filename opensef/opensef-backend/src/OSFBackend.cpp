@@ -9,9 +9,9 @@
 #include <opensef/OpenSEFBackend.h>
 #include <poll.h>
 
-
 #include "xdg-shell-client-protocol.h"
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 
 namespace opensef {
 
@@ -21,6 +21,12 @@ static wl_shm *g_shm = nullptr;
 static xdg_wm_base *g_xdgWmBase = nullptr;
 static wl_seat *g_seat = nullptr;
 static wl_pointer *g_pointer = nullptr;
+
+// Cursor support
+static wl_surface *g_cursorSurface = nullptr;
+static wl_cursor_theme *g_cursorTheme = nullptr;
+static wl_cursor *g_arrowCursor = nullptr;
+static uint32_t g_pointerSerial = 0;
 
 // Backend singleton storage
 static wl_display *g_display = nullptr;
@@ -49,11 +55,21 @@ static const xdg_wm_base_listener xdgWmBaseListener = {xdgWmBasePing};
 static void pointerEnter(void *data, wl_pointer *pointer, uint32_t serial,
                          wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
   (void)data;
-  (void)pointer;
-  (void)serial;
   (void)surface;
   g_mouseX = wl_fixed_to_double(sx);
   g_mouseY = wl_fixed_to_double(sy);
+  g_pointerSerial = serial;
+
+  // Set arrow cursor when entering window
+  if (g_arrowCursor && g_cursorSurface) {
+    wl_cursor_image *image = g_arrowCursor->images[0];
+    wl_buffer *buffer = wl_cursor_image_get_buffer(image);
+    wl_surface_attach(g_cursorSurface, buffer, 0, 0);
+    wl_surface_damage(g_cursorSurface, 0, 0, image->width, image->height);
+    wl_surface_commit(g_cursorSurface);
+    wl_pointer_set_cursor(pointer, serial, g_cursorSurface, image->hotspot_x,
+                          image->hotspot_y);
+  }
 }
 
 static void pointerLeave(void *data, wl_pointer *pointer, uint32_t serial,
@@ -82,11 +98,30 @@ static void pointerButton(void *data, wl_pointer *pointer, uint32_t serial,
   g_mousePressed = (state == WL_POINTER_BUTTON_STATE_PRESSED);
 
   if (g_mousePressed && button == BTN_LEFT) {
-    // Check if click is on close button (x: 13-27, y: 13-27)
-    if (g_mouseX >= 13 && g_mouseX <= 27 && g_mouseY >= 13 && g_mouseY <= 27) {
+    // Traffic light button hit areas (circles centered at y=20, radius 7)
+    bool inButtonY = (g_mouseY >= 13 && g_mouseY <= 27);
+
+    // Close button (red) - center at x=20
+    if (inButtonY && g_mouseX >= 13 && g_mouseX <= 27) {
       std::cout << "[openSEF] Close button clicked - stopping" << std::endl;
       g_running = false;
+      return;
     }
+
+    // Minimize button (yellow) - center at x=42
+    if (inButtonY && g_mouseX >= 35 && g_mouseX <= 49) {
+      std::cout << "[openSEF] Minimize button clicked" << std::endl;
+      // TODO: xdg_toplevel_set_minimized when we have toplevel access
+      return;
+    }
+
+    // Maximize button (green) - center at x=64 (toggle size, not fullscreen)
+    if (inButtonY && g_mouseX >= 57 && g_mouseX <= 71) {
+      std::cout << "[openSEF] Maximize button clicked" << std::endl;
+      // TODO: Resize window (not fullscreen)
+      return;
+    }
+
     // Log other clicks
     std::cout << "[openSEF] Click at (" << g_mouseX << ", " << g_mouseY << ")"
               << std::endl;
@@ -116,6 +151,19 @@ static void seatCapabilities(void *data, wl_seat *seat, uint32_t caps) {
     g_pointer = wl_seat_get_pointer(seat);
     wl_pointer_add_listener(g_pointer, &pointerListener, nullptr);
     std::cout << "[openSEF] Pointer (mouse) ready" << std::endl;
+
+    // Initialize cursor theme and surface
+    if (g_compositor && g_shm && !g_cursorTheme) {
+      g_cursorTheme = wl_cursor_theme_load(nullptr, 24, g_shm);
+      if (g_cursorTheme) {
+        g_arrowCursor = wl_cursor_theme_get_cursor(g_cursorTheme, "left_ptr");
+        if (!g_arrowCursor) {
+          g_arrowCursor = wl_cursor_theme_get_cursor(g_cursorTheme, "default");
+        }
+        g_cursorSurface = wl_compositor_create_surface(g_compositor);
+        std::cout << "[openSEF] Cursor theme loaded" << std::endl;
+      }
+    }
   }
 }
 
