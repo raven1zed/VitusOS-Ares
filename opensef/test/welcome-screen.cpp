@@ -96,18 +96,22 @@ void drawFrame() {
   int w = g_surface->width();
   int h = g_surface->height();
 
-  // 1. Background
-  fillBackground(pixels, w, h, g_bgColor);
+  // 1. Fill with warm cream background (OS1 style - no harsh whites)
+  OSFColor warmCream = OSFColor::fromHex(0xFBFBFB);
+  fillBackground(pixels, w, h, warmCream);
 
-  // 2. Title bar (32px height as per spec) with 3px orange accent
-  // Accent bar on left edge
-  fillRect(pixels, w, h, 0, 0, 3, 32, g_closeColor); // 3px Space Orange accent
+  // 2. Title bar background (32px height, Lunar Gray with subtle warmth)
+  OSFColor titleBarBg = OSFColor::fromHex(0xF0F0F0);
+  fillRect(pixels, w, h, 0, 0, w, 32, titleBarBg);
 
-  // 3. Traffic lights (12px diameter = 6px radius, 8px spacing, 8px from left)
+  // 3. Orange accent bar on left edge (3px width, full title bar height)
+  fillRect(pixels, w, h, 0, 0, 3, 32, g_closeColor);
+
+  // 4. Traffic lights (Ares spec: 12px diameter = 6px radius, 8px spacing)
   int btnRadius = 6;   // 12px diameter
   int btnSpacing = 20; // 8px between (center to center = 12 + 8 = 20px)
   int btnY = 16;       // Vertically centered in 32px title bar
-  int btnStart = 14;   // 8px from edge + radius
+  int btnStart = 18;   // 8px from accent bar + some padding
   fillCircle(pixels, w, h, btnStart, btnY, btnRadius, g_closeColor);
   fillCircle(pixels, w, h, btnStart + btnSpacing, btnY, btnRadius,
              g_minimizeColor);

@@ -98,27 +98,27 @@ static void pointerButton(void *data, wl_pointer *pointer, uint32_t serial,
   g_mousePressed = (state == WL_POINTER_BUTTON_STATE_PRESSED);
 
   if (g_mousePressed && button == BTN_LEFT) {
-    // Traffic light button hit areas (Ares spec: 12px dia, 6px radius, 8px
-    // spacing) Buttons at y=16 (centered in 32px title bar), radius=6 Close at
-    // x=14, Minimize at x=34, Maximize at x=54
+    // Traffic light button hit areas (Ares spec: 12px dia, 6px radius)
+    // Buttons at y=16, radius=6, btnStart=18
+    // Close at x=18, Minimize at x=38, Maximize at x=58
     bool inButtonY = (g_mouseY >= 10 && g_mouseY <= 22);
 
-    // Close button (Space Orange) - center at x=14
-    if (inButtonY && g_mouseX >= 8 && g_mouseX <= 20) {
+    // Close button (Space Orange) - center at x=18
+    if (inButtonY && g_mouseX >= 12 && g_mouseX <= 24) {
       std::cout << "[openSEF] Close button clicked - stopping" << std::endl;
       g_running = false;
       return;
     }
 
-    // Minimize button (Warm Gold) - center at x=34
-    if (inButtonY && g_mouseX >= 28 && g_mouseX <= 40) {
+    // Minimize button (Warm Gold) - center at x=38
+    if (inButtonY && g_mouseX >= 32 && g_mouseX <= 44) {
       std::cout << "[openSEF] Minimize button clicked" << std::endl;
       // TODO: xdg_toplevel_set_minimized
       return;
     }
 
-    // Maximize button (Mission Blue) - center at x=54
-    if (inButtonY && g_mouseX >= 48 && g_mouseX <= 60) {
+    // Maximize button (Mission Blue) - center at x=58
+    if (inButtonY && g_mouseX >= 52 && g_mouseX <= 64) {
       std::cout << "[openSEF] Maximize button clicked" << std::endl;
       // TODO: Window resize
       return;
