@@ -32,22 +32,18 @@ bool OSFTextRenderer::initialize() {
   std::cout << "[openSEF] FreeType initialized" << std::endl;
   initialized_ = true;
 
-  // Try to load default fonts from common locations
+  // Try to load default fonts - bundled first, then system
   const char *fontPaths[] = {
-      // NixOS Inter font
-      "/run/current-system/sw/share/fonts/truetype/inter/Inter-Regular.ttf",
-      "/run/current-system/sw/share/fonts/opentype/inter/Inter-Regular.otf",
-      // NixOS DejaVu (commonly available)
+      // BUNDLED Inter font (in VitusOS project)
+      "../resources/fonts/InterVariable.ttf",
+      "resources/fonts/InterVariable.ttf",
+      "../../resources/fonts/InterVariable.ttf",
+      // NixOS system fonts
       "/run/current-system/sw/share/fonts/truetype/dejavu-fonts/DejaVuSans.ttf",
-      "/run/current-system/sw/share/fonts/truetype/dejavu-fonts-minimal/"
-      "DejaVuSans.ttf",
-      // NixOS Noto Sans (commonly available)
       "/run/current-system/sw/share/fonts/truetype/noto-fonts/"
       "NotoSans-Regular.ttf",
       // Standard Linux
-      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-      "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-      "/usr/share/fonts/TTF/DejaVuSans.ttf", nullptr};
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", nullptr};
 
   for (const char **path = fontPaths; *path; ++path) {
     if (loadFont(kFontUI, *path)) {
