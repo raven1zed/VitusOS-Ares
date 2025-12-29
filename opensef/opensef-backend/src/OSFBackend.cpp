@@ -2,9 +2,12 @@
  * OSFBackend.cpp - Wayland backend with XDG shell
  */
 
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
+#include <poll.h>
+
 
 #include "xdg-shell-client-protocol.h"
 #include <wayland-client.h>
@@ -149,6 +152,55 @@ void OSFBackend::run() {
     if (wl_display_dispatch(g_display) < 0) {
       std::cerr << "[openSEF] Display error" << std::endl;
       break;
+    }
+  }
+
+  std::cout << "[openSEF] Event loop ended" << std::endl;
+}
+
+void OSFBackend::runWithCallback(std::function<void()> callback,
+                                 int intervalMs) {
+  if (!g_display)
+    return;
+
+  g_running = true;
+  running_ = true;
+  std::cout << "[openSEF] Entering animated event loop..." << std::endl;
+
+  int fd = wl_display_get_fd(g_display);
+  struct pollfd pfd = {fd, POLLIN, 0};
+
+  auto lastCallback = std::chrono::steady_clock::now();
+
+  while (g_running && g_connected) {
+    // Flush pending requests
+    wl_display_flush(g_display);
+
+    // Poll with timeout
+    int timeout = intervalMs;
+    int ret = poll(&pfd, 1, timeout);
+
+    if (ret < 0) {
+      std::cerr << "[openSEF] Poll error" << std::endl;
+      break;
+    }
+
+    // Handle Wayland events if available
+    if (ret > 0 && (pfd.revents & POLLIN)) {
+      if (wl_display_dispatch(g_display) < 0) {
+        std::cerr << "[openSEF] Display error" << std::endl;
+        break;
+      }
+    }
+
+    // Call animation callback at interval
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - lastCallback)
+                       .count();
+    if (elapsed >= intervalMs) {
+      callback();
+      lastCallback = now;
     }
   }
 

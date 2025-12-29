@@ -24,6 +24,10 @@ public:
   bool connect();
   void disconnect();
   void run();
+
+  // Run with periodic callback for animations (intervalMs between calls)
+  void runWithCallback(std::function<void()> callback, int intervalMs);
+
   void stop() { running_ = false; }
 
   bool isWayland() const { return true; }

@@ -9,13 +9,10 @@
  * Traffic Light Buttons (macOS style)
  */
 
-#include <atomic>
-#include <chrono>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
 #include <opensef/OpenSEFUI.h>
-#include <thread>
 #include <vector>
 
 
@@ -24,6 +21,20 @@ using namespace opensef;
 // Multilingual greetings (Apple-style - cycles through)
 const std::vector<std::string> greetings = {
     "Hello", "Bonjour", "Hola", "Ciao", "Hallo", "Olá", "Welcome"};
+
+// Global state for animation
+int g_greetingIndex = 0;
+OSFWaylandSurface *g_surface = nullptr;
+OSFTextRenderer *g_textRenderer = nullptr;
+
+// === ARES THEME COLORS ===
+OSFColor g_bgColor;
+OSFColor g_textColor;
+OSFColor g_buttonColor;
+OSFColor g_buttonText;
+OSFColor g_closeColor;
+OSFColor g_minimizeColor;
+OSFColor g_maximizeColor;
 
 // Fill buffer with solid color
 void fillBackground(uint32_t *buffer, int width, int height,
@@ -76,8 +87,65 @@ void fillCircle(uint32_t *buffer, int bufWidth, int bufHeight, int cx, int cy,
   }
 }
 
-// Global for animation control
-std::atomic<bool> running{true};
+// Draw a single frame
+void drawFrame() {
+  if (!g_surface)
+    return;
+
+  uint32_t *pixels = g_surface->buffer();
+  if (!pixels)
+    return;
+
+  int w = g_surface->width();
+  int h = g_surface->height();
+
+  // 1. Fill background
+  fillBackground(pixels, w, h, g_bgColor);
+
+  // 2. Draw traffic light buttons (top-left, macOS style)
+  int btnRadius = 7;
+  int btnY = 20;
+  int btnSpacing = 22;
+  fillCircle(pixels, w, h, 20, btnY, btnRadius, g_closeColor);
+  fillCircle(pixels, w, h, 20 + btnSpacing, btnY, btnRadius, g_minimizeColor);
+  fillCircle(pixels, w, h, 20 + btnSpacing * 2, btnY, btnRadius,
+             g_maximizeColor);
+
+  // 3. Draw greeting text (centered, animated)
+  const std::string &greeting = greetings[g_greetingIndex];
+  int fontSize = 72;
+  int textWidth = g_textRenderer->measureTextWidth(greeting, fontSize);
+  int x = (w - textWidth) / 2;
+  int y = h / 2 - 50;
+  g_textRenderer->drawText(pixels, w, h, x, y, greeting, g_textColor, fontSize);
+
+  // 4. Draw "Continue" button
+  int btnWidth = 200;
+  int btnHeight = 50;
+  int btnX = (w - btnWidth) / 2;
+  int btnBotY = h / 2 + 80;
+  fillRect(pixels, w, h, btnX, btnBotY, btnWidth, btnHeight, g_buttonColor);
+
+  // 5. Draw button text
+  const std::string btnLabel = "Continue";
+  int btnFontSize = 20;
+  int btnTextWidth = g_textRenderer->measureTextWidth(btnLabel, btnFontSize);
+  int btnTextX = btnX + (btnWidth - btnTextWidth) / 2;
+  int btnTextY = btnBotY + btnHeight / 2 + btnFontSize / 3;
+  g_textRenderer->drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
+                           g_buttonText, btnFontSize);
+
+  // Commit
+  g_surface->commit();
+}
+
+// Animation callback - called every 2 seconds
+void onAnimationTick() {
+  g_greetingIndex = (g_greetingIndex + 1) % greetings.size();
+  std::cout << "[VitusOS] Greeting: " << greetings[g_greetingIndex]
+            << std::endl;
+  drawFrame();
+}
 
 int main() {
   std::cout << "╔════════════════════════════════════════════════════════╗"
@@ -97,8 +165,8 @@ int main() {
   }
 
   // Initialize text renderer
-  auto &textRenderer = OSFTextRenderer::shared();
-  if (!textRenderer.initialize()) {
+  g_textRenderer = &OSFTextRenderer::shared();
+  if (!g_textRenderer->initialize()) {
     std::cerr << "Warning: Text renderer failed to initialize" << std::endl;
   }
 
@@ -109,134 +177,29 @@ int main() {
     OSFBackend::shared().disconnect();
     return 1;
   }
+  g_surface = surface.get();
 
   std::cout << "[VitusOS] Window created - Ares Theme with Animation"
             << std::endl;
 
-  // === ARES THEME COLORS ===
-  OSFColor bgColor = OSFColors::background();        // Lunar Gray
-  OSFColor textColor = OSFColors::textPrimary();     // Space Charcoal
-  OSFColor buttonColor = OSFColors::primary();       // Space Orange
-  OSFColor buttonText = OSFColor::fromHex(0xFFFFFF); // White
-
-  // Traffic light button colors (macOS style)
-  OSFColor closeColor = OSFColor::fromHex(0xFF5F57);    // Red
-  OSFColor minimizeColor = OSFColor::fromHex(0xFFBD2E); // Yellow
-  OSFColor maximizeColor = OSFColor::fromHex(0x28CA41); // Green
-
-  int greetingIndex = 0;
-
-  // Animation thread - cycles greetings every 2 seconds
-  std::thread animThread([&]() {
-    while (running) {
-      std::this_thread::sleep_for(std::chrono::seconds(2));
-      if (!running)
-        break;
-
-      greetingIndex = (greetingIndex + 1) % greetings.size();
-
-      uint32_t *pixels = surface->buffer();
-      if (!pixels)
-        continue;
-
-      int w = surface->width();
-      int h = surface->height();
-
-      // === REDRAW FRAME ===
-
-      // 1. Fill background
-      fillBackground(pixels, w, h, bgColor);
-
-      // 2. Draw traffic light buttons (top-left, macOS style)
-      int btnRadius = 7;
-      int btnY = 20;
-      int btnSpacing = 22;
-      fillCircle(pixels, w, h, 20, btnY, btnRadius, closeColor);
-      fillCircle(pixels, w, h, 20 + btnSpacing, btnY, btnRadius, minimizeColor);
-      fillCircle(pixels, w, h, 20 + btnSpacing * 2, btnY, btnRadius,
-                 maximizeColor);
-
-      // 3. Draw greeting text (centered, animated)
-      const std::string &greeting = greetings[greetingIndex];
-      int fontSize = 72;
-      int textWidth = textRenderer.measureTextWidth(greeting, fontSize);
-      int x = (w - textWidth) / 2;
-      int y = h / 2 - 50;
-      textRenderer.drawText(pixels, w, h, x, y, greeting, textColor, fontSize);
-
-      // 4. Draw "Continue" button
-      int btnWidth = 200;
-      int btnHeight = 50;
-      int btnX = (w - btnWidth) / 2;
-      int btnBotY = h / 2 + 80;
-      fillRect(pixels, w, h, btnX, btnBotY, btnWidth, btnHeight, buttonColor);
-
-      // 5. Draw button text
-      const std::string btnLabel = "Continue";
-      int btnFontSize = 20;
-      int btnTextWidth = textRenderer.measureTextWidth(btnLabel, btnFontSize);
-      int btnTextX = btnX + (btnWidth - btnTextWidth) / 2;
-      int btnTextY = btnBotY + btnHeight / 2 + btnFontSize / 3;
-      textRenderer.drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
-                            buttonText, btnFontSize);
-
-      // Commit
-      surface->commit();
-
-      std::cout << "[VitusOS] Greeting: " << greeting << std::endl;
-    }
-  });
+  // Initialize colors
+  g_bgColor = OSFColors::background();           // Lunar Gray
+  g_textColor = OSFColors::textPrimary();        // Space Charcoal
+  g_buttonColor = OSFColors::primary();          // Space Orange
+  g_buttonText = OSFColor::fromHex(0xFFFFFF);    // White
+  g_closeColor = OSFColor::fromHex(0xFF5F57);    // Red
+  g_minimizeColor = OSFColor::fromHex(0xFFBD2E); // Yellow
+  g_maximizeColor = OSFColor::fromHex(0x28CA41); // Green
 
   // Draw initial frame
-  uint32_t *pixels = surface->buffer();
-  if (pixels) {
-    int w = surface->width();
-    int h = surface->height();
+  drawFrame();
+  std::cout << "[VitusOS] Initial: " << greetings[0] << std::endl;
 
-    fillBackground(pixels, w, h, bgColor);
-
-    // Traffic light buttons
-    int btnRadius = 7;
-    int btnY = 20;
-    int btnSpacing = 22;
-    fillCircle(pixels, w, h, 20, btnY, btnRadius, closeColor);
-    fillCircle(pixels, w, h, 20 + btnSpacing, btnY, btnRadius, minimizeColor);
-    fillCircle(pixels, w, h, 20 + btnSpacing * 2, btnY, btnRadius,
-               maximizeColor);
-
-    // Initial greeting
-    const std::string &greeting = greetings[0];
-    int fontSize = 72;
-    int textWidth = textRenderer.measureTextWidth(greeting, fontSize);
-    int x = (w - textWidth) / 2;
-    int y = h / 2 - 50;
-    textRenderer.drawText(pixels, w, h, x, y, greeting, textColor, fontSize);
-
-    // Button
-    int btnWidth = 200;
-    int btnHeight = 50;
-    int btnX = (w - btnWidth) / 2;
-    int btnBotY = h / 2 + 80;
-    fillRect(pixels, w, h, btnX, btnBotY, btnWidth, btnHeight, buttonColor);
-
-    const std::string btnLabel = "Continue";
-    int btnFontSize = 20;
-    int btnTextWidth = textRenderer.measureTextWidth(btnLabel, btnFontSize);
-    int btnTextX = btnX + (btnWidth - btnTextWidth) / 2;
-    int btnTextY = btnBotY + btnHeight / 2 + btnFontSize / 3;
-    textRenderer.drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
-                          buttonText, btnFontSize);
-
-    surface->commit();
-    std::cout << "[VitusOS] Initial: " << greeting << std::endl;
-  }
-
-  // Run event loop
-  OSFBackend::shared().run();
+  // Run event loop with animation callback (every 2000ms)
+  OSFBackend::shared().runWithCallback(onAnimationTick, 2000);
 
   // Cleanup
-  running = false;
-  animThread.join();
+  g_surface = nullptr;
   surface.reset();
   OSFBackend::shared().disconnect();
 
