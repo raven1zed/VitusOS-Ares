@@ -1,5 +1,5 @@
 /**
- * TerminalApp.cpp - Terminal application implementation
+ * TerminalApp.cpp - Terminal application (pure C++)
  */
 
 #include "Terminal.h"
@@ -7,35 +7,36 @@
 
 namespace vitusos::terminal {
 
-static TerminalApp *g_instance = nullptr;
+TerminalApp *TerminalApp::instance_ = nullptr;
 
 TerminalApp::TerminalApp() {
-  g_instance = this;
+  instance_ = this;
   loadConfig();
 }
 
 TerminalApp::~TerminalApp() {
   saveConfig();
-  g_instance = nullptr;
+  instance_ = nullptr;
 }
 
-TerminalApp &TerminalApp::instance() { return *g_instance; }
+TerminalApp &TerminalApp::instance() { return *instance_; }
 
 int TerminalApp::run(int argc, char **argv) {
-  std::cout << "[Terminal] VitusOS Terminal starting..." << std::endl;
-  std::cout << "[Terminal] openSEF " << OPENSEF_VERSION_STRING << std::endl;
-  std::cout << "[Terminal] Design: OS1 + macOS minimal aesthetic" << std::endl;
+  (void)argc;
+  (void)argv;
+
+  std::cout << "╔════════════════════════════════════════════╗" << std::endl;
+  std::cout << "║     VitusOS Terminal                       ║" << std::endl;
+  std::cout << "║     OS1 + macOS Aesthetic                  ║" << std::endl;
+  std::cout << "╚════════════════════════════════════════════╝" << std::endl;
+  std::cout << std::endl;
 
   // Connect to Wayland
-  OSFBackend *backend = [OSFBackend sharedBackend];
-  if (![backend connect]) {
+  auto &backend = OSFBackend::shared();
+  if (!backend.connect()) {
     std::cerr << "[Terminal] Failed to connect to display" << std::endl;
     return 1;
   }
-
-  // Apply dark theme by default for terminal
-  [OSFTheme currentTheme].mode = OSFThemeModeDark;
-  [[OSFTheme currentTheme] apply];
 
   // Create window
   window_ = std::make_unique<TerminalWindow>();
@@ -44,14 +45,13 @@ int TerminalApp::run(int argc, char **argv) {
   std::cout << "[Terminal] Ready" << std::endl;
 
   // Run event loop
-  [backend run];
+  backend.run();
 
-  [backend disconnect];
+  backend.disconnect();
   return 0;
 }
 
 void TerminalApp::loadConfig() {
-  // TODO: Load from ~/.config/vitus-terminal/config.conf
   config_ = TerminalConfig{};
   std::cout << "[Terminal] Using default config" << std::endl;
 }
@@ -64,121 +64,42 @@ void TerminalApp::saveConfig() {
 // TerminalWindow
 // ============================================================================
 
-TerminalWindow::TerminalWindow() { setupUI(); }
+TerminalWindow::TerminalWindow() {
+  buffer_ = std::make_unique<TerminalBuffer>(80, 24);
+}
 
-TerminalWindow::~TerminalWindow() {}
+TerminalWindow::~TerminalWindow() { hide(); }
 
-void TerminalWindow::setupUI() {
-  // OS1-style minimal window
-  // - No visible title bar (integrated)
-  // - Subtle rounded corners
-  // - Glass effect background
+void TerminalWindow::show() {
+  if (visible_)
+    return;
 
-  window_ =
-      [OSFWindow windowWithTitle:@"Terminal" frame:CGRectMake(0, 0, 720, 480)];
+  surface_ = OSFWaylandSurface::create(720, 480, "Terminal");
+  if (!surface_) {
+    std::cerr << "[Terminal] Failed to create window" << std::endl;
+    return;
+  }
 
-  // Glass panel background (slight transparency)
-  OSFGlassPanel *bg =
-      [OSFGlassPanel glassPanelWithFrame:CGRectMake(0, 0, 720, 480)];
-  bg.blurRadius = TerminalApp::instance().config().blurRadius;
-  bg.tintAlpha = TerminalApp::instance().config().backgroundOpacity;
+  visible_ = true;
+  draw();
+
+  std::cout << "[Terminal] Window shown (80x24)" << std::endl;
+}
+
+void TerminalWindow::hide() {
+  if (!visible_)
+    return;
+  surface_.reset();
+  visible_ = false;
+}
+
+void TerminalWindow::draw() {
+  if (!surface_)
+    return;
+
   // Dark charcoal background
-  bg.tintColor = [NSColor colorWithRed:0.12 green:0.12 blue:0.18 alpha:1.0];
-  [window_ setContentView:bg];
-
-  // Tab bar (macOS-style, minimal)
-  setupTabBar();
-
-  // Create initial tab
-  newTab();
-}
-
-void TerminalWindow::setupTabBar() {
-  // macOS-style tab bar
-  // - Subtle, integrated with window
-  // - Tabs are just text, minimal dividers
-  // - New tab button (+) on right
-
-  // TODO: Create OSFTabBar view
-}
-
-void TerminalWindow::show() { [window_ show]; }
-
-void TerminalWindow::hide() { [window_ close]; }
-
-void TerminalWindow::setTitle(const std::string &title) {
-  window_.title = [NSString stringWithUTF8String:title.c_str()];
-}
-
-void TerminalWindow::newTab() {
-  auto tab = std::make_unique<TerminalView>();
-  // TODO: Set up PTY and shell
-  tabs_.push_back(std::move(tab));
-  activeTab_ = static_cast<int>(tabs_.size()) - 1;
-}
-
-void TerminalWindow::closeTab(int index) {
-  if (index >= 0 && index < static_cast<int>(tabs_.size())) {
-    tabs_.erase(tabs_.begin() + index);
-    if (activeTab_ >= static_cast<int>(tabs_.size())) {
-      activeTab_ = static_cast<int>(tabs_.size()) - 1;
-    }
-  }
-}
-
-// ============================================================================
-// TerminalView
-// ============================================================================
-
-TerminalView::TerminalView() {
-  view_ = [OSFGlassPanel glassPanelWithFrame:CGRectMake(0, 28, 720, 452)];
-  buffer_ = nullptr;
-}
-
-TerminalView::~TerminalView() {}
-
-void TerminalView::setBuffer(TerminalBuffer *buffer) { buffer_ = buffer; }
-
-void TerminalView::setConfig(const TerminalConfig &config) { config_ = config; }
-
-void TerminalView::render() {
-  if (!buffer_)
-    return;
-
-  // TODO: Render cells using Vulkan text rendering
-  for (int row = 0; row < buffer_->rows(); row++) {
-    for (int col = 0; col < buffer_->cols(); col++) {
-      drawCell(col, row, buffer_->at(col, row));
-    }
-  }
-
-  drawCursor();
-}
-
-void TerminalView::drawCell(int col, int row, const TerminalCell &cell) {
-  // TODO: Draw character with font and colors
-}
-
-void TerminalView::drawCursor() {
-  if (!buffer_)
-    return;
-
-  // Space Orange cursor (Ares accent)
-  // TODO: Draw cursor block/underline/bar
-}
-
-void TerminalView::onKeyDown(const std::string &key, unsigned int modifiers) {
-  // TODO: Handle key input, send to PTY
-}
-
-void TerminalView::onKeyUp(const std::string &key, unsigned int modifiers) {
-  // TODO: Handle key release
-}
-
-void TerminalView::onTextInput(const std::string &text) {
-  if (onInput) {
-    onInput(text);
-  }
+  OSFColor bg = OSFColors::backgroundDark();
+  surface_->draw(bg);
 }
 
 // ============================================================================
@@ -211,8 +132,6 @@ void TerminalBuffer::newline() {
   cursorCol_ = 0;
   cursorRow_++;
   if (cursorRow_ >= rows_) {
-    // Scroll up, add to scrollback
-    // TODO: Implement scrollback
     cursorRow_ = rows_ - 1;
   }
 }

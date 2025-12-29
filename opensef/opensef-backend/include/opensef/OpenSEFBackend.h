@@ -11,7 +11,6 @@
 #include <opensef/OpenSEFBase.h>
 #include <string>
 
-
 namespace opensef {
 
 // ============================================================================
@@ -133,3 +132,6 @@ private:
 };
 
 } // namespace opensef
+
+// Text rendering
+#include <opensef/OSFTextRenderer.h>

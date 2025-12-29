@@ -26,7 +26,7 @@
             ninja
             pkg-config
             
-            # Wayland (with protocols for XDG shell)
+            # Wayland
             wayland
             wayland-protocols
             wayland-scanner
@@ -39,8 +39,10 @@
             # Fonts
             fontconfig
             freetype
+            inter            # Inter font!
+            dejavu_fonts     # Fallback font
             
-            # FFI (required by wayland-client)
+            # FFI
             libffi
             
             # Tools
@@ -48,9 +50,13 @@
           ];
 
           shellHook = ''
-            echo "VitusOS Ares Dev Shell Ready"
+            echo "╔════════════════════════════════════════════╗"
+            echo "║     VitusOS Ares Dev Shell                 ║"
+            echo "║     With Inter Font & FreeType             ║"
+            echo "╚════════════════════════════════════════════╝"
             export CC=clang
             export CXX=clang++
+            export FONTCONFIG_PATH=${pkgs.fontconfig.out}/etc/fonts
           '';
         };
       }

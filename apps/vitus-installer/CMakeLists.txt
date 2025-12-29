@@ -1,30 +1,27 @@
 # VitusOS Installer
-# Modern, minimalist installation experience (macOS-style)
 
-project(vitus-installer VERSION 1.0.0)
+project(vitus-installer)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(vitus-installer
     src/main.cpp
     src/InstallerApp.cpp
-    src/WelcomePage.cpp
-    src/DiskPage.cpp
-    src/AccountPage.cpp
-    src/CustomizePage.cpp
-    src/InstallPage.cpp
 )
 
 target_include_directories(vitus-installer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(vitus-installer
+target_link_libraries(vitus-installer PRIVATE
     opensef-base
-    opensef-appkit
-    opensef-backend
     opensef-ui
+    opensef-backend
 )
 
-# Install to live ISO
-install(TARGETS vitus-installer DESTINATION /usr/bin)
+target_compile_options(vitus-installer PRIVATE
+    -Wall -Wextra
+)
+
+install(TARGETS vitus-installer RUNTIME DESTINATION bin)

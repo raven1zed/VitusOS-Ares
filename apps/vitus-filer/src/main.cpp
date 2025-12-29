@@ -1,5 +1,5 @@
 /**
- * VitusOS Filer - Entry point
+ * main.cpp - Filer entry point
  */
 
 #include "Filer.h"

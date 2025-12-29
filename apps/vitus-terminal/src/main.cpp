@@ -1,5 +1,5 @@
 /**
- * VitusOS Terminal - Entry point
+ * main.cpp - Terminal entry point
  */
 
 #include "Terminal.h"

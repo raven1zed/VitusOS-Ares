@@ -5,6 +5,6 @@
 #include "SeaDrop.h"
 
 int main(int argc, char **argv) {
-  vitusos::SeaDropApp app;
+  vitusos::seadrop::SeaDropApp app;
   return app.run(argc, argv);
 }
