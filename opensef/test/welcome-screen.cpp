@@ -106,8 +106,12 @@ void drawFrame() {
   int w = g_surface->width();
   int h = g_surface->height();
 
+  // Apply window animation alpha (for minimize/maximize effects)
+  float alpha = g_anim.windowAlpha;
+
   // 1. Fill with warm cream background (OS1 style - no harsh whites)
   OSFColor warmCream = OSFColor::fromHex(0xFBFBFB);
+  warmCream.a = alpha; // Apply window alpha
   fillBackground(pixels, w, h, warmCream);
 
   // 2. Title bar background (32px height, Lunar Gray with subtle warmth)
@@ -176,7 +180,8 @@ void onAnimationTick() {
     if (g_anim.windowScale <= 0.0f) {
       g_anim.windowScale = 0.0f;
       g_anim.windowAlpha = 0.0f;
-      // Stay minimized (can restore later)
+      g_anim.windowState =
+          WindowState::NORMAL; // Done minimizing, back to normal state
       std::cout << "[VitusOS] Window minimized" << std::endl;
     }
     break;
