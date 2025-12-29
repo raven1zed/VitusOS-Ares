@@ -8,13 +8,11 @@
  * - Ares theme colors
  */
 
-#include <cmath>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
 #include <opensef/OpenSEFUI.h>
 #include <vector>
-
 
 using namespace opensef;
 
@@ -101,10 +99,20 @@ void drawFrame() {
   // 1. Background
   fillBackground(pixels, w, h, g_bgColor);
 
-  // 2. Traffic lights
-  fillCircle(pixels, w, h, 20, 20, 7, g_closeColor);
-  fillCircle(pixels, w, h, 42, 20, 7, g_minimizeColor);
-  fillCircle(pixels, w, h, 64, 20, 7, g_maximizeColor);
+  // 2. Title bar (32px height as per spec) with 3px orange accent
+  // Accent bar on left edge
+  fillRect(pixels, w, h, 0, 0, 3, 32, g_closeColor); // 3px Space Orange accent
+
+  // 3. Traffic lights (12px diameter = 6px radius, 8px spacing, 8px from left)
+  int btnRadius = 6;   // 12px diameter
+  int btnSpacing = 20; // 8px between (center to center = 12 + 8 = 20px)
+  int btnY = 16;       // Vertically centered in 32px title bar
+  int btnStart = 14;   // 8px from edge + radius
+  fillCircle(pixels, w, h, btnStart, btnY, btnRadius, g_closeColor);
+  fillCircle(pixels, w, h, btnStart + btnSpacing, btnY, btnRadius,
+             g_minimizeColor);
+  fillCircle(pixels, w, h, btnStart + btnSpacing * 2, btnY, btnRadius,
+             g_maximizeColor);
 
   // 3. "Hello" (fixed, always visible)
   const std::string mainText = "Hello";
@@ -128,16 +136,16 @@ void drawFrame() {
   g_textRenderer->drawText(pixels, w, h, subX, subY, subtitle, fadeColor,
                            subFontSize);
 
-  // 5. Continue button
-  int btnW = 200, btnH = 50;
-  int btnX = (w - btnW) / 2, btnY = h / 2 + 100;
-  fillRect(pixels, w, h, btnX, btnY, btnW, btnH, g_buttonColor);
+  // 5. Continue button (uses Ares spec: 28px height, 6px radius)
+  int contBtnW = 200, contBtnH = 50;
+  int contBtnX = (w - contBtnW) / 2, contBtnY = h / 2 + 100;
+  fillRect(pixels, w, h, contBtnX, contBtnY, contBtnW, contBtnH, g_buttonColor);
 
   const std::string btnLabel = "Continue";
   int btnFontSize = 20;
   int btnTextW = g_textRenderer->measureTextWidth(btnLabel, btnFontSize);
-  int btnTextX = btnX + (btnW - btnTextW) / 2;
-  int btnTextY = btnY + btnH / 2 + btnFontSize / 3;
+  int btnTextX = contBtnX + (contBtnW - btnTextW) / 2;
+  int btnTextY = contBtnY + contBtnH / 2 + btnFontSize / 3;
   g_textRenderer->drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
                            g_buttonText, btnFontSize);
 
@@ -203,9 +211,10 @@ int main() {
   g_subtitleColor = OSFColors::textSecondary();
   g_buttonColor = OSFColors::primary();
   g_buttonText = OSFColor::fromHex(0xFFFFFF);
-  g_closeColor = OSFColor::fromHex(0xFF5F57);
-  g_minimizeColor = OSFColor::fromHex(0xFFBD2E);
-  g_maximizeColor = OSFColor::fromHex(0x28CA41);
+  // Ares traffic lights (from design spec)
+  g_closeColor = OSFColor::fromHex(0xE85D04);    // Space Orange
+  g_minimizeColor = OSFColor::fromHex(0xC3BC19); // Warm Gold
+  g_maximizeColor = OSFColor::fromHex(0x3D5A80); // Mission Blue
 
   // Initial state
   g_anim.holdTime = g_anim.holdDuration;
