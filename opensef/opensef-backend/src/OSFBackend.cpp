@@ -2,8 +2,8 @@
  * OSFBackend.cpp - Wayland backend with XDG shell
  */
 
-#include <chrono>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <linux/input.h>
 #include <opensef/OpenSEFBackend.h>
@@ -38,6 +38,10 @@ static bool g_running = false;
 static double g_mouseX = 0;
 static double g_mouseY = 0;
 static bool g_mousePressed = false;
+
+// Button callbacks
+static std::function<void()> g_minimizeCallback = nullptr;
+static std::function<void()> g_maximizeCallback = nullptr;
 
 // XDG WM base ping handler
 static void xdgWmBasePing(void *data, xdg_wm_base *xdg_wm_base,
@@ -113,14 +117,16 @@ static void pointerButton(void *data, wl_pointer *pointer, uint32_t serial,
     // Minimize button (Warm Gold) - center at x=38
     if (inButtonY && g_mouseX >= 32 && g_mouseX <= 44) {
       std::cout << "[openSEF] Minimize button clicked" << std::endl;
-      // TODO: xdg_toplevel_set_minimized
+      if (g_minimizeCallback)
+        g_minimizeCallback();
       return;
     }
 
     // Maximize button (Mission Blue) - center at x=58
     if (inButtonY && g_mouseX >= 52 && g_mouseX <= 64) {
       std::cout << "[openSEF] Maximize button clicked" << std::endl;
-      // TODO: Window resize
+      if (g_maximizeCallback)
+        g_maximizeCallback();
       return;
     }
 
@@ -369,6 +375,14 @@ void OSFVulkanRenderer::shutdown() {}
 OSFInputHandler &OSFInputHandler::shared() {
   static OSFInputHandler instance;
   return instance;
+}
+
+void OSFBackend::setMinimizeCallback(std::function<void()> cb) {
+  g_minimizeCallback = cb;
+}
+
+void OSFBackend::setMaximizeCallback(std::function<void()> cb) {
+  g_maximizeCallback = cb;
 }
 
 } // namespace opensef

@@ -21,15 +21,25 @@ const std::vector<std::string> subtitles = {"Welcome",    "Bienvenue",
                                             "Bienvenido", "Benvenuto",
                                             "Willkommen", "Bem-vindo"};
 
+// Window states for animations
+enum class WindowState { NORMAL, MINIMIZING, MAXIMIZING, RESTORING };
+
 // Animation state
 struct AnimState {
+  // Subtitle animation
   int currentIndex = 0;
-  int nextIndex = 1;
-  float alpha = 1.0f;               // Current text alpha (1.0 = visible)
-  bool fadingOut = false;           // true = fading out, false = fading in
-  float holdTime = 0.0f;            // Time to hold before next fade
-  const float fadeSpeed = 0.05f;    // Alpha change per frame
-  const float holdDuration = 60.0f; // Frames to hold (60 = ~1 second at 60fps)
+  float alpha = 1.0f;
+  bool fadingOut = false;
+  float holdTime = 0.0f;
+  const float fadeSpeed = 0.05f;
+  const float holdDuration = 60.0f;
+
+  // Window animation
+  WindowState windowState = WindowState::NORMAL;
+  float windowScale = 1.0f; // 1.0 = normal, 0.0 = minimized
+  float windowAlpha = 1.0f; // Window opacity
+  float targetScale = 1.0f;
+  const float animSpeed = 0.08f; // Speed of window animations
 };
 
 // Global state
@@ -158,31 +168,85 @@ void drawFrame() {
 
 // Animation tick (called every ~16ms for 60fps)
 void onAnimationTick() {
-  // State machine: HOLD -> FADE_OUT -> SWITCH -> FADE_IN -> HOLD
+  // === WINDOW ANIMATIONS ===
+  switch (g_anim.windowState) {
+  case WindowState::MINIMIZING:
+    g_anim.windowScale -= g_anim.animSpeed;
+    g_anim.windowAlpha -= g_anim.animSpeed * 2;
+    if (g_anim.windowScale <= 0.0f) {
+      g_anim.windowScale = 0.0f;
+      g_anim.windowAlpha = 0.0f;
+      // Stay minimized (can restore later)
+      std::cout << "[VitusOS] Window minimized" << std::endl;
+    }
+    break;
 
+  case WindowState::MAXIMIZING:
+    // Scale up slightly for "zoom" effect
+    if (g_anim.windowScale < 1.05f) {
+      g_anim.windowScale += g_anim.animSpeed;
+    } else {
+      g_anim.windowScale = 1.0f;
+      g_anim.windowState = WindowState::NORMAL;
+      std::cout << "[VitusOS] Window maximized" << std::endl;
+    }
+    break;
+
+  case WindowState::RESTORING:
+    g_anim.windowScale += g_anim.animSpeed;
+    g_anim.windowAlpha += g_anim.animSpeed * 2;
+    if (g_anim.windowScale >= 1.0f) {
+      g_anim.windowScale = 1.0f;
+      g_anim.windowAlpha = 1.0f;
+      g_anim.windowState = WindowState::NORMAL;
+      std::cout << "[VitusOS] Window restored" << std::endl;
+    }
+    break;
+
+  case WindowState::NORMAL:
+  default:
+    break;
+  }
+
+  // === SUBTITLE FADE ANIMATION ===
   if (g_anim.holdTime > 0) {
-    // Holding visible text
     g_anim.holdTime -= 1.0f;
   } else if (g_anim.fadingOut) {
-    // Fading out
     g_anim.alpha -= g_anim.fadeSpeed;
     if (g_anim.alpha <= 0.0f) {
       g_anim.alpha = 0.0f;
-      // Switch to next subtitle
       g_anim.currentIndex = (g_anim.currentIndex + 1) % subtitles.size();
-      g_anim.fadingOut = false; // Start fading in
+      g_anim.fadingOut = false;
     }
   } else {
-    // Fading in
     g_anim.alpha += g_anim.fadeSpeed;
     if (g_anim.alpha >= 1.0f) {
       g_anim.alpha = 1.0f;
-      g_anim.holdTime = g_anim.holdDuration; // Hold for a while
-      g_anim.fadingOut = true;               // Next cycle: fade out
+      g_anim.holdTime = g_anim.holdDuration;
+      g_anim.fadingOut = true;
     }
   }
 
   drawFrame();
+}
+
+// Public functions to trigger window animations
+void triggerMinimize() {
+  if (g_anim.windowState == WindowState::NORMAL) {
+    g_anim.windowState = WindowState::MINIMIZING;
+    std::cout << "[VitusOS] Starting minimize animation" << std::endl;
+  } else if (g_anim.windowScale <= 0.0f) {
+    // If already minimized, restore
+    g_anim.windowState = WindowState::RESTORING;
+    std::cout << "[VitusOS] Starting restore animation" << std::endl;
+  }
+}
+
+void triggerMaximize() {
+  if (g_anim.windowState == WindowState::NORMAL) {
+    g_anim.windowState = WindowState::MAXIMIZING;
+    std::cout << "[VitusOS] Starting maximize animation" << std::endl;
+  }
 }
 
 int main() {
@@ -219,6 +283,10 @@ int main() {
   g_closeColor = OSFColor::fromHex(0xE85D04);    // Space Orange
   g_minimizeColor = OSFColor::fromHex(0xC3BC19); // Warm Gold
   g_maximizeColor = OSFColor::fromHex(0x3D5A80); // Mission Blue
+
+  // Register button callbacks for animations
+  OSFBackend::shared().setMinimizeCallback(triggerMinimize);
+  OSFBackend::shared().setMaximizeCallback(triggerMaximize);
 
   // Initial state
   g_anim.holdTime = g_anim.holdDuration;

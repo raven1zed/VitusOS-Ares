@@ -30,6 +30,10 @@ public:
 
   void stop() { running_ = false; }
 
+  // Button callbacks (called from backend when traffic lights clicked)
+  void setMinimizeCallback(std::function<void()> cb);
+  void setMaximizeCallback(std::function<void()> cb);
+
   bool isWayland() const { return true; }
   bool isConnected() const { return connected_; }
 
