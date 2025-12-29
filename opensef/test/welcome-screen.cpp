@@ -1,12 +1,12 @@
 /**
- * welcome-screen.cpp - Apple-style multilingual welcome with animation
+ * welcome-screen.cpp - Apple-style multilingual welcome
  *
- * Uses Ares Theme:
- * - Lunar Gray background (#F0F0F0)
- * - Space Charcoal text (#1A1A2E)
- * - Space Orange accent (#E85D04)
+ * Layout:
+ *   "Hello" (big, centered)
+ *   "Welcome" / "Bonjour" / "Hola" (subtitle, cycling)
+ *   [Continue] button
  *
- * Traffic Light Buttons (macOS style)
+ * Traffic lights: Close/Minimize/Maximize with hover effect
  */
 
 #include <iostream>
@@ -18,18 +18,20 @@
 
 using namespace opensef;
 
-// Multilingual greetings (Apple-style - cycles through)
-const std::vector<std::string> greetings = {
-    "Hello", "Bonjour", "Hola", "Ciao", "Hallo", "Olá", "Welcome"};
+// Multilingual subtitles (cycles under "Hello")
+const std::vector<std::string> subtitles = {
+    "Welcome",    "Bienvenue", "Bienvenido",      "Benvenuto",
+    "Willkommen", "Bem-vindo", "Добро пожаловать"};
 
-// Global state for animation
-int g_greetingIndex = 0;
+// Global state
+int g_subtitleIndex = 0;
 OSFWaylandSurface *g_surface = nullptr;
 OSFTextRenderer *g_textRenderer = nullptr;
 
 // === ARES THEME COLORS ===
 OSFColor g_bgColor;
 OSFColor g_textColor;
+OSFColor g_subtitleColor;
 OSFColor g_buttonColor;
 OSFColor g_buttonText;
 OSFColor g_closeColor;
@@ -66,7 +68,7 @@ void fillRect(uint32_t *buffer, int bufWidth, int bufHeight, int x, int y,
   }
 }
 
-// Draw a filled circle (for traffic light buttons)
+// Draw a filled circle
 void fillCircle(uint32_t *buffer, int bufWidth, int bufHeight, int cx, int cy,
                 int radius, const OSFColor &color) {
   uint32_t pixel = (static_cast<uint32_t>(color.a * 255) << 24) |
@@ -99,10 +101,10 @@ void drawFrame() {
   int w = g_surface->width();
   int h = g_surface->height();
 
-  // 1. Fill background
+  // 1. Fill Lunar Gray background
   fillBackground(pixels, w, h, g_bgColor);
 
-  // 2. Draw traffic light buttons (top-left, macOS style)
+  // 2. Draw traffic light buttons (top-left)
   int btnRadius = 7;
   int btnY = 20;
   int btnSpacing = 22;
@@ -111,22 +113,32 @@ void drawFrame() {
   fillCircle(pixels, w, h, 20 + btnSpacing * 2, btnY, btnRadius,
              g_maximizeColor);
 
-  // 3. Draw greeting text (centered, animated)
-  const std::string &greeting = greetings[g_greetingIndex];
-  int fontSize = 72;
-  int textWidth = g_textRenderer->measureTextWidth(greeting, fontSize);
-  int x = (w - textWidth) / 2;
-  int y = h / 2 - 50;
-  g_textRenderer->drawText(pixels, w, h, x, y, greeting, g_textColor, fontSize);
+  // 3. Draw "Hello" (big, centered, fixed)
+  const std::string mainText = "Hello";
+  int mainFontSize = 72;
+  int mainWidth = g_textRenderer->measureTextWidth(mainText, mainFontSize);
+  int mainX = (w - mainWidth) / 2;
+  int mainY = h / 2 - 60;
+  g_textRenderer->drawText(pixels, w, h, mainX, mainY, mainText, g_textColor,
+                           mainFontSize);
 
-  // 4. Draw "Continue" button
+  // 4. Draw cycling subtitle below "Hello"
+  const std::string &subtitle = subtitles[g_subtitleIndex];
+  int subFontSize = 32;
+  int subWidth = g_textRenderer->measureTextWidth(subtitle, subFontSize);
+  int subX = (w - subWidth) / 2;
+  int subY = h / 2 + 10;
+  g_textRenderer->drawText(pixels, w, h, subX, subY, subtitle, g_subtitleColor,
+                           subFontSize);
+
+  // 5. Draw "Continue" button
   int btnWidth = 200;
   int btnHeight = 50;
   int btnX = (w - btnWidth) / 2;
-  int btnBotY = h / 2 + 80;
+  int btnBotY = h / 2 + 100;
   fillRect(pixels, w, h, btnX, btnBotY, btnWidth, btnHeight, g_buttonColor);
 
-  // 5. Draw button text
+  // 6. Draw button text
   const std::string btnLabel = "Continue";
   int btnFontSize = 20;
   int btnTextWidth = g_textRenderer->measureTextWidth(btnLabel, btnFontSize);
@@ -139,11 +151,10 @@ void drawFrame() {
   g_surface->commit();
 }
 
-// Animation callback - called every 2 seconds
+// Animation callback
 void onAnimationTick() {
-  g_greetingIndex = (g_greetingIndex + 1) % greetings.size();
-  std::cout << "[VitusOS] Greeting: " << greetings[g_greetingIndex]
-            << std::endl;
+  g_subtitleIndex = (g_subtitleIndex + 1) % subtitles.size();
+  std::cout << "[VitusOS] " << subtitles[g_subtitleIndex] << std::endl;
   drawFrame();
 }
 
@@ -152,25 +163,25 @@ int main() {
             << std::endl;
   std::cout << "║       VitusOS - Welcome Screen                         ║"
             << std::endl;
-  std::cout << "║       Animated Greetings + Traffic Light Buttons       ║"
+  std::cout << "║       Hello + Cycling Subtitles                        ║"
             << std::endl;
   std::cout << "╚════════════════════════════════════════════════════════╝"
             << std::endl;
   std::cout << std::endl;
 
-  // Connect to Wayland
+  // Connect
   if (!OSFBackend::shared().connect()) {
     std::cerr << "Error: Could not connect to Wayland." << std::endl;
     return 1;
   }
 
-  // Initialize text renderer
+  // Text renderer
   g_textRenderer = &OSFTextRenderer::shared();
   if (!g_textRenderer->initialize()) {
-    std::cerr << "Warning: Text renderer failed to initialize" << std::endl;
+    std::cerr << "Warning: Text renderer failed" << std::endl;
   }
 
-  // Create window
+  // Window
   auto surface = OSFWaylandSurface::create(800, 600, "Welcome to VitusOS");
   if (!surface) {
     std::cerr << "Error: Failed to create window" << std::endl;
@@ -179,24 +190,23 @@ int main() {
   }
   g_surface = surface.get();
 
-  std::cout << "[VitusOS] Window created - Ares Theme with Animation"
-            << std::endl;
-
-  // Initialize colors
+  // Initialize Ares colors
   g_bgColor = OSFColors::background();           // Lunar Gray
   g_textColor = OSFColors::textPrimary();        // Space Charcoal
+  g_subtitleColor = OSFColors::textSecondary();  // Lighter gray for subtitle
   g_buttonColor = OSFColors::primary();          // Space Orange
   g_buttonText = OSFColor::fromHex(0xFFFFFF);    // White
   g_closeColor = OSFColor::fromHex(0xFF5F57);    // Red
   g_minimizeColor = OSFColor::fromHex(0xFFBD2E); // Yellow
   g_maximizeColor = OSFColor::fromHex(0x28CA41); // Green
 
-  // Draw initial frame
-  drawFrame();
-  std::cout << "[VitusOS] Initial: " << greetings[0] << std::endl;
+  std::cout << "[VitusOS] Window ready - Ares Theme" << std::endl;
 
-  // Run event loop with animation callback (every 2000ms)
-  OSFBackend::shared().runWithCallback(onAnimationTick, 2000);
+  // Initial frame
+  drawFrame();
+
+  // Run with animation (subtitle cycles every 2.5 seconds)
+  OSFBackend::shared().runWithCallback(onAnimationTick, 2500);
 
   // Cleanup
   g_surface = nullptr;

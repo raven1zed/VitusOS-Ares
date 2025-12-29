@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <linux/input.h>
 #include <opensef/OpenSEFBackend.h>
 #include <poll.h>
 
@@ -18,12 +19,19 @@ namespace opensef {
 static wl_compositor *g_compositor = nullptr;
 static wl_shm *g_shm = nullptr;
 static xdg_wm_base *g_xdgWmBase = nullptr;
+static wl_seat *g_seat = nullptr;
+static wl_pointer *g_pointer = nullptr;
 
 // Backend singleton storage
 static wl_display *g_display = nullptr;
 static wl_registry *g_registry = nullptr;
 static bool g_connected = false;
 static bool g_running = false;
+
+// Mouse state
+static double g_mouseX = 0;
+static double g_mouseY = 0;
+static bool g_mousePressed = false;
 
 // XDG WM base ping handler
 static void xdgWmBasePing(void *data, xdg_wm_base *xdg_wm_base,
@@ -34,7 +42,95 @@ static void xdgWmBasePing(void *data, xdg_wm_base *xdg_wm_base,
 
 static const xdg_wm_base_listener xdgWmBaseListener = {xdgWmBasePing};
 
+// ============================================================================
+// Pointer (mouse) handlers
+// ============================================================================
+
+static void pointerEnter(void *data, wl_pointer *pointer, uint32_t serial,
+                         wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
+  (void)data;
+  (void)pointer;
+  (void)serial;
+  (void)surface;
+  g_mouseX = wl_fixed_to_double(sx);
+  g_mouseY = wl_fixed_to_double(sy);
+}
+
+static void pointerLeave(void *data, wl_pointer *pointer, uint32_t serial,
+                         wl_surface *surface) {
+  (void)data;
+  (void)pointer;
+  (void)serial;
+  (void)surface;
+}
+
+static void pointerMotion(void *data, wl_pointer *pointer, uint32_t time,
+                          wl_fixed_t sx, wl_fixed_t sy) {
+  (void)data;
+  (void)pointer;
+  (void)time;
+  g_mouseX = wl_fixed_to_double(sx);
+  g_mouseY = wl_fixed_to_double(sy);
+}
+
+static void pointerButton(void *data, wl_pointer *pointer, uint32_t serial,
+                          uint32_t time, uint32_t button, uint32_t state) {
+  (void)data;
+  (void)pointer;
+  (void)serial;
+  (void)time;
+  g_mousePressed = (state == WL_POINTER_BUTTON_STATE_PRESSED);
+
+  if (g_mousePressed && button == BTN_LEFT) {
+    // Check if click is on close button (x: 13-27, y: 13-27)
+    if (g_mouseX >= 13 && g_mouseX <= 27 && g_mouseY >= 13 && g_mouseY <= 27) {
+      std::cout << "[openSEF] Close button clicked - stopping" << std::endl;
+      g_running = false;
+    }
+    // Log other clicks
+    std::cout << "[openSEF] Click at (" << g_mouseX << ", " << g_mouseY << ")"
+              << std::endl;
+  }
+}
+
+static void pointerAxis(void *data, wl_pointer *pointer, uint32_t time,
+                        uint32_t axis, wl_fixed_t value) {
+  (void)data;
+  (void)pointer;
+  (void)time;
+  (void)axis;
+  (void)value;
+}
+
+static const wl_pointer_listener pointerListener = {
+    pointerEnter, pointerLeave, pointerMotion, pointerButton, pointerAxis};
+
+// ============================================================================
+// Seat capabilities (to get pointer/keyboard)
+// ============================================================================
+
+static void seatCapabilities(void *data, wl_seat *seat, uint32_t caps) {
+  (void)data;
+
+  if ((caps & WL_SEAT_CAPABILITY_POINTER) && !g_pointer) {
+    g_pointer = wl_seat_get_pointer(seat);
+    wl_pointer_add_listener(g_pointer, &pointerListener, nullptr);
+    std::cout << "[openSEF] Pointer (mouse) ready" << std::endl;
+  }
+}
+
+static void seatName(void *data, wl_seat *seat, const char *name) {
+  (void)data;
+  (void)seat;
+  (void)name;
+}
+
+static const wl_seat_listener seatListener = {seatCapabilities, seatName};
+
+// ============================================================================
 // Registry listener
+// ============================================================================
+
 static void registryHandler(void *data, wl_registry *registry, uint32_t id,
                             const char *interface, uint32_t version) {
   (void)data;
@@ -53,6 +149,11 @@ static void registryHandler(void *data, wl_registry *registry, uint32_t id,
         wl_registry_bind(registry, id, &xdg_wm_base_interface, 1));
     xdg_wm_base_add_listener(g_xdgWmBase, &xdgWmBaseListener, nullptr);
     std::cout << "[openSEF] Found XDG shell" << std::endl;
+  } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+    g_seat = static_cast<wl_seat *>(
+        wl_registry_bind(registry, id, &wl_seat_interface, 1));
+    wl_seat_add_listener(g_seat, &seatListener, nullptr);
+    std::cout << "[openSEF] Found seat (input)" << std::endl;
   }
 }
 
