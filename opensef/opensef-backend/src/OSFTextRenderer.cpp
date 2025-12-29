@@ -22,25 +22,28 @@ bool OSFTextRenderer::initialize() {
   if (initialized_)
     return true;
 
-  FT_Error error = FT_Init_FreeType(&ftLibrary_);
+  FT_Library library = nullptr;
+  FT_Error error = FT_Init_FreeType(&library);
   if (error) {
     std::cerr << "[openSEF] Failed to initialize FreeType" << std::endl;
     return false;
   }
 
+  ftLibrary_ = library;
   std::cout << "[openSEF] FreeType initialized" << std::endl;
   initialized_ = true;
 
   // Try to load default fonts from common locations
   const char *fontPaths[] = {
-      // NixOS/Linux
+      // NixOS paths
       "/run/current-system/sw/share/fonts/truetype/inter/Inter-Regular.ttf",
+      "/run/current-system/sw/share/fonts/truetype/Inter-Regular.ttf",
+      // Standard Linux paths
       "/usr/share/fonts/truetype/inter/Inter-Regular.ttf",
       "/usr/share/fonts/TTF/Inter-Regular.ttf",
-      "/nix/store/*-google-fonts-*/share/fonts/truetype/Inter-Regular.ttf",
-      // Fallback: any TTF
+      // DejaVu fallback
       "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-      "/usr/share/fonts/TTF/DejaVuSans.ttf", nullptr};
+      "/run/current-system/sw/share/fonts/truetype/DejaVuSans.ttf", nullptr};
 
   for (const char **path = fontPaths; *path; ++path) {
     if (loadFont(kFontUI, *path)) {
@@ -49,19 +52,26 @@ bool OSFTextRenderer::initialize() {
     }
   }
 
+  if (fonts_.empty()) {
+    std::cerr << "[openSEF] Warning: No fonts loaded" << std::endl;
+  }
+
   return true;
 }
 
 void OSFTextRenderer::shutdown() {
-  for (auto &[name, face] : fonts_) {
-    if (face) {
+  FT_Library library = static_cast<FT_Library>(ftLibrary_);
+
+  for (auto &[name, facePtr] : fonts_) {
+    if (facePtr) {
+      FT_Face face = static_cast<FT_Face>(facePtr);
       FT_Done_Face(face);
     }
   }
   fonts_.clear();
 
-  if (ftLibrary_) {
-    FT_Done_FreeType(ftLibrary_);
+  if (library) {
+    FT_Done_FreeType(library);
     ftLibrary_ = nullptr;
   }
   initialized_ = false;
@@ -69,11 +79,12 @@ void OSFTextRenderer::shutdown() {
 
 bool OSFTextRenderer::loadFont(const std::string &name,
                                const std::string &path) {
-  if (!ftLibrary_)
+  FT_Library library = static_cast<FT_Library>(ftLibrary_);
+  if (!library)
     return false;
 
   FT_Face face = nullptr;
-  FT_Error error = FT_New_Face(ftLibrary_, path.c_str(), 0, &face);
+  FT_Error error = FT_New_Face(library, path.c_str(), 0, &face);
   if (error) {
     return false;
   }
@@ -81,7 +92,7 @@ bool OSFTextRenderer::loadFont(const std::string &name,
   // Remove old font with same name
   auto it = fonts_.find(name);
   if (it != fonts_.end() && it->second) {
-    FT_Done_Face(it->second);
+    FT_Done_Face(static_cast<FT_Face>(it->second));
   }
 
   fonts_[name] = face;
@@ -103,10 +114,10 @@ void OSFTextRenderer::drawText(uint32_t *buffer, int bufferWidth,
   if (!initialized_ || fonts_.empty())
     return;
 
-  FT_Face face = fonts_[activeFont_];
+  FT_Face face = static_cast<FT_Face>(fonts_[activeFont_]);
   if (!face) {
     // Fall back to first available font
-    face = fonts_.begin()->second;
+    face = static_cast<FT_Face>(fonts_.begin()->second);
   }
   if (!face)
     return;
@@ -116,11 +127,12 @@ void OSFTextRenderer::drawText(uint32_t *buffer, int bufferWidth,
   int penX = x;
   int penY = y;
 
-  // Simple UTF-8 decoding for ASCII (extended for multilingual later)
+  // UTF-8 decoding and rendering
   for (size_t i = 0; i < text.size();) {
     char32_t codepoint = 0;
-    unsigned char c = text[i];
+    unsigned char c = static_cast<unsigned char>(text[i]);
 
+    // UTF-8 decode
     if (c < 0x80) {
       codepoint = c;
       i += 1;
@@ -165,18 +177,19 @@ void OSFTextRenderer::drawText(uint32_t *buffer, int bufferWidth,
 
     for (unsigned int row = 0; row < bitmap.rows; row++) {
       for (unsigned int col = 0; col < bitmap.width; col++) {
-        int bufX = glyphX + col;
-        int bufY = glyphY + row;
+        int bufX = glyphX + static_cast<int>(col);
+        int bufY = glyphY + static_cast<int>(row);
 
         if (bufX >= 0 && bufX < bufferWidth && bufY >= 0 &&
             bufY < bufferHeight) {
           uint8_t alpha = bitmap.buffer[row * bitmap.pitch + col];
           if (alpha > 0) {
-            // Alpha blend
-            float a = alpha / 255.0f * color.a;
-            uint32_t blended =
-                (uint32_t)(a * 255) << 24 | (uint32_t)(color.r * 255) << 16 |
-                (uint32_t)(color.g * 255) << 8 | (uint32_t)(color.b * 255);
+            // Alpha blend with color
+            float a = (alpha / 255.0f) * color.a;
+            uint32_t blended = (static_cast<uint32_t>(a * 255) << 24) |
+                               (static_cast<uint32_t>(color.r * 255) << 16) |
+                               (static_cast<uint32_t>(color.g * 255) << 8) |
+                               static_cast<uint32_t>(color.b * 255);
             buffer[bufY * bufferWidth + bufX] = blended;
           }
         }
@@ -191,16 +204,18 @@ int OSFTextRenderer::measureTextWidth(const std::string &text, int fontSize) {
   if (!initialized_ || fonts_.empty())
     return 0;
 
-  FT_Face face = fonts_[activeFont_];
+  FT_Face face = static_cast<FT_Face>(fonts_[activeFont_]);
   if (!face)
-    face = fonts_.begin()->second;
+    face = static_cast<FT_Face>(fonts_.begin()->second);
   if (!face)
     return 0;
 
   FT_Set_Pixel_Sizes(face, 0, fontSize);
 
   int width = 0;
-  for (char c : text) {
+  for (unsigned char c : text) {
+    if (c >= 0x80)
+      continue; // Skip non-ASCII for measurement
     FT_UInt glyphIndex = FT_Get_Char_Index(face, c);
     if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_DEFAULT) == 0) {
       width += face->glyph->advance.x >> 6;

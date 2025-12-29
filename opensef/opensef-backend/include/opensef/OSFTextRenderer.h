@@ -15,10 +15,6 @@
 
 namespace opensef {
 
-// Forward declare FreeType types
-struct FT_LibraryRec_;
-struct FT_FaceRec_;
-
 // ============================================================================
 // OSFTextRenderer - FreeType-based text rendering
 // ============================================================================
@@ -35,8 +31,7 @@ public:
   bool loadFont(const std::string &name, const std::string &path);
   bool setActiveFont(const std::string &name);
 
-  // Text rendering
-  // Renders text to a pixel buffer (ARGB format)
+  // Text rendering - renders text to a pixel buffer (ARGB format)
   void drawText(uint32_t *buffer, int bufferWidth, int bufferHeight, int x,
                 int y, const std::string &text, const OSFColor &color,
                 int fontSize);
@@ -53,22 +48,11 @@ private:
   OSFTextRenderer() = default;
   ~OSFTextRenderer();
 
-  FT_LibraryRec_ *ftLibrary_ = nullptr;
-  std::unordered_map<std::string, FT_FaceRec_ *> fonts_;
+  // Use void* to avoid FreeType header dependency
+  void *ftLibrary_ = nullptr;
+  std::unordered_map<std::string, void *> fonts_;
   std::string activeFont_ = kFontUI;
   bool initialized_ = false;
-
-  // Glyph cache (simple version)
-  struct GlyphInfo {
-    std::vector<uint8_t> bitmap;
-    int width = 0;
-    int height = 0;
-    int bearingX = 0;
-    int bearingY = 0;
-    int advance = 0;
-  };
-
-  GlyphInfo renderGlyph(char32_t codepoint, int fontSize);
 };
 
 } // namespace opensef
