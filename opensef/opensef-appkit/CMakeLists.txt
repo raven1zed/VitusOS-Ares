@@ -10,6 +10,9 @@ add_library(opensef-appkit SHARED
     src/OSFWindow.cpp
     src/OSFButton.cpp
     src/OSFWidgets.cpp
+    src/OSFWindowButton.cpp
+    src/OSFTitleBar.cpp
+    src/OSFTilingManager.cpp
 )
 
 target_include_directories(opensef-appkit PUBLIC
@@ -22,5 +25,5 @@ target_link_libraries(opensef-appkit PUBLIC
 )
 
 target_compile_options(opensef-appkit PRIVATE
-    -Wall -Wextra -Wpedantic
+    -Wall -Wextra
 )
