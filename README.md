@@ -24,18 +24,23 @@ VitusOS is an attempt to create a **unified, beautiful Linux experience** - insp
 
 ---
 
-## Current Status
+## 🎉 Latest Progress
+
+**December 30, 2024** - Welcome screen working on NixOS Wayland!
 
 | Milestone | Status |
 |-----------|--------|
 | openSEF Framework (C++) | ✅ Complete |
 | Wayland Backend | ✅ Working |
 | XDG Shell Window | ✅ Working |
-| First Visible Window | ✅ **Done!** |
-| Text Rendering | ⏳ Next |
-| Input Events | ⏳ Soon |
+| Text Rendering (FreeType) | ✅ **Done!** |
+| Mouse/Keyboard Input | ✅ **Done!** |
+| 60fps Animations | ✅ **Done!** |
+| Ares Theme Colors | ✅ **Done!** |
+| wlroots Compositor | ✅ Code complete |
+| Desktop Components | 🔄 Next |
 
-**Last verified:** December 29, 2024 - NixOS Plasma Wayland
+**Verified on:** NixOS + Plasma Wayland (VM)
 
 ---
 
@@ -56,10 +61,11 @@ VitusOS is an attempt to create a **unified, beautiful Linux experience** - insp
 │  VitusOS Apps (SeaDrop, Terminal, Filer)         [C++17]    │
 ├─────────────────────────────────────────────────────────────┤
 │  openSEF Framework                                [C++17]   │
-│  ├── opensef-base      (Foundation)                         │
-│  ├── opensef-appkit    (GUI Widgets)                        │
-│  ├── opensef-backend   (Wayland + Vulkan)                   │
-│  └── opensef-ui        (Ares Design System)                 │
+│  ├── opensef-base        (Foundation)                       │
+│  ├── opensef-appkit      (GUI Widgets)                      │
+│  ├── opensef-backend     (Wayland Client)                   │
+│  ├── opensef-ui          (Ares Design System)               │
+│  └── opensef-compositor  (wlroots Compositor) ← NEW!        │
 ├─────────────────────────────────────────────────────────────┤
 │  NixOS (Declarative Linux)                                  │
 └─────────────────────────────────────────────────────────────┘
@@ -73,10 +79,11 @@ Inspired by *The Martian* - **"I'm gonna have to science the shit out of this."*
 
 | Color | Hex | Use |
 |-------|-----|-----|
-| **Space Orange** | `#E85D04` | Primary accent |
-| **Lunar Gray** | `#F0F0F0` | Background |
-| **Mission Blue** | `#3D5A80` | Secondary |
-| **Space Charcoal** | `#1A1A2E` | Dark mode |
+| **Space Orange** | `#E85D04` | Close button, primary |
+| **Warm Gold** | `#C3BC19` | Minimize button |
+| **Mission Blue** | `#3D5A80` | Maximize button |
+| **Lunar Gray** | `#F0F0F0` | Title bar |
+| **Soft Cream** | `#FBFBFB` | Background |
 
 **Font:** Inter (UI), JetBrains Mono (Terminal)
 
@@ -88,18 +95,18 @@ Inspired by *The Martian* - **"I'm gonna have to science the shit out of this."*
 
 ```bash
 # Clone
-git clone --recursive https://github.com/raven1zed/vitusos-ares.git
-cd vitusos-ares
+git clone --recursive https://github.com/raven1zed/VitusOS-Ares.git
+cd VitusOS-Ares
 
 # Enter dev environment
-nix develop --extra-experimental-features "nix-command flakes"
+nix develop
 
 # Build
 cmake -B build -G Ninja
 cmake --build build
 
-# Test - should show orange window!
-./build/opensef/test/hello-window
+# Test - Welcome screen with Ares theme!
+./build/opensef/test/welcome-screen
 ```
 
 ---
@@ -107,19 +114,18 @@ cmake --build build
 ## Project Structure
 
 ```
-vitusos-ares/
-├── opensef/                 # GUI framework (C++)
-│   ├── opensef-base/        # OSFObject, types
-│   ├── opensef-appkit/      # OSFWindow, OSFButton, OSFView
-│   ├── opensef-backend/     # Wayland, XDG shell
-│   └── opensef-ui/          # Colors, spacing, typography
+VitusOS-Ares/
+├── opensef/                    # GUI framework (C++)
+│   ├── opensef-base/           # OSFObject, types
+│   ├── opensef-appkit/         # OSFWindow, OSFButton
+│   ├── opensef-backend/        # Wayland client, text rendering
+│   ├── opensef-ui/             # Ares colors, typography
+│   └── opensef-compositor/     # wlroots compositor (NEW!)
 ├── apps/
-│   ├── seadrop/             # Clipboard sync
-│   ├── vitus-terminal/      # Terminal emulator
-│   ├── vitus-filer/         # File manager
-│   └── vitus-installer/     # OS installer
-├── boot/plymouth/           # Boot animation
-└── flake.nix                # Nix dev environment
+│   ├── seadrop/                # Clipboard sync
+│   ├── vitus-terminal/         # Terminal emulator
+│   └── vitus-filer/            # File manager
+└── flake.nix                   # Nix dev environment
 ```
 
 ---
@@ -128,12 +134,13 @@ vitusos-ares/
 
 | Phase | Target | Status |
 |-------|--------|--------|
-| **0** | Scaffolding | ✅ Complete |
-| **1** | Build on Linux | ✅ Complete |
-| **2** | Hello Window on Wayland | ✅ **Complete!** |
-| **3** | Text & Input | 🔄 In Progress |
-| **4** | OS1 Visual Effects | ⏳ |
-| **5** | Daily Driver | ⏳ |
+| **0-2** | Scaffolding + Hello Window | ✅ Complete |
+| **3** | Text & Input | ✅ **Complete!** |
+| **4** | Ares Theme Alignment | ✅ **Complete!** |
+| **4.5** | wlroots Compositor | ✅ Code complete |
+| **5** | Desktop Components (Dock, Menu) | 🔄 **In Progress** |
+| **6** | Core Apps | ⏳ Planned |
+| **7** | Daily Driver | ⏳ Future |
 
 ---
 
