@@ -1,31 +1,61 @@
 /**
  * welcome-screen.cpp - Apple-style multilingual welcome
  *
- * Displays greetings in multiple languages with Ares theme
+ * Uses Ares Theme:
+ * - Lunar Gray background (#F0F0F0)
+ * - Space Charcoal text (#1A1A2E)
+ * - Space Orange accent (#E85D04)
  */
 
-#include <chrono>
 #include <iostream>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
 #include <opensef/OpenSEFUI.h>
-#include <thread>
 #include <vector>
 
 
 using namespace opensef;
 
 // Multilingual greetings (Apple-style)
-const std::vector<std::string> greetings = {
-    "Hello",   "مرحبا", "שלום", "你好",  "こんにちは", "Привет", "Hola",
-    "Bonjour", "Ciao",  "Olá",  "Hallo", "Hej",        "Welcome"};
+const std::vector<std::string> greetings = {"Hello", "Hola",  "Bonjour",
+                                            "Ciao",  "Hallo", "Welcome"};
+
+// Fill buffer with solid color
+void fillBackground(uint32_t *buffer, int width, int height,
+                    const OSFColor &color) {
+  uint32_t pixel = (static_cast<uint32_t>(color.a * 255) << 24) |
+                   (static_cast<uint32_t>(color.r * 255) << 16) |
+                   (static_cast<uint32_t>(color.g * 255) << 8) |
+                   static_cast<uint32_t>(color.b * 255);
+
+  for (int i = 0; i < width * height; i++) {
+    buffer[i] = pixel;
+  }
+}
+
+// Draw a filled rectangle (for buttons)
+void fillRect(uint32_t *buffer, int bufWidth, int bufHeight, int x, int y,
+              int w, int h, const OSFColor &color) {
+  uint32_t pixel = (static_cast<uint32_t>(color.a * 255) << 24) |
+                   (static_cast<uint32_t>(color.r * 255) << 16) |
+                   (static_cast<uint32_t>(color.g * 255) << 8) |
+                   static_cast<uint32_t>(color.b * 255);
+
+  for (int row = y; row < y + h && row < bufHeight; row++) {
+    for (int col = x; col < x + w && col < bufWidth; col++) {
+      if (row >= 0 && col >= 0) {
+        buffer[row * bufWidth + col] = pixel;
+      }
+    }
+  }
+}
 
 int main() {
   std::cout << "╔════════════════════════════════════════════════════════╗"
             << std::endl;
   std::cout << "║       VitusOS - Welcome Screen                         ║"
             << std::endl;
-  std::cout << "║       Multilingual Greetings with Inter Font           ║"
+  std::cout << "║       Ares Theme - Lunar Gray + Space Orange           ║"
             << std::endl;
   std::cout << "╚════════════════════════════════════════════════════════╝"
             << std::endl;
@@ -38,7 +68,8 @@ int main() {
   }
 
   // Initialize text renderer
-  if (!OSFTextRenderer::shared().initialize()) {
+  auto &textRenderer = OSFTextRenderer::shared();
+  if (!textRenderer.initialize()) {
     std::cerr << "Warning: Text renderer failed to initialize" << std::endl;
   }
 
@@ -50,20 +81,53 @@ int main() {
     return 1;
   }
 
-  std::cout << std::endl;
-  std::cout << "╔════════════════════════════════════════════╗" << std::endl;
-  std::cout << "║  Welcome Screen Created!                   ║" << std::endl;
-  std::cout << "║                                            ║" << std::endl;
-  std::cout << "║  Theme: Ares (Space Charcoal)              ║" << std::endl;
-  std::cout << "║  Font: Inter (or fallback)                 ║" << std::endl;
-  std::cout << "║                                            ║" << std::endl;
-  std::cout << "║  Close the window to exit.                 ║" << std::endl;
-  std::cout << "╚════════════════════════════════════════════╝" << std::endl;
+  std::cout << "[VitusOS] Window created - Ares Theme" << std::endl;
 
-  // For now, just show the background color
-  // TODO: Replace with animated greeting cycle once basic rendering works
-  OSFColor bgColor = OSFColors::backgroundDark(); // Space Charcoal
-  surface->draw(bgColor);
+  // === ARES THEME COLORS ===
+  OSFColor bgColor = OSFColors::background();        // Lunar Gray #F0F0F0
+  OSFColor textColor = OSFColors::textPrimary();     // Space Charcoal #1A1A2E
+  OSFColor buttonColor = OSFColors::primary();       // Space Orange #E85D04
+  OSFColor buttonText = OSFColor::fromHex(0xFFFFFF); // White on orange
+
+  // Draw frame
+  uint32_t *pixels = surface->buffer();
+  if (pixels) {
+    int w = surface->width();
+    int h = surface->height();
+
+    // 1. Fill Lunar Gray background
+    fillBackground(pixels, w, h, bgColor);
+
+    // 2. Draw greeting text (centered)
+    const std::string &greeting = greetings[0]; // "Hello"
+    int fontSize = 72;
+    int textWidth = textRenderer.measureTextWidth(greeting, fontSize);
+    int x = (w - textWidth) / 2;
+    int y = h / 2 - 50; // Above center
+    textRenderer.drawText(pixels, w, h, x, y, greeting, textColor, fontSize);
+
+    // 3. Draw "Continue" button (Space Orange)
+    int btnWidth = 200;
+    int btnHeight = 50;
+    int btnX = (w - btnWidth) / 2;
+    int btnY = h / 2 + 80; // Below greeting
+    fillRect(pixels, w, h, btnX, btnY, btnWidth, btnHeight, buttonColor);
+
+    // 4. Draw button text
+    const std::string btnLabel = "Continue";
+    int btnFontSize = 20;
+    int btnTextWidth = textRenderer.measureTextWidth(btnLabel, btnFontSize);
+    int btnTextX = btnX + (btnWidth - btnTextWidth) / 2;
+    int btnTextY = btnY + btnHeight / 2 + btnFontSize / 3;
+    textRenderer.drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
+                          buttonText, btnFontSize);
+
+    // Commit to display
+    surface->commit();
+
+    std::cout << "[VitusOS] Displaying: " << greeting << std::endl;
+    std::cout << "[VitusOS] Button: Continue (Space Orange)" << std::endl;
+  }
 
   // Run event loop
   OSFBackend::shared().run();

@@ -71,6 +71,9 @@ public:
   bool isConfigured() const { return configured_; }
   bool shouldClose() const { return shouldClose_; }
 
+  // Access pixel buffer for direct drawing
+  uint32_t *buffer() { return static_cast<uint32_t *>(shmData_); }
+
   // Called by callbacks
   void onConfigure(uint32_t serial);
   void onClose();

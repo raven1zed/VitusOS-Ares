@@ -5,7 +5,6 @@
 #include <iostream>
 #include <opensef/OSFTextRenderer.h>
 
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -35,15 +34,20 @@ bool OSFTextRenderer::initialize() {
 
   // Try to load default fonts from common locations
   const char *fontPaths[] = {
-      // NixOS paths
+      // NixOS Inter font
       "/run/current-system/sw/share/fonts/truetype/inter/Inter-Regular.ttf",
-      "/run/current-system/sw/share/fonts/truetype/Inter-Regular.ttf",
-      // Standard Linux paths
-      "/usr/share/fonts/truetype/inter/Inter-Regular.ttf",
-      "/usr/share/fonts/TTF/Inter-Regular.ttf",
-      // DejaVu fallback
+      "/run/current-system/sw/share/fonts/opentype/inter/Inter-Regular.otf",
+      // NixOS DejaVu (commonly available)
+      "/run/current-system/sw/share/fonts/truetype/dejavu-fonts/DejaVuSans.ttf",
+      "/run/current-system/sw/share/fonts/truetype/dejavu-fonts-minimal/"
+      "DejaVuSans.ttf",
+      // NixOS Noto Sans (commonly available)
+      "/run/current-system/sw/share/fonts/truetype/noto-fonts/"
+      "NotoSans-Regular.ttf",
+      // Standard Linux
       "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-      "/run/current-system/sw/share/fonts/truetype/DejaVuSans.ttf", nullptr};
+      "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+      "/usr/share/fonts/TTF/DejaVuSans.ttf", nullptr};
 
   for (const char **path = fontPaths; *path; ++path) {
     if (loadFont(kFontUI, *path)) {
