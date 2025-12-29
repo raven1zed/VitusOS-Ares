@@ -32,9 +32,24 @@
             wayland-scanner
             libxkbcommon
             
-            # Vulkan
+            # wlroots compositor
+            wlroots_0_18
+            libdrm
+            libinput
+            pixman
+            seatd
+            
+            # Vulkan / Graphics
             vulkan-loader
             vulkan-headers
+            mesa
+            libGL
+            
+            # XWayland (X11 compatibility)
+            xwayland
+            xorg.libX11
+            xorg.libxcb
+            xorg.xcbutilwm
             
             # Fonts
             fontconfig
