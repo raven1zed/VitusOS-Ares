@@ -1,11 +1,13 @@
 /**
- * welcome-screen.cpp - Apple-style welcome with FADE animation
+ * welcome-screen.cpp - VitusOS Welcome Screen
+ *
+ * Clean, content-focused welcome screen.
+ * Decorations (title bar, traffic lights) are handled by the compositor.
  *
  * Features:
+ * - Ares theme colors (warm cream background)
  * - Smooth fade transitions between greetings
  * - 60fps animation loop
- * - Traffic light buttons with close action
- * - Ares theme colors
  */
 
 #include <iostream>
@@ -16,30 +18,19 @@
 
 using namespace opensef;
 
-// Multilingual subtitles
-const std::vector<std::string> subtitles = {"Welcome",    "Bienvenue",
-                                            "Bienvenido", "Benvenuto",
-                                            "Willkommen", "Bem-vindo"};
+// Multilingual greetings
+const std::vector<std::string> greetings = {
+    "Welcome",   "Bienvenue", "Bienvenido", "Benvenuto", "Willkommen",
+    "Bem-vindo", "Welkom",    "Välkommen",  "Tervetuloa"};
 
-// Window states for animations
-enum class WindowState { NORMAL, MINIMIZING, MAXIMIZING, RESTORING };
-
-// Animation state
+// Animation state (subtitle fade only - compositor handles window animations)
 struct AnimState {
-  // Subtitle animation
   int currentIndex = 0;
   float alpha = 1.0f;
   bool fadingOut = false;
   float holdTime = 0.0f;
   const float fadeSpeed = 0.05f;
-  const float holdDuration = 60.0f;
-
-  // Window animation
-  WindowState windowState = WindowState::NORMAL;
-  float windowScale = 1.0f; // 1.0 = normal, 0.0 = minimized
-  float windowAlpha = 1.0f; // Window opacity
-  float targetScale = 1.0f;
-  const float animSpeed = 0.08f; // Speed of window animations
+  const float holdDuration = 60.0f; // ~1 second at 60fps
 };
 
 // Global state
@@ -48,54 +39,45 @@ OSFWaylandSurface *g_surface = nullptr;
 OSFTextRenderer *g_textRenderer = nullptr;
 
 // Ares theme colors
-OSFColor g_bgColor;
-OSFColor g_textColor;
-OSFColor g_subtitleColor;
-OSFColor g_buttonColor;
-OSFColor g_buttonText;
-OSFColor g_closeColor;
-OSFColor g_minimizeColor;
-OSFColor g_maximizeColor;
+namespace AresColors {
+constexpr uint32_t SoftCream = 0xFBFBFB;     // Background
+constexpr uint32_t TextPrimary = 0x2D2D2D;   // "Hello"
+constexpr uint32_t TextSecondary = 0x6B6B6B; // Subtitle
+constexpr uint32_t SpaceOrange = 0xE85D04;   // Primary button
+constexpr uint32_t White = 0xFFFFFF;         // Button text
+} // namespace AresColors
 
-// Fill with color
-void fillBackground(uint32_t *buffer, int width, int height,
-                    const OSFColor &color) {
-  uint32_t pixel = (static_cast<uint32_t>(color.a * 255) << 24) |
-                   (static_cast<uint32_t>(color.r * 255) << 16) |
-                   (static_cast<uint32_t>(color.g * 255) << 8) |
-                   static_cast<uint32_t>(color.b * 255);
-  for (int i = 0; i < width * height; i++)
+// Helper: Fill background
+void fillBackground(uint32_t *buffer, int w, int h, uint32_t color) {
+  uint32_t pixel = 0xFF000000 | color; // Full opacity
+  for (int i = 0; i < w * h; i++) {
     buffer[i] = pixel;
+  }
 }
 
-// Draw rectangle
+// Helper: Draw rectangle
 void fillRect(uint32_t *buffer, int bw, int bh, int x, int y, int w, int h,
-              const OSFColor &c) {
-  uint32_t pixel = (static_cast<uint32_t>(c.a * 255) << 24) |
-                   (static_cast<uint32_t>(c.r * 255) << 16) |
-                   (static_cast<uint32_t>(c.g * 255) << 8) |
-                   static_cast<uint32_t>(c.b * 255);
-  for (int row = y; row < y + h && row < bh; row++)
-    for (int col = x; col < x + w && col < bw; col++)
-      if (row >= 0 && col >= 0)
-        buffer[row * bw + col] = pixel;
+              uint32_t color) {
+  uint32_t pixel = 0xFF000000 | color;
+  for (int py = y; py < y + h && py < bh; py++) {
+    if (py < 0)
+      continue;
+    for (int px = x; px < x + w && px < bw; px++) {
+      if (px < 0)
+        continue;
+      buffer[py * bw + px] = pixel;
+    }
+  }
 }
 
-// Draw circle
-void fillCircle(uint32_t *buffer, int bw, int bh, int cx, int cy, int r,
-                const OSFColor &c) {
-  uint32_t pixel = (static_cast<uint32_t>(c.a * 255) << 24) |
-                   (static_cast<uint32_t>(c.r * 255) << 16) |
-                   (static_cast<uint32_t>(c.g * 255) << 8) |
-                   static_cast<uint32_t>(c.b * 255);
-  for (int y = cy - r; y <= cy + r; y++)
-    for (int x = cx - r; x <= cx + r; x++)
-      if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r && x >= 0 &&
-          x < bw && y >= 0 && y < bh)
-        buffer[y * bw + x] = pixel;
+// Helper: Draw rounded rectangle (simplified - corners not rounded yet)
+void fillRoundedRect(uint32_t *buffer, int bw, int bh, int x, int y, int w,
+                     int h, int radius, uint32_t color) {
+  (void)radius; // TODO: Implement corner rounding
+  fillRect(buffer, bw, bh, x, y, w, h, color);
 }
 
-// Draw frame with current animation state
+// Draw frame content (compositor handles decorations)
 void drawFrame() {
   if (!g_surface)
     return;
@@ -106,121 +88,63 @@ void drawFrame() {
   int w = g_surface->width();
   int h = g_surface->height();
 
-  // Apply window animation alpha (for minimize/maximize effects)
-  float alpha = g_anim.windowAlpha;
+  // 1. Warm cream background (Ares: #FBFBFB)
+  fillBackground(pixels, w, h, AresColors::SoftCream);
 
-  // 1. Fill with warm cream background (OS1 style - no harsh whites)
-  OSFColor warmCream = OSFColor::fromHex(0xFBFBFB);
-  warmCream.a = alpha; // Apply window alpha
-  fillBackground(pixels, w, h, warmCream);
+  // 2. "Hello" - Large title (centered)
+  const std::string title = "Hello";
+  int titleSize = 72;
+  int titleWidth = g_textRenderer->measureTextWidth(title, titleSize);
+  int titleX = (w - titleWidth) / 2;
+  int titleY = h / 2 - 60;
 
-  // 2. Title bar background (32px height, Lunar Gray with subtle warmth)
-  OSFColor titleBarBg = OSFColor::fromHex(0xF0F0F0);
-  fillRect(pixels, w, h, 0, 0, w, 32, titleBarBg);
+  OSFColor titleColor = OSFColor::fromHex(AresColors::TextPrimary);
+  g_textRenderer->drawText(pixels, w, h, titleX, titleY, title, titleColor,
+                           titleSize);
 
-  // 3. Orange accent bar on left edge (3px width, full title bar height)
-  fillRect(pixels, w, h, 0, 0, 3, 32, g_closeColor);
-
-  // 4. Traffic lights (Ares spec: 12px diameter = 6px radius, 8px spacing)
-  int btnRadius = 6;   // 12px diameter
-  int btnSpacing = 20; // 8px between (center to center = 12 + 8 = 20px)
-  int btnY = 16;       // Vertically centered in 32px title bar
-  int btnStart = 18;   // 8px from accent bar + some padding
-  fillCircle(pixels, w, h, btnStart, btnY, btnRadius, g_closeColor);
-  fillCircle(pixels, w, h, btnStart + btnSpacing, btnY, btnRadius,
-             g_minimizeColor);
-  fillCircle(pixels, w, h, btnStart + btnSpacing * 2, btnY, btnRadius,
-             g_maximizeColor);
-
-  // 3. "Hello" (fixed, always visible)
-  const std::string mainText = "Hello";
-  int mainFontSize = 72;
-  int mainWidth = g_textRenderer->measureTextWidth(mainText, mainFontSize);
-  int mainX = (w - mainWidth) / 2;
-  int mainY = h / 2 - 60;
-  g_textRenderer->drawText(pixels, w, h, mainX, mainY, mainText, g_textColor,
-                           mainFontSize);
-
-  // 4. Cycling subtitle with FADE effect
-  const std::string &subtitle = subtitles[g_anim.currentIndex];
-  int subFontSize = 32;
-  int subWidth = g_textRenderer->measureTextWidth(subtitle, subFontSize);
+  // 3. Cycling subtitle with fade effect
+  const std::string &subtitle = greetings[g_anim.currentIndex];
+  int subSize = 32;
+  int subWidth = g_textRenderer->measureTextWidth(subtitle, subSize);
   int subX = (w - subWidth) / 2;
   int subY = h / 2 + 10;
 
-  // Apply alpha to subtitle color
-  OSFColor fadeColor = g_subtitleColor;
-  fadeColor.a = g_anim.alpha;
-  g_textRenderer->drawText(pixels, w, h, subX, subY, subtitle, fadeColor,
-                           subFontSize);
+  OSFColor subColor = OSFColor::fromHex(AresColors::TextSecondary);
+  subColor.a = g_anim.alpha; // Apply fade
+  g_textRenderer->drawText(pixels, w, h, subX, subY, subtitle, subColor,
+                           subSize);
 
-  // 5. Continue button (uses Ares spec: 28px height, 6px radius)
-  int contBtnW = 200, contBtnH = 50;
-  int contBtnX = (w - contBtnW) / 2, contBtnY = h / 2 + 100;
-  fillRect(pixels, w, h, contBtnX, contBtnY, contBtnW, contBtnH, g_buttonColor);
+  // 4. Continue button (Ares: Space Orange, 28px height, 6px radius)
+  int btnW = 180, btnH = 44;
+  int btnX = (w - btnW) / 2;
+  int btnY = h / 2 + 100;
+  fillRoundedRect(pixels, w, h, btnX, btnY, btnW, btnH, 6,
+                  AresColors::SpaceOrange);
 
+  // Button label
   const std::string btnLabel = "Continue";
-  int btnFontSize = 20;
+  int btnFontSize = 18;
   int btnTextW = g_textRenderer->measureTextWidth(btnLabel, btnFontSize);
-  int btnTextX = contBtnX + (contBtnW - btnTextW) / 2;
-  int btnTextY = contBtnY + contBtnH / 2 + btnFontSize / 3;
+  int btnTextX = btnX + (btnW - btnTextW) / 2;
+  int btnTextY = btnY + btnH / 2 + btnFontSize / 3;
+
+  OSFColor btnTextColor = OSFColor::fromHex(AresColors::White);
   g_textRenderer->drawText(pixels, w, h, btnTextX, btnTextY, btnLabel,
-                           g_buttonText, btnFontSize);
+                           btnTextColor, btnFontSize);
 
   g_surface->commit();
 }
 
-// Animation tick (called every ~16ms for 60fps)
+// Animation tick: Update subtitle fade (60fps)
 void onAnimationTick() {
-  // === WINDOW ANIMATIONS ===
-  switch (g_anim.windowState) {
-  case WindowState::MINIMIZING:
-    g_anim.windowScale -= g_anim.animSpeed;
-    g_anim.windowAlpha -= g_anim.animSpeed * 2;
-    if (g_anim.windowScale <= 0.0f) {
-      g_anim.windowScale = 0.0f;
-      g_anim.windowAlpha = 0.0f;
-      g_anim.windowState =
-          WindowState::NORMAL; // Done minimizing, back to normal state
-      std::cout << "[VitusOS] Window minimized" << std::endl;
-    }
-    break;
-
-  case WindowState::MAXIMIZING:
-    // Scale up slightly for "zoom" effect
-    if (g_anim.windowScale < 1.05f) {
-      g_anim.windowScale += g_anim.animSpeed;
-    } else {
-      g_anim.windowScale = 1.0f;
-      g_anim.windowState = WindowState::NORMAL;
-      std::cout << "[VitusOS] Window maximized" << std::endl;
-    }
-    break;
-
-  case WindowState::RESTORING:
-    g_anim.windowScale += g_anim.animSpeed;
-    g_anim.windowAlpha += g_anim.animSpeed * 2;
-    if (g_anim.windowScale >= 1.0f) {
-      g_anim.windowScale = 1.0f;
-      g_anim.windowAlpha = 1.0f;
-      g_anim.windowState = WindowState::NORMAL;
-      std::cout << "[VitusOS] Window restored" << std::endl;
-    }
-    break;
-
-  case WindowState::NORMAL:
-  default:
-    break;
-  }
-
-  // === SUBTITLE FADE ANIMATION ===
+  // Subtitle fade animation
   if (g_anim.holdTime > 0) {
     g_anim.holdTime -= 1.0f;
   } else if (g_anim.fadingOut) {
     g_anim.alpha -= g_anim.fadeSpeed;
     if (g_anim.alpha <= 0.0f) {
       g_anim.alpha = 0.0f;
-      g_anim.currentIndex = (g_anim.currentIndex + 1) % subtitles.size();
+      g_anim.currentIndex = (g_anim.currentIndex + 1) % greetings.size();
       g_anim.fadingOut = false;
     }
   } else {
@@ -235,78 +159,52 @@ void onAnimationTick() {
   drawFrame();
 }
 
-// Public functions to trigger window animations
-void triggerMinimize() {
-  if (g_anim.windowState == WindowState::NORMAL) {
-    g_anim.windowState = WindowState::MINIMIZING;
-    std::cout << "[VitusOS] Starting minimize animation" << std::endl;
-  } else if (g_anim.windowScale <= 0.0f) {
-    // If already minimized, restore
-    g_anim.windowState = WindowState::RESTORING;
-    std::cout << "[VitusOS] Starting restore animation" << std::endl;
-  }
-}
-
-void triggerMaximize() {
-  if (g_anim.windowState == WindowState::NORMAL) {
-    g_anim.windowState = WindowState::MAXIMIZING;
-    std::cout << "[VitusOS] Starting maximize animation" << std::endl;
-  }
-}
-
 int main() {
   std::cout << "╔════════════════════════════════════════════════════════╗"
             << std::endl;
-  std::cout << "║       VitusOS - Welcome Screen (60fps Animation)       ║"
+  std::cout << "║        VitusOS Ares - Welcome Screen                   ║"
+            << std::endl;
+  std::cout << "║        (Decorations handled by compositor)             ║"
             << std::endl;
   std::cout << "╚════════════════════════════════════════════════════════╝"
             << std::endl;
 
+  // Connect to Wayland (compositor or display server)
   if (!OSFBackend::shared().connect()) {
-    std::cerr << "Error: Could not connect to Wayland." << std::endl;
+    std::cerr << "[welcome-screen] Could not connect to Wayland compositor"
+              << std::endl;
     return 1;
   }
 
+  // Initialize text renderer
   g_textRenderer = &OSFTextRenderer::shared();
   g_textRenderer->initialize();
 
+  // Create window (compositor adds decorations)
   auto surface = OSFWaylandSurface::create(800, 600, "Welcome to VitusOS");
   if (!surface) {
-    std::cerr << "Error: Failed to create window" << std::endl;
+    std::cerr << "[welcome-screen] Failed to create window" << std::endl;
     OSFBackend::shared().disconnect();
     return 1;
   }
   g_surface = surface.get();
 
-  // Ares colors
-  g_bgColor = OSFColors::background();
-  g_textColor = OSFColors::textPrimary();
-  g_subtitleColor = OSFColors::textSecondary();
-  g_buttonColor = OSFColors::primary();
-  g_buttonText = OSFColor::fromHex(0xFFFFFF);
-  // Ares traffic lights (from design spec)
-  g_closeColor = OSFColor::fromHex(0xE85D04);    // Space Orange
-  g_minimizeColor = OSFColor::fromHex(0xC3BC19); // Warm Gold
-  g_maximizeColor = OSFColor::fromHex(0x3D5A80); // Mission Blue
-
-  // Register button callbacks for animations
-  OSFBackend::shared().setMinimizeCallback(triggerMinimize);
-  OSFBackend::shared().setMaximizeCallback(triggerMaximize);
-
-  // Initial state
+  // Initialize animation
   g_anim.holdTime = g_anim.holdDuration;
   g_anim.fadingOut = true;
 
+  // Initial draw
   drawFrame();
-  std::cout << "[VitusOS] 60fps animation started" << std::endl;
+  std::cout << "[welcome-screen] Running at 60fps..." << std::endl;
 
-  // Run at ~60fps (16ms interval)
+  // Run animation loop at 60fps
   OSFBackend::shared().runWithCallback(onAnimationTick, 16);
 
+  // Cleanup
   g_surface = nullptr;
   surface.reset();
   OSFBackend::shared().disconnect();
 
-  std::cout << "[VitusOS] Goodbye!" << std::endl;
+  std::cout << "[welcome-screen] Goodbye!" << std::endl;
   return 0;
 }
