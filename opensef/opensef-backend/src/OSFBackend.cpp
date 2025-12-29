@@ -2,6 +2,7 @@
  * OSFBackend.cpp - Wayland backend with XDG shell
  */
 
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <iostream>
