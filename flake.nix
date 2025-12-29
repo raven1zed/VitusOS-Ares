@@ -33,7 +33,7 @@
             libxkbcommon
             
             # wlroots compositor
-            wlroots_0_18
+            wlroots
             libdrm
             libinput
             pixman

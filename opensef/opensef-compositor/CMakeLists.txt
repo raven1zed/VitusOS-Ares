@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 
 # wlroots and dependencies
-pkg_check_modules(WLROOTS REQUIRED wlroots-0.18)
+pkg_check_modules(WLROOTS REQUIRED wlroots)
 pkg_check_modules(WAYLAND REQUIRED wayland-server)
 pkg_check_modules(XKB REQUIRED xkbcommon)
 pkg_check_modules(PIXMAN REQUIRED pixman-1)
