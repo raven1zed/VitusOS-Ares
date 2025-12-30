@@ -11,8 +11,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 
-# wlroots and dependencies
-pkg_check_modules(WLROOTS REQUIRED wlroots-0.19)
+# wlroots and dependencies (using 0.17 which is C++ compatible)
+pkg_check_modules(WLROOTS REQUIRED wlroots)
+
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 pkg_check_modules(XKB REQUIRED xkbcommon)
