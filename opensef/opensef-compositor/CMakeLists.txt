@@ -3,9 +3,12 @@
 cmake_minimum_required(VERSION 3.16)
 project(opensef-compositor VERSION 0.1.0)
 
+# Use GNU extensions to allow C99 syntax in wlroots headers
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)  # Allow GNU extensions
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 find_package(PkgConfig REQUIRED)
 
@@ -103,6 +106,15 @@ target_compile_definitions(opensef-compositor PRIVATE
 )
 
 # Suppress C99 warnings from wlroots headers
+# wlroots uses C99 features like [static 4] that aren't valid in C++
 target_compile_options(opensef-compositor PRIVATE
-    -Wall -Wextra -Wno-c99-extensions -Wno-c99-designator
+    -Wall
+    -Wno-c99-extensions
+    -Wno-c99-designator  
+    -Wno-c11-extensions
+    -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-missing-field-initializers
+    -Wno-unused-parameter
+    -Wno-invalid-offsetof
 )
+
