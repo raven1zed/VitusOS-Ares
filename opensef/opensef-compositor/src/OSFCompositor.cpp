@@ -13,6 +13,13 @@
 #include "OSFView.h"
 #include "OSFWorkspaceView.h"
 
+// Scene-based rendering
+#include "OSFDesktopLayers.h"
+#include "OSFSceneDock.h"
+#include "OSFSceneMenuBar.h"
+#include "OSFSceneWallpaper.h"
+
+
 #include <cassert>
 #include <iostream>
 

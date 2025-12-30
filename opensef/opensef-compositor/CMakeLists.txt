@@ -32,6 +32,11 @@ add_executable(opensef-compositor
     src/OSFWorkspaceView.cpp
     src/OSFXWayland.cpp
     src/OSFWallpaper.cpp
+    # Scene-based rendering
+    src/OSFDesktopLayers.cpp
+    src/OSFSceneWallpaper.cpp
+    src/OSFSceneDock.cpp
+    src/OSFSceneMenuBar.cpp
 )
 
 target_include_directories(opensef-compositor PRIVATE
