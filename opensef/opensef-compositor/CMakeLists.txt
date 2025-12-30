@@ -19,8 +19,6 @@ pkg_check_modules(XKB REQUIRED xkbcommon)
 pkg_check_modules(PIXMAN REQUIRED pixman-1)
 pkg_check_modules(DRM REQUIRED libdrm)
 pkg_check_modules(INPUT REQUIRED libinput)
-
-# XWayland support
 pkg_check_modules(XCB xcb)
 
 # Find wayland-scanner
@@ -43,25 +41,7 @@ add_custom_command(OUTPUT ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML})
 
 # ============================================================================
-# C wrapper library (compiled as pure C for wlroots compatibility)
-# ============================================================================
-add_library(wlr_compat STATIC
-    src/wlr_compat.c
-    ${XDG_SHELL_C}
-)
-
-target_include_directories(wlr_compat PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${WLROOTS_INCLUDE_DIRS}
-    ${WAYLAND_SERVER_INCLUDE_DIRS}
-    ${PIXMAN_INCLUDE_DIRS}
-)
-
-target_compile_definitions(wlr_compat PRIVATE WLR_USE_UNSTABLE)
-
-# ============================================================================
-# Main compositor (C++)
+# Main compositor
 # ============================================================================
 add_executable(opensef-compositor
     src/main.cpp
@@ -90,20 +70,21 @@ add_executable(opensef-compositor
     src/OSFLockScreen.cpp
     src/OSFShutdownScreen.cpp
     src/OSFWelcomeScreen.cpp
+    src/wlr_compat.c
+    ${XDG_SHELL_C}
     ${XDG_SHELL_H}
 )
 
-# For C++ files, DON'T include wlroots headers directly - use wlr_compat.h
 target_include_directories(opensef-compositor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${WLROOTS_INCLUDE_DIRS}
     ${WAYLAND_SERVER_INCLUDE_DIRS}
     ${XKB_INCLUDE_DIRS}
     ${PIXMAN_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-compositor PRIVATE
-    wlr_compat
     ${WLROOTS_LIBRARIES}
     ${WAYLAND_SERVER_LIBRARIES}
     ${XKB_LIBRARIES}
@@ -114,7 +95,11 @@ target_link_libraries(opensef-compositor PRIVATE
 
 target_compile_definitions(opensef-compositor PRIVATE WLR_USE_UNSTABLE)
 
+# GCC: -fpermissive converts C99 errors to warnings
+# This is needed because wlroots headers use C99 [static 4] syntax
 target_compile_options(opensef-compositor PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-pedantic>
     -Wall
     -Wno-unused-parameter
     -Wno-missing-field-initializers
