@@ -23,16 +23,23 @@
           # Wayland
           wayland
           wayland-protocols
+          wayland.dev
           libxkbcommon
-          # wlroots compositor
+          libxkbcommon.dev
+          # wlroots compositor - IMPORTANT: need both runtime and dev
           wlroots
+          # Dev packages for headers and pkg-config
           libdrm
+          libdrm.dev
           libinput
+          libinput.dev
           pixman
           seatd
+          seatd.dev
           # Graphics
           libGL
           mesa
+          mesa.dev
           # XWayland
           xwayland
           xorg.libX11
@@ -40,7 +47,9 @@
           xorg.xcbutilwm
           # Fonts
           fontconfig
+          fontconfig.dev
           freetype
+          freetype.dev
           inter
           dejavu_fonts
         ];
@@ -101,6 +110,25 @@
             git
           ];
 
+          # CRITICAL: Set PKG_CONFIG_PATH so pkg-config can find wlroots
+          PKG_CONFIG_PATH = pkgs.lib.makeSearchPath "lib/pkgconfig" (with pkgs; [
+            wlroots
+            wayland
+            wayland.dev
+            libxkbcommon
+            libxkbcommon.dev
+            libdrm
+            libdrm.dev
+            libinput
+            libinput.dev
+            pixman
+            seatd
+            seatd.dev
+            libGL
+            mesa
+            mesa.dev
+          ]);
+
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
             echo "║     VitusOS Ares Dev Shell                 ║"
@@ -114,7 +142,15 @@
             echo "  ninja"
             echo ""
             echo "Run compositor:"
-            echo "  ./build/opensef-compositor"
+            echo "  WLR_BACKENDS=wayland ./opensef-compositor"
+            echo ""
+            
+            # Verify wlroots is found
+            if pkg-config --exists wlroots; then
+              echo "✓ wlroots found: $(pkg-config --modversion wlroots)"
+            else
+              echo "✗ wlroots NOT found - check PKG_CONFIG_PATH"
+            fi
             echo ""
             
             export CC=clang
@@ -125,4 +161,3 @@
       }
     );
 }
-
