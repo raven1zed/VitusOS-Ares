@@ -10,88 +10,79 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        
-        # === All Dependencies (simplified - no .dev suffixes that don't exist) ===
-        allDeps = with pkgs; [
-          # Build tools
-          cmake
-          ninja
-          pkg-config
-          
-          # Wayland core
-          wayland
-          wayland-protocols
-          libxkbcommon
-          
-          # wlroots compositor
-          wlroots
-          
-          # System libs
-          libdrm
-          libinput
-          pixman
-          seatd
-          
-          # Graphics
-          libGL
-          mesa
-          
-          # XWayland
-          xwayland
-          xorg.libX11
-          xorg.libxcb
-          xorg.xcbutilwm
-          
-          # Fonts
-          fontconfig
-          freetype
-          inter
-          dejavu_fonts
-        ];
-        
       in {
-        # === Development Shell ===
         devShells.default = pkgs.mkShell {
           name = "opensef-dev";
           
-          buildInputs = allDeps ++ (with pkgs; [
+          packages = with pkgs; [
+            # Build tools
+            cmake
+            ninja
+            pkg-config
+            
+            # Core Wayland/wlroots
+            wlroots
+            wayland
+            wayland-protocols
+            libxkbcommon
+            libdrm
+            libinput
+            pixman
+            seatd
+            libGL
+            mesa
+            
+            # XWayland
+            xwayland
+            xorg.libX11
+            xorg.libxcb
+            xorg.xcbutilwm
+            
+            # Fonts
+            fontconfig
+            freetype
+            
             # Compiler
             clang
-            llvm
-            lld
             gcc
             gdb
             
             # Dev tools
             clang-tools
             bear
-            cmake-language-server
-            
-            # Vulkan
-            vulkan-loader
-            vulkan-headers
-            
-            libffi
             git
-          ]);
+          ];
 
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
             echo "║     VitusOS Ares Dev Shell                 ║"
-            echo "║     openSEF Compositor Environment         ║"
             echo "╚════════════════════════════════════════════╝"
             echo ""
             
-            # Set PKG_CONFIG_PATH for wlroots
-            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.libinput}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.seatd}/lib/pkgconfig:${pkgs.libGL}/lib/pkgconfig:${pkgs.mesa}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            # Find where wlroots.pc actually is
+            WLROOTS_PC=$(find ${pkgs.wlroots} -name "wlroots.pc" 2>/dev/null | head -1)
             
-            if pkg-config --exists wlroots; then
-              echo "✓ wlroots found: $(pkg-config --modversion wlroots)"
+            if [ -n "$WLROOTS_PC" ]; then
+              WLROOTS_PKG_DIR=$(dirname "$WLROOTS_PC")
+              echo "✓ Found wlroots.pc at: $WLROOTS_PC"
+              export PKG_CONFIG_PATH="$WLROOTS_PKG_DIR:$PKG_CONFIG_PATH"
             else
-              echo "✗ wlroots NOT found"
+              echo "✗ wlroots.pc not found in ${pkgs.wlroots}"
+              echo "  Contents of wlroots package:"
+              ls -la ${pkgs.wlroots}/lib/ 2>/dev/null || echo "  No lib directory"
             fi
-            echo ""
-            echo "Build: cd opensef/opensef-compositor && mkdir -p build && cd build && cmake .. -G Ninja && ninja"
+            
+            # Also add standard paths
+            export PKG_CONFIG_PATH="${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            
+            # Test
+            if pkg-config --exists wlroots; then
+              echo "✓ pkg-config finds wlroots: $(pkg-config --modversion wlroots)"
+            else
+              echo "✗ pkg-config cannot find wlroots"
+              echo "  Current PKG_CONFIG_PATH:"
+              echo "  $PKG_CONFIG_PATH" | tr ':' '\n' | head -5
+            fi
             echo ""
             
             export CC=clang
