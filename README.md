@@ -16,11 +16,37 @@
 
 ## What is VitusOS?
 
-VitusOS is an attempt to create a **unified, beautiful Linux experience** - inspired by macOS polish, OS1 (Her 2013) minimalism, and The Martian's Ares mission aesthetic.
+**VitusOS** (or **vOS** for short) is an attempt to create a **unified, beautiful Linux experience** - inspired by macOS polish, OS1 (Her 2013) minimalism, and The Martian's Ares mission aesthetic.
 
 **The Problem:** Linux GUIs are fragmented - GTK, Qt, Electron, X11 vs Wayland, inconsistent theming.
 
-**The Solution:** Build one framework (**openSEF**), one design language (**Ares**), ship as complete system.
+**The Solution:** Build **openSEF** - both a **Desktop Environment** AND a **Framework**.
+
+### Naming
+
+| Name | What it is |
+|------|------------|
+| **VitusOS / vOS** | The complete operating system |
+| **openSEF** | Desktop Environment + GUI Framework |
+| **Ares** | First design language & codename |
+
+### openSEF = Desktop Environment + Framework
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  openSEF Desktop Environment                                │
+│  ├── opensef-compositor   (wlroots Wayland compositor)      │
+│  ├── Dock, Menu Bar       (Desktop components)              │
+│  └── Workspaces           (Window management)               │
+├─────────────────────────────────────────────────────────────┤
+│  openSEF Framework                                          │
+│  ├── opensef-appkit       (GUI widgets, windows)            │
+│  ├── opensef-backend      (Wayland, rendering)              │
+│  └── opensef-ui           (Ares design system)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> **Inspired by:** NeXTSTEP and GNUStep - reimagined for modern Wayland.
 
 ---
 

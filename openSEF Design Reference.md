@@ -20,6 +20,39 @@ openSEF (Custom GUI framework, C++/ObjC, Wayland + Vulkan)
 - Minimal over complex
 - Integrated over fragmented
 - Beautiful AND functional
+
+# **Official UI Mockups**
+
+Located in `ui-design/` folder - created by [@raven1zed](https://github.com/raven1zed)
+
+| File | Description |
+|------|-------------|
+| `Desktop.png` | Full desktop with dock, window, wallpaper |
+| `Onboarding-Welcome Screen.png` | Welcome/setup experience |
+| `Lockscreen.png` | Lock screen with authentication |
+| `Bootscreen.png` | Plymouth boot splash |
+| `Shutdown Screen.png` | Shutdown/power off view |
+
+### **Three Combined Aesthetics**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    VitusOS Ares UI                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   OS1 (Her 2013)     +    macOS Aqua    +    Ares Theme    │
+│   ─────────────          ──────────         ───────────     │
+│   • Warm colors          • Traffic lights  • Space Orange   │
+│   • Minimal chrome       • Animations      • Mars Mission   │
+│   • Content-first        • Polish          • Determination  │
+│   • Recedes when         • Delightful      • "Science it"   │
+│     not needed           • Responsive                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Status:** Raw first iteration - will be refined based on implementation feedback.
+
 # **Design System: Ares Theme**
 ## **Color Palette**
 ### **Primary (Mars Mission)**
