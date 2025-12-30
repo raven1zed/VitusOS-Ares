@@ -10,13 +10,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(PkgConfig REQUIRED)
 
 # wlroots and dependencies
-# NOTE: Must run inside `nix develop` shell for pkg-config to find wlroots
-pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots)
+# NOTE: wlroots 0.19 uses versioned pkg-config name "wlroots-0.19"
+pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots-0.19)
 pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET wayland-server)
 pkg_check_modules(XKB REQUIRED IMPORTED_TARGET xkbcommon)
 pkg_check_modules(PIXMAN REQUIRED IMPORTED_TARGET pixman-1)
 pkg_check_modules(DRM REQUIRED IMPORTED_TARGET libdrm)
 pkg_check_modules(INPUT REQUIRED IMPORTED_TARGET libinput)
+
 
 
 # XWayland support (optional)
