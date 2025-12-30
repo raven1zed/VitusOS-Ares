@@ -110,31 +110,16 @@
             git
           ];
 
-          # CRITICAL: Set PKG_CONFIG_PATH so pkg-config can find wlroots
-          PKG_CONFIG_PATH = pkgs.lib.makeSearchPath "lib/pkgconfig" (with pkgs; [
-            wlroots
-            wayland
-            wayland.dev
-            libxkbcommon
-            libxkbcommon.dev
-            libdrm
-            libdrm.dev
-            libinput
-            libinput.dev
-            pixman
-            seatd
-            seatd.dev
-            libGL
-            mesa
-            mesa.dev
-          ]);
-
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
             echo "║     VitusOS Ares Dev Shell                 ║"
             echo "║     openSEF Compositor Environment         ║"
             echo "╚════════════════════════════════════════════╝"
             echo ""
+            
+            # CRITICAL: Set PKG_CONFIG_PATH directly so pkg-config finds wlroots
+            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.libdrm.dev}/lib/pkgconfig:${pkgs.libinput}/lib/pkgconfig:${pkgs.libinput.dev}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.seatd}/lib/pkgconfig:${pkgs.seatd.dev}/lib/pkgconfig:${pkgs.libGL}/lib/pkgconfig:${pkgs.mesa}/lib/pkgconfig:${pkgs.mesa.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            
             echo "Build commands:"
             echo "  cd opensef/opensef-compositor"
             echo "  mkdir -p build && cd build"
@@ -149,7 +134,8 @@
             if pkg-config --exists wlroots; then
               echo "✓ wlroots found: $(pkg-config --modversion wlroots)"
             else
-              echo "✗ wlroots NOT found - check PKG_CONFIG_PATH"
+              echo "✗ wlroots NOT found"
+              echo "  PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
             fi
             echo ""
             
@@ -158,6 +144,7 @@
             export FONTCONFIG_PATH=${pkgs.fontconfig.out}/etc/fonts
           '';
         };
+
       }
     );
 }
