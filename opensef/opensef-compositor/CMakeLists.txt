@@ -1,19 +1,23 @@
 # opensef-compositor: wlroots-based Wayland Compositor
 
-project(opensef-compositor)
+cmake_minimum_required(VERSION 3.16)
+project(opensef-compositor VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 
 # wlroots and dependencies
-pkg_check_modules(WLROOTS REQUIRED wlroots)
-pkg_check_modules(WAYLAND REQUIRED wayland-server)
-pkg_check_modules(XKB REQUIRED xkbcommon)
-pkg_check_modules(PIXMAN REQUIRED pixman-1)
-pkg_check_modules(DRM REQUIRED libdrm)
-pkg_check_modules(INPUT REQUIRED libinput)
+# NOTE: Must run inside `nix develop` shell for pkg-config to find wlroots
+pkg_check_modules(WLROOTS REQUIRED IMPORTED_TARGET wlroots)
+pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET wayland-server)
+pkg_check_modules(XKB REQUIRED IMPORTED_TARGET xkbcommon)
+pkg_check_modules(PIXMAN REQUIRED IMPORTED_TARGET pixman-1)
+pkg_check_modules(DRM REQUIRED IMPORTED_TARGET libdrm)
+pkg_check_modules(INPUT REQUIRED IMPORTED_TARGET libinput)
+
 
 # XWayland support (optional)
 pkg_check_modules(XWAYLAND xcb xcb-composite)
