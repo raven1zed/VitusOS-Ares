@@ -1,18 +1,17 @@
 # opensef-compositor: wlroots-based Wayland Compositor
 
 cmake_minimum_required(VERSION 3.16)
-project(opensef-compositor VERSION 0.1.0)
+project(opensef-compositor VERSION 0.1.0 LANGUAGES C CXX)
 
-# Use GNU extensions to allow C99 syntax in wlroots headers
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS ON)  # Allow GNU extensions
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 
 find_package(PkgConfig REQUIRED)
 
-# wlroots and dependencies (using versioned name)
+# wlroots and dependencies
 pkg_check_modules(WLROOTS REQUIRED wlroots-0.19)
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
@@ -21,14 +20,11 @@ pkg_check_modules(PIXMAN REQUIRED pixman-1)
 pkg_check_modules(DRM REQUIRED libdrm)
 pkg_check_modules(INPUT REQUIRED libinput)
 
-# XWayland support (optional)
+# XWayland support
 pkg_check_modules(XCB xcb)
 
 # Find wayland-scanner
-find_program(WAYLAND_SCANNER wayland-scanner)
-if(NOT WAYLAND_SCANNER)
-    message(FATAL_ERROR "wayland-scanner not found! Add wayland-scanner to flake.nix")
-endif()
+find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
 
 # Get wayland-protocols path
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
@@ -38,19 +34,35 @@ set(XDG_SHELL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
 set(XDG_SHELL_H "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.h")
 set(XDG_SHELL_C "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c")
 
-add_custom_command(
-    OUTPUT ${XDG_SHELL_H}
+add_custom_command(OUTPUT ${XDG_SHELL_H}
     COMMAND ${WAYLAND_SCANNER} server-header ${XDG_SHELL_XML} ${XDG_SHELL_H}
-    DEPENDS ${XDG_SHELL_XML}
-)
+    DEPENDS ${XDG_SHELL_XML})
 
-add_custom_command(
-    OUTPUT ${XDG_SHELL_C}
+add_custom_command(OUTPUT ${XDG_SHELL_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
-    DEPENDS ${XDG_SHELL_XML}
+    DEPENDS ${XDG_SHELL_XML})
+
+# ============================================================================
+# C wrapper library (compiled as pure C for wlroots compatibility)
+# ============================================================================
+add_library(wlr_compat STATIC
+    src/wlr_compat.c
+    ${XDG_SHELL_C}
 )
 
-# Source files
+target_include_directories(wlr_compat PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${WLROOTS_INCLUDE_DIRS}
+    ${WAYLAND_SERVER_INCLUDE_DIRS}
+    ${PIXMAN_INCLUDE_DIRS}
+)
+
+target_compile_definitions(wlr_compat PRIVATE WLR_USE_UNSTABLE)
+
+# ============================================================================
+# Main compositor (C++)
+# ============================================================================
 add_executable(opensef-compositor
     src/main.cpp
     src/OSFCompositor.cpp
@@ -78,21 +90,20 @@ add_executable(opensef-compositor
     src/OSFLockScreen.cpp
     src/OSFShutdownScreen.cpp
     src/OSFWelcomeScreen.cpp
-    # Generated
-    ${XDG_SHELL_C}
     ${XDG_SHELL_H}
 )
 
+# For C++ files, DON'T include wlroots headers directly - use wlr_compat.h
 target_include_directories(opensef-compositor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${WLROOTS_INCLUDE_DIRS}
     ${WAYLAND_SERVER_INCLUDE_DIRS}
     ${XKB_INCLUDE_DIRS}
     ${PIXMAN_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-compositor PRIVATE
+    wlr_compat
     ${WLROOTS_LIBRARIES}
     ${WAYLAND_SERVER_LIBRARIES}
     ${XKB_LIBRARIES}
@@ -101,20 +112,10 @@ target_link_libraries(opensef-compositor PRIVATE
     ${INPUT_LIBRARIES}
 )
 
-target_compile_definitions(opensef-compositor PRIVATE
-    WLR_USE_UNSTABLE
-)
+target_compile_definitions(opensef-compositor PRIVATE WLR_USE_UNSTABLE)
 
-# Suppress C99 warnings from wlroots headers
-# wlroots uses C99 features like [static 4] that aren't valid in C++
 target_compile_options(opensef-compositor PRIVATE
     -Wall
-    -Wno-c99-extensions
-    -Wno-c99-designator  
-    -Wno-c11-extensions
-    -Wno-gnu-zero-variadic-macro-arguments
-    -Wno-missing-field-initializers
     -Wno-unused-parameter
-    -Wno-invalid-offsetof
+    -Wno-missing-field-initializers
 )
-
