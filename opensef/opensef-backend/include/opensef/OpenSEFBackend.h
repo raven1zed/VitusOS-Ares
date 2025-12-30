@@ -2,16 +2,50 @@
  * openSEF Backend: Display Server (C++ Version)
  *
  * Wayland surface management with XDG shell support
+ *
+ * REFACTORED: Input events are now forwarded to registered handlers
+ * instead of being handled with hardcoded logic in the backend.
  */
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <opensef/OpenSEFBase.h>
 #include <string>
 
 namespace opensef {
+
+// ============================================================================
+// Input Event Types
+// ============================================================================
+
+/**
+ * OSFMouseEvent - Raw mouse event forwarded from backend
+ */
+struct OSFMouseEvent {
+  enum class Type { Move, ButtonDown, ButtonUp, Enter, Leave, Scroll };
+
+  Type type = Type::Move;
+  double x = 0;
+  double y = 0;
+  uint32_t button = 0; // BTN_LEFT, BTN_RIGHT, etc.
+  double scrollX = 0;
+  double scrollY = 0;
+  uint32_t serial = 0; // Wayland serial for cursor setting
+};
+
+/**
+ * OSFKeyEvent - Raw keyboard event
+ */
+struct OSFKeyEvent {
+  enum class Type { KeyDown, KeyUp };
+
+  Type type = Type::KeyDown;
+  uint32_t keycode = 0;
+  uint32_t modifiers = 0;
+};
 
 // ============================================================================
 // OSFBackend - Display backend coordinator
@@ -30,8 +64,20 @@ public:
 
   void stop() { running_ = false; }
 
-  // Button callbacks (called from backend when traffic lights clicked)
+  // === Input Event Handlers (NEW - replaces hardcoded hit testing) ===
+  // Register these to receive raw input events
+  using MouseEventHandler = std::function<void(const OSFMouseEvent &)>;
+  using KeyEventHandler = std::function<void(const OSFKeyEvent &)>;
+
+  void setMouseEventHandler(MouseEventHandler handler) {
+    mouseHandler_ = handler;
+  }
+  void setKeyEventHandler(KeyEventHandler handler) { keyHandler_ = handler; }
+
+  // === DEPRECATED: Legacy callbacks (use event handlers instead) ===
+  [[deprecated("Use setMouseEventHandler instead")]]
   void setMinimizeCallback(std::function<void()> cb);
+  [[deprecated("Use setMouseEventHandler instead")]]
   void setMaximizeCallback(std::function<void()> cb);
 
   bool isWayland() const { return true; }
@@ -43,6 +89,13 @@ public:
   void *shm() const { return wlShm_; }
   void *xdgWmBase() const { return xdgWmBase_; }
 
+  // Cursor control (for setting cursor from app code)
+  void setCursor(const char *cursorName);
+
+  // Internal: Forward events from Wayland callbacks (called by static handlers)
+  void forwardMouseEvent(const OSFMouseEvent &event);
+  void forwardKeyEvent(const OSFKeyEvent &event);
+
 private:
   OSFBackend() = default;
   bool connected_ = false;
@@ -53,6 +106,10 @@ private:
   void *wlCompositor_ = nullptr;
   void *wlShm_ = nullptr;
   void *xdgWmBase_ = nullptr;
+
+  // Event handlers (forwarded from Wayland callbacks)
+  MouseEventHandler mouseHandler_;
+  KeyEventHandler keyHandler_;
 };
 
 // ============================================================================

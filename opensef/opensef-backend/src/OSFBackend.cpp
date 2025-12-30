@@ -98,40 +98,24 @@ static void pointerButton(void *data, wl_pointer *pointer, uint32_t serial,
                           uint32_t time, uint32_t button, uint32_t state) {
   (void)data;
   (void)pointer;
-  (void)serial;
   (void)time;
   g_mousePressed = (state == WL_POINTER_BUTTON_STATE_PRESSED);
+  g_pointerSerial = serial;
 
+  // Forward event to registered handler instead of hardcoded hit testing
+  OSFMouseEvent event;
+  event.type = g_mousePressed ? OSFMouseEvent::Type::ButtonDown
+                              : OSFMouseEvent::Type::ButtonUp;
+  event.x = g_mouseX;
+  event.y = g_mouseY;
+  event.button = button;
+  event.serial = serial;
+
+  OSFBackend::shared().forwardMouseEvent(event);
+
+  // Legacy callback support (deprecated)
   if (g_mousePressed && button == BTN_LEFT) {
-    // Traffic light button hit areas (Ares spec: 12px dia, 6px radius)
-    // Buttons at y=16, radius=6, btnStart=18
-    // Close at x=18, Minimize at x=38, Maximize at x=58
-    bool inButtonY = (g_mouseY >= 10 && g_mouseY <= 22);
-
-    // Close button (Space Orange) - center at x=18
-    if (inButtonY && g_mouseX >= 12 && g_mouseX <= 24) {
-      std::cout << "[openSEF] Close button clicked - stopping" << std::endl;
-      g_running = false;
-      return;
-    }
-
-    // Minimize button (Warm Gold) - center at x=38
-    if (inButtonY && g_mouseX >= 32 && g_mouseX <= 44) {
-      std::cout << "[openSEF] Minimize button clicked" << std::endl;
-      if (g_minimizeCallback)
-        g_minimizeCallback();
-      return;
-    }
-
-    // Maximize button (Mission Blue) - center at x=58
-    if (inButtonY && g_mouseX >= 52 && g_mouseX <= 64) {
-      std::cout << "[openSEF] Maximize button clicked" << std::endl;
-      if (g_maximizeCallback)
-        g_maximizeCallback();
-      return;
-    }
-
-    // Log other clicks
+    // Only log, don't handle - let app layer decide
     std::cout << "[openSEF] Click at (" << g_mouseX << ", " << g_mouseY << ")"
               << std::endl;
   }
@@ -378,12 +362,46 @@ OSFInputHandler &OSFInputHandler::shared() {
   return instance;
 }
 
+// === DEPRECATED Legacy callbacks ===
 void OSFBackend::setMinimizeCallback(std::function<void()> cb) {
   g_minimizeCallback = cb;
 }
 
 void OSFBackend::setMaximizeCallback(std::function<void()> cb) {
   g_maximizeCallback = cb;
+}
+
+// === NEW Event Forwarding ===
+void OSFBackend::forwardMouseEvent(const OSFMouseEvent &event) {
+  if (mouseHandler_) {
+    mouseHandler_(event);
+  }
+}
+
+void OSFBackend::forwardKeyEvent(const OSFKeyEvent &event) {
+  if (keyHandler_) {
+    keyHandler_(event);
+  }
+}
+
+void OSFBackend::setCursor(const char *cursorName) {
+  if (!g_cursorTheme || !g_cursorSurface)
+    return;
+
+  wl_cursor *cursor = wl_cursor_theme_get_cursor(g_cursorTheme, cursorName);
+  if (!cursor) {
+    cursor = g_arrowCursor; // Fallback
+  }
+  if (!cursor)
+    return;
+
+  wl_cursor_image *image = cursor->images[0];
+  wl_buffer *buffer = wl_cursor_image_get_buffer(image);
+  wl_surface_attach(g_cursorSurface, buffer, 0, 0);
+  wl_surface_damage(g_cursorSurface, 0, 0, image->width, image->height);
+  wl_surface_commit(g_cursorSurface);
+  wl_pointer_set_cursor(g_pointer, g_pointerSerial, g_cursorSurface,
+                        image->hotspot_x, image->hotspot_y);
 }
 
 } // namespace opensef

@@ -1,9 +1,17 @@
 /**
  * OSFTextRenderer.cpp - FreeType text rendering implementation
+ *
+ * REFACTORED: Font paths are now discovered dynamically via:
+ * - OPENSEF_FONT_PATH environment variable
+ * - XDG_DATA_DIRS
+ * - NixOS system paths
+ * - Standard Linux font paths
  */
 
+#include <cstdlib>
 #include <iostream>
 #include <opensef/OSFTextRenderer.h>
+#include <vector>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -32,28 +40,62 @@ bool OSFTextRenderer::initialize() {
   std::cout << "[openSEF] FreeType initialized" << std::endl;
   initialized_ = true;
 
-  // Try to load default fonts - bundled first, then system
-  const char *fontPaths[] = {
-      // BUNDLED Inter font (in VitusOS project)
-      "../resources/fonts/InterVariable.ttf",
-      "resources/fonts/InterVariable.ttf",
-      "../../resources/fonts/InterVariable.ttf",
-      // NixOS system fonts
-      "/run/current-system/sw/share/fonts/truetype/dejavu-fonts/DejaVuSans.ttf",
-      "/run/current-system/sw/share/fonts/truetype/noto-fonts/"
-      "NotoSans-Regular.ttf",
-      // Standard Linux
-      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", nullptr};
+  // === FONT DISCOVERY (Fixed: no more hardcoded relative paths) ===
+  // Priority order:
+  // 1. OPENSEF_FONT_PATH environment variable
+  // 2. XDG_DATA_DIRS/opensef/fonts
+  // 3. NixOS system paths (with Inter font)
+  // 4. Standard Linux font paths
 
-  for (const char **path = fontPaths; *path; ++path) {
-    if (loadFont(kFontUI, *path)) {
-      std::cout << "[openSEF] Loaded font: " << *path << std::endl;
+  std::vector<std::string> fontPaths;
+
+  // 1. Environment variable (highest priority)
+  if (const char *envPath = std::getenv("OPENSEF_FONT_PATH")) {
+    fontPaths.push_back(std::string(envPath) + "/InterVariable.ttf");
+    fontPaths.push_back(std::string(envPath) + "/Inter.ttf");
+  }
+
+  // 2. XDG data directories
+  if (const char *xdgDataDirs = std::getenv("XDG_DATA_DIRS")) {
+    std::string dirs(xdgDataDirs);
+    size_t pos = 0;
+    while ((pos = dirs.find(':')) != std::string::npos || !dirs.empty()) {
+      std::string dir = (pos != std::string::npos) ? dirs.substr(0, pos) : dirs;
+      if (!dir.empty()) {
+        fontPaths.push_back(dir + "/opensef/fonts/InterVariable.ttf");
+        fontPaths.push_back(dir + "/fonts/truetype/inter/Inter-Variable.ttf");
+      }
+      if (pos == std::string::npos)
+        break;
+      dirs.erase(0, pos + 1);
+    }
+  }
+
+  // 3. NixOS system paths (with Inter font from flake.nix)
+  fontPaths.push_back(
+      "/run/current-system/sw/share/fonts/truetype/inter/Inter-Variable.ttf");
+  fontPaths.push_back(
+      "/run/current-system/sw/share/fonts/truetype/inter/InterVariable.ttf");
+  fontPaths.push_back("/run/current-system/sw/share/fonts/truetype/"
+                      "dejavu-fonts/DejaVuSans.ttf");
+
+  // 4. Standard Linux font paths
+  fontPaths.push_back("/usr/share/fonts/truetype/inter/Inter.ttf");
+  fontPaths.push_back("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+  fontPaths.push_back("/usr/share/fonts/TTF/DejaVuSans.ttf"); // Arch Linux
+
+  // Try each path
+  for (const auto &path : fontPaths) {
+    if (loadFont(kFontUI, path.c_str())) {
+      std::cout << "[openSEF] Loaded font: " << path << std::endl;
       break;
     }
   }
 
   if (fonts_.empty()) {
-    std::cerr << "[openSEF] Warning: No fonts loaded" << std::endl;
+    std::cerr
+        << "[openSEF] Warning: No fonts loaded. Set OPENSEF_FONT_PATH env var."
+        << std::endl;
   }
 
   return true;
