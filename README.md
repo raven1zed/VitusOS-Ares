@@ -64,7 +64,7 @@ When you use VitusOS, you feel:
 
 ## openSEF Framework
 
-**openSEF** (Open Sea Environment Framework) is VitusOS's native GUI framework.
+**openSEF** (Open Seagr(Seamless Integration) Environment Framework) is VitusOS's native GUI framework.
 
 ### Architecture (Current)
 
@@ -126,7 +126,7 @@ When you use VitusOS, you feel:
 
 **Target:** Daily-drivable alpha by Q4 2026
 
-### Phase 6+: Security & Polish
+### Phase 6+: Security & Polish (future plan)
 - [ ] AbuSE security layer
 - [ ] sue mode (security hardening)
 - [ ] Full Sea* suite
