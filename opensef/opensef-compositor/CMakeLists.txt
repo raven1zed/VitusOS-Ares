@@ -31,6 +31,7 @@ add_executable(opensef-compositor
     src/OSFMenuBar.cpp
     src/OSFWorkspaceView.cpp
     src/OSFXWayland.cpp
+    src/OSFWallpaper.cpp
 )
 
 target_include_directories(opensef-compositor PRIVATE

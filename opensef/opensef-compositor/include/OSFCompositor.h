@@ -38,6 +38,7 @@ class OSFKeyboard;
 class OSFDock;
 class OSFMenuBar;
 class OSFWorkspaceView;
+class OSFWallpaper;
 
 /**
  * OSFCompositor - Main compositor class
@@ -108,6 +109,7 @@ private:
   std::unique_ptr<OSFDock> dock_;
   std::unique_ptr<OSFMenuBar> menuBar_;
   std::unique_ptr<OSFWorkspaceView> workspaceView_;
+  std::unique_ptr<OSFWallpaper> wallpaper_;
 
   // Cursor state
   int cursorMode_ = 0;
