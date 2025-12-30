@@ -6,19 +6,19 @@
 
 #include "OSFCompositor.h"
 #include "OSFCursor.h"
+#include "OSFDock.h"
 #include "OSFKeyboard.h"
+#include "OSFMenuBar.h"
 #include "OSFOutput.h"
 #include "OSFView.h"
-
+#include "OSFWorkspaceView.h"
 
 #include <cassert>
 #include <iostream>
 
-
 extern "C" {
 #include <wlr/types/wlr_data_control_v1.h>
 #include <wlr/types/wlr_output_layout.h>
-
 }
 
 namespace opensef {
@@ -146,6 +146,22 @@ bool OSFCompositor::initialize() {
   // Set WAYLAND_DISPLAY for child processes
   setenv("WAYLAND_DISPLAY", socket, true);
 
+  // Initialize desktop components
+  dock_ = std::make_unique<OSFDock>(this);
+  menuBar_ = std::make_unique<OSFMenuBar>(this);
+  workspaceView_ = std::make_unique<OSFWorkspaceView>(this);
+
+  // Connect workspace view to menu bar
+  menuBar_->onMultitaskClicked = [this]() {
+    if (workspaceView_->isVisible()) {
+      workspaceView_->hide();
+    } else {
+      workspaceView_->show();
+    }
+  };
+
+  std::cout << "[openSEF] Desktop components initialized" << std::endl;
+
   return true;
 }
 
@@ -244,19 +260,44 @@ void OSFCompositor::handleCursorButton(wl_listener *listener, void *data) {
   wlr_pointer_button_event *event =
       static_cast<wlr_pointer_button_event *>(data);
 
+  // Only handle button press
+  if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
+    self->cursorMode_ = static_cast<int>(OSFCursorMode::PASSTHROUGH);
+    wlr_seat_pointer_notify_button(self->seat_, event->time_msec, event->button,
+                                   event->state);
+    return;
+  }
+
+  int x = static_cast<int>(self->cursor_->x);
+  int y = static_cast<int>(self->cursor_->y);
+
+  // Check workspace view first (it's an overlay)
+  if (self->workspaceView_ && self->workspaceView_->isVisible()) {
+    if (self->workspaceView_->handleClick(x, y)) {
+      return; // Consumed by workspace view
+    }
+  }
+
+  // Check menu bar
+  if (self->menuBar_ && self->menuBar_->handleClick(x, y)) {
+    return; // Consumed by menu bar
+  }
+
+  // Check dock
+  if (self->dock_ && self->dock_->handleClick(x, y)) {
+    return; // Consumed by dock
+  }
+
+  // Pass to seat for window handling
   wlr_seat_pointer_notify_button(self->seat_, event->time_msec, event->button,
                                  event->state);
 
-  if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
-    self->cursorMode_ = static_cast<int>(OSFCursorMode::PASSTHROUGH);
-  } else {
-    double sx, sy;
-    wlr_surface *surface = nullptr;
-    OSFView *view =
-        self->viewAt(self->cursor_->x, self->cursor_->y, &surface, &sx, &sy);
-    if (view) {
-      self->focusView(view);
-    }
+  double sx, sy;
+  wlr_surface *surface = nullptr;
+  OSFView *view =
+      self->viewAt(self->cursor_->x, self->cursor_->y, &surface, &sx, &sy);
+  if (view) {
+    self->focusView(view);
   }
 }
 

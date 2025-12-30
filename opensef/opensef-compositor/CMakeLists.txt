@@ -27,6 +27,10 @@ add_executable(opensef-compositor
     src/OSFCursor.cpp
     src/OSFDecorations.cpp
     src/OSFAnimations.cpp
+    src/OSFDock.cpp
+    src/OSFMenuBar.cpp
+    src/OSFWorkspaceView.cpp
+    src/OSFXWayland.cpp
 )
 
 target_include_directories(opensef-compositor PRIVATE

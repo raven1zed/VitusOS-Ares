@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <cmath>
 
-
 namespace opensef {
 
 using namespace AresColors;
@@ -66,7 +65,38 @@ void OSFDecorations::drawTitleBar(uint32_t *buffer, int w, int h,
                      LunarGray & 0xFF);
   }
 
-  fillRect(buffer, w, h, 0, 0, w, TitleBarHeight, color);
+  // Draw title bar with rounded top corners (8px radius)
+  int r = CornerRadius;
+
+  // Main body (excluding corners)
+  fillRect(buffer, w, h, r, 0, w - 2 * r, TitleBarHeight, color); // Center
+  fillRect(buffer, w, h, 0, r, r, TitleBarHeight - r, color);     // Left strip
+  fillRect(buffer, w, h, w - r, r, r, TitleBarHeight - r, color); // Right strip
+
+  // Top-left corner
+  for (int py = 0; py < r; py++) {
+    for (int px = 0; px < r; px++) {
+      float dist = std::sqrt((r - px) * (r - px) + (r - py) * (r - py));
+      if (dist <= r) {
+        if (px >= 0 && px < w && py >= 0 && py < h) {
+          buffer[py * w + px] = color;
+        }
+      }
+    }
+  }
+
+  // Top-right corner
+  for (int py = 0; py < r; py++) {
+    for (int px = 0; px < r; px++) {
+      float dist = std::sqrt(px * px + (r - py) * (r - py));
+      if (dist <= r) {
+        int x = w - r + px;
+        if (x >= 0 && x < w && py >= 0 && py < h) {
+          buffer[py * w + x] = color;
+        }
+      }
+    }
+  }
 }
 
 void OSFDecorations::drawTrafficLights(uint32_t *buffer, int w, int h) {

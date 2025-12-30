@@ -29,13 +29,15 @@ extern "C" {
 #include <string>
 #include <wayland-server-core.h>
 
-
 namespace opensef {
 
 // Forward declarations
 class OSFView;
 class OSFOutput;
 class OSFKeyboard;
+class OSFDock;
+class OSFMenuBar;
+class OSFWorkspaceView;
 
 /**
  * OSFCompositor - Main compositor class
@@ -101,6 +103,11 @@ private:
 
   // Views (windows)
   std::list<std::unique_ptr<OSFView>> views_;
+
+  // Desktop components
+  std::unique_ptr<OSFDock> dock_;
+  std::unique_ptr<OSFMenuBar> menuBar_;
+  std::unique_ptr<OSFWorkspaceView> workspaceView_;
 
   // Cursor state
   int cursorMode_ = 0;
