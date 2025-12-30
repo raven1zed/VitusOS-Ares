@@ -78,10 +78,12 @@
             echo "Build: cd opensef/opensef-compositor && rm -rf build && mkdir build && cd build && cmake .. -G Ninja && ninja"
             echo ""
             
-            export CC=clang
-            export CXX=clang++
+            # Use GCC instead of clang - clang has issues with wlroots C99 syntax
+            export CC=gcc
+            export CXX=g++
           '';
         };
       }
     );
 }
+
