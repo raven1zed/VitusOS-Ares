@@ -37,6 +37,18 @@ add_executable(opensef-compositor
     src/OSFSceneWallpaper.cpp
     src/OSFSceneDock.cpp
     src/OSFSceneMenuBar.cpp
+    # Core framework (from R&D research)
+    src/OSFLayer.cpp
+    src/OSFTransaction.cpp
+    src/OSFDisplayLink.cpp
+    src/OSFResponder.cpp
+    # UI Components (Ares theme)
+    src/OSFWindowDecorations.cpp
+    src/OSFTextRenderer.cpp
+    # UI Screens (Ares theme)
+    src/OSFLockScreen.cpp
+    src/OSFShutdownScreen.cpp
+    src/OSFWelcomeScreen.cpp
 )
 
 target_include_directories(opensef-compositor PRIVATE

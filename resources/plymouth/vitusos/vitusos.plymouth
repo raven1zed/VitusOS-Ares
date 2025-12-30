@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=VitusOS Ares
+Description=Clean boot screen for VitusOS Ares - vitusOS | ARES with orange progress bar
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/vitusos
+ScriptFile=/usr/share/plymouth/themes/vitusos/vitusos.script

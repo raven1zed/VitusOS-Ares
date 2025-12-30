@@ -1,5 +1,5 @@
 {
-  description = "VitusOS Ares - openSEF Development Environment";
+  description = "VitusOS Ares - openSEF Desktop Environment";
 
   inputs = {
     # Using unstable for wlroots availability
@@ -11,52 +11,88 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
+        
+        # === Build Dependencies ===
+        buildDeps = with pkgs; [
+          cmake
+          ninja
+          pkg-config
+        ];
+        
+        runtimeDeps = with pkgs; [
+          # Wayland
+          wayland
+          wayland-protocols
+          libxkbcommon
+          # wlroots compositor
+          wlroots
+          libdrm
+          libinput
+          pixman
+          seatd
+          # Graphics
+          libGL
+          mesa
+          # XWayland
+          xwayland
+          xorg.libX11
+          xorg.libxcb
+          xorg.xcbutilwm
+          # Fonts
+          fontconfig
+          freetype
+          inter
+          dejavu_fonts
+        ];
+        
+        # === openSEF Compositor Package ===
+        opensef-compositor = pkgs.stdenv.mkDerivation {
+          pname = "opensef-compositor";
+          version = "0.1.0";
+          
+          src = ./opensef/opensef-compositor;
+          
+          nativeBuildInputs = buildDeps;
+          buildInputs = runtimeDeps;
+          
+          cmakeFlags = [
+            "-DCMAKE_BUILD_TYPE=Release"
+          ];
+          
+          meta = with pkgs.lib; {
+            description = "openSEF Wayland Compositor for VitusOS Ares";
+            license = licenses.mit;
+            platforms = platforms.linux;
+          };
+        };
+        
+      in {
+        # === Packages ===
+        packages = {
+          inherit opensef-compositor;
+          default = opensef-compositor;
+        };
+        
+        # === Development Shell ===
         devShells.default = pkgs.mkShell {
           name = "opensef-dev";
           
-          buildInputs = with pkgs; [
+          buildInputs = with pkgs; buildDeps ++ runtimeDeps ++ [
             # Compiler
             clang
             llvm
             lld
+            gcc
+            gdb
             
-            # Build
-            cmake
-            ninja
-            pkg-config
+            # Development tools
+            clang-tools     # clangd, clang-format
+            bear            # Generate compile_commands.json
+            cmake-language-server
             
-            # Wayland
-            wayland
-            wayland-protocols
-            wayland-scanner
-            libxkbcommon
-            
-            # wlroots compositor
-            wlroots
-            libdrm
-            libinput
-            pixman
-            seatd
-            
-            # Vulkan / Graphics
+            # Vulkan (optional)
             vulkan-loader
             vulkan-headers
-            mesa
-            libGL
-            
-            # XWayland (X11 compatibility)
-            xwayland
-            xorg.libX11
-            xorg.libxcb
-            xorg.xcbutilwm
-            
-            # Fonts
-            fontconfig
-            freetype
-            inter            # Inter font!
-            dejavu_fonts     # Fallback font
             
             # FFI
             libffi
@@ -68,8 +104,19 @@
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
             echo "║     VitusOS Ares Dev Shell                 ║"
-            echo "║     With Inter Font & FreeType             ║"
+            echo "║     openSEF Compositor Environment         ║"
             echo "╚════════════════════════════════════════════╝"
+            echo ""
+            echo "Build commands:"
+            echo "  cd opensef/opensef-compositor"
+            echo "  mkdir -p build && cd build"
+            echo "  cmake .. -G Ninja"
+            echo "  ninja"
+            echo ""
+            echo "Run compositor:"
+            echo "  ./build/opensef-compositor"
+            echo ""
+            
             export CC=clang
             export CXX=clang++
             export FONTCONFIG_PATH=${pkgs.fontconfig.out}/etc/fonts
@@ -78,3 +125,4 @@
       }
     );
 }
+
