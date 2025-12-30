@@ -19,6 +19,7 @@
             cmake
             ninja
             pkg-config
+            wayland-scanner  # IMPORTANT: For generating protocol files
             
             # Core Wayland/wlroots
             wlroots
@@ -32,11 +33,21 @@
             libGL
             mesa
             
+            # Missing dependencies from error
+            libcap
+            libudev-zero
+            libxcb
+            xorg.libXau
+            xorg.libXdmcp
+            
             # XWayland
             xwayland
             xorg.libX11
             xorg.libxcb
             xorg.xcbutilwm
+            xorg.xcbutilrenderutil
+            xorg.xcbutilimage
+            xorg.xcbutilerrors
             
             # Fonts
             fontconfig
@@ -59,17 +70,12 @@
             echo "╚════════════════════════════════════════════╝"
             echo ""
             
-            # Show what's in the wlroots pkgconfig directory
-            echo "Contents of wlroots pkgconfig directory:"
-            ls -la ${pkgs.wlroots}/lib/pkgconfig/
+            # Set PKG_CONFIG_PATH for all dependencies
+            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.libinput}/lib/pkgconfig:${pkgs.seatd}/lib/pkgconfig:${pkgs.libxcb}/lib/pkgconfig:${pkgs.libcap}/lib/pkgconfig:${pkgs.xorg.libXau}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:$PKG_CONFIG_PATH"
+            
+            echo "✓ All dependencies configured"
             echo ""
-            
-            # Add wlroots pkgconfig to path
-            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:$PKG_CONFIG_PATH"
-            
-            # Check what pkg-config can see
-            echo "Available wlroots-related packages:"
-            pkg-config --list-all 2>/dev/null | grep -i wlr || echo "  None found"
+            echo "Build: cd opensef/opensef-compositor && rm -rf build && mkdir build && cd build && cmake .. -G Ninja && ninja"
             echo ""
             
             export CC=clang
