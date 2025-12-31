@@ -303,6 +303,18 @@ void OSFSurface::layerSurfaceConfigure(void *data,
   if (self->configureCallback_) {
     self->configureCallback_(width, height);
   }
+
+  // Auto-paint on configure (basic frame loop)
+  if (self->drawCallback_) {
+    cairo_t *cr = self->beginPaint();
+    if (cr) {
+      self->drawCallback_(cr, width, height);
+      cairo_destroy(cr); // Clean up cairo context
+      self->endPaint();
+      self->damage(0, 0, width, height);
+      self->commit();
+    }
+  }
 }
 
 void OSFSurface::layerSurfaceClosed(void *data,
