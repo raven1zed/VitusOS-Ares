@@ -1,6 +1,7 @@
 #include "OSFSurface.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -14,8 +15,9 @@
 namespace opensef {
 
 // Forward declarations of listener structs
-static const struct wl_registry_listener registry_listener;
-static const struct zwlr_layer_surface_v1_listener layer_surface_listener;
+// Forward declarations of listener structs
+extern const struct wl_registry_listener registry_listener;
+extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
 
 // Helper to create a shared memory file
 static int create_shm_file(off_t size) {
@@ -327,11 +329,12 @@ void OSFSurface::layerSurfaceClosed(void *data,
 }
 
 // Logic definitions
-static const struct wl_registry_listener registry_listener = {
+const struct wl_registry_listener registry_listener = {
     .global = OSFSurface::registryGlobal,
-    .global_remove = OSFSurface::registryGlobalRemove};
+    .global_remove = OSFSurface::registryGlobalRemove,
+};
 
-static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
+const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
     .configure = OSFSurface::layerSurfaceConfigure,
     .closed = OSFSurface::layerSurfaceClosed};
 

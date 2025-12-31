@@ -33,7 +33,7 @@
       <arg name="surface" type="object" interface="wl_surface"/>
       <arg name="output" type="object" interface="wl_output" allow-null="true"/>
       <arg name="layer" type="uint" enum="layer"/>
-      <arg name="namespace" type="string"/>
+      <arg name="namespace_id" type="string"/>
     </request>
 
     <enum name="layer">

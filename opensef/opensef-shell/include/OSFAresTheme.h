@@ -8,9 +8,10 @@
 #ifndef OSF_ARES_THEME_H
 #define OSF_ARES_THEME_H
 
-#include <cairo/cairo.h>
+#define _USE_MATH_DEFINES
+#include <cairo.h>
+#include <cmath>
 #include <cstdint>
-
 
 namespace opensef {
 

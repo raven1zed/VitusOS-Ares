@@ -76,23 +76,23 @@ public:
   // Getters
   int width() const { return width_; }
   int height() const { return height_; }
-  struct wl_display *display() const { return display_; }
+  wl_display *display() const { return display_; }
 
 private:
   // Wayland objects
-  struct wl_display *display_ = nullptr;
-  struct wl_registry *registry_ = nullptr;
-  struct wl_compositor *compositor_ = nullptr;
-  struct wl_shm *shm_ = nullptr;
-  struct wl_surface *surface_ = nullptr;
-  struct wl_output *output_ = nullptr;
-  struct zwlr_layer_shell_v1 *layerShell_ = nullptr;
-  struct zwlr_layer_surface_v1 *layerSurface_ = nullptr;
+  wl_display *display_ = nullptr;
+  wl_registry *registry_ = nullptr;
+  wl_compositor *compositor_ = nullptr;
+  wl_shm *shm_ = nullptr;
+  wl_surface *surface_ = nullptr;
+  wl_output *output_ = nullptr;
+  zwlr_layer_shell_v1 *layerShell_ = nullptr;
+  zwlr_layer_surface_v1 *layerSurface_ = nullptr;
 
   // Cairo rendering
   cairo_surface_t *cairoSurface_ = nullptr;
   cairo_t *cairoContext_ = nullptr;
-  struct wl_buffer *buffer_ = nullptr;
+  wl_buffer *buffer_ = nullptr;
   void *shmData_ = nullptr;
   int shmSize_ = 0;
   int shmFd_ = -1;
