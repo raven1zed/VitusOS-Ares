@@ -55,9 +55,9 @@ void OSFPanel::run() {
 }
 
 void OSFPanel::draw(cairo_t *cr, int width, int height) {
-  // 1. Background (Semi-transparent)
+  // 1. Background (Solid for debug visibility)
   cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-  AresTheme::setCairoColor(cr, AresTheme::PanelBackground);
+  cairo_set_source_rgba(cr, 0.2, 0.2, 0.2, 1.0); // Dark grey opaque
   cairo_paint(cr);
 
   // switch to OVER for content
