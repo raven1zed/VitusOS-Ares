@@ -16,7 +16,7 @@
 
 ## About
 
-VitusOS Ares is a **custom Linux desktop environment** built from scratch:
+VitusOS Ares is a **complete linux distro with openSEF that's work both as a desktop environment and a framework**
 - **Pure C Wayland compositor** using wlroots 0.19
 - **C++ UI shell** with Cairo/Pango rendering
 - **Mars-inspired "Ares" aesthetic** — warm, polished, human
@@ -272,11 +272,7 @@ MIT License © 2025-2026 VitusOS Project
 
 <div align="center">
 
-*The interface recedes when not needed (OS1)*  
-*Delights when interacted with (Aqua)*  
-*Feels warm and human (Ares)*
-
-**VitusOS Ares** — *Reaching for Mars* 🚀
+**VitusOS Ares** — *Reaching for Mars* 
 
 ---
 
