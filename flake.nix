@@ -29,6 +29,7 @@
           
           buildInputs = with pkgs; [
             wlroots
+            wlroots.dev  # CRITICAL: dev output contains .pc file
             wayland
             wayland-protocols
             libxkbcommon
