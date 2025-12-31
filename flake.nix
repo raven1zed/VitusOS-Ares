@@ -73,12 +73,12 @@
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
             echo "║     VitusOS Ares Dev Shell                 ║"
-            echo "║     Pure C Compositor + GTK4 UI            ║"
+            echo "║     Pure C Compositor + Cairo/Pango UI     ║"
             echo "╚════════════════════════════════════════════╝"
             echo ""
             
             # Set PKG_CONFIG_PATH for all dependencies
-            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.libinput}/lib/pkgconfig:${pkgs.seatd}/lib/pkgconfig:${pkgs.libxcb}/lib/pkgconfig:${pkgs.libcap}/lib/pkgconfig:${pkgs.libffi}/lib/pkgconfig:${pkgs.xorg.libXau}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.gtk4}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland}/lib/pkgconfig:${pkgs.libxkbcommon}/lib/pkgconfig:${pkgs.libdrm}/lib/pkgconfig:${pkgs.pixman}/lib/pkgconfig:${pkgs.libinput}/lib/pkgconfig:${pkgs.seatd}/lib/pkgconfig:${pkgs.libxcb}/lib/pkgconfig:${pkgs.libcap}/lib/pkgconfig:${pkgs.libffi}/lib/pkgconfig:${pkgs.xorg.libXau}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.cairo}/lib/pkgconfig:${pkgs.pango}/lib/pkgconfig:${pkgs.librsvg}/lib/pkgconfig:$PKG_CONFIG_PATH"
             
             echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'not found')"
             echo ""
