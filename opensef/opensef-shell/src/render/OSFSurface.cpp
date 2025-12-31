@@ -21,7 +21,7 @@ extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
 
 // Helper to create a shared memory file
 static int create_shm_file(off_t size) {
-  std::string name = "/osf-shm-XXXXXX";
+  std::string name = "/tmp/osf-shm-XXXXXX";
   char *path = new char[name.length() + 1];
   strcpy(path, name.c_str());
 
