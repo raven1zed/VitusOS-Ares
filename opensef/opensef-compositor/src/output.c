@@ -13,7 +13,6 @@
 
 static void output_frame(struct wl_listener *listener, void *data) {
   struct osf_output *output = wl_container_of(listener, output, frame);
-  struct wlr_scene *scene = output->server->scene;
   struct wlr_scene_output *scene_output = output->scene_output;
 
   (void)data;

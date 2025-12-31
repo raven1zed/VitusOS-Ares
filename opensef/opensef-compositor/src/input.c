@@ -4,8 +4,6 @@
  * Handles new input devices, keyboard events, and cursor motion.
  */
 
-#define WLR_USE_UNSTABLE
-
 #include "server.h"
 
 #include <stdlib.h>

@@ -5,8 +5,6 @@
  * This enables external C++ UI applications to integrate with the compositor.
  */
 
-#define WLR_USE_UNSTABLE
-
 #include "server.h"
 
 #include <stdlib.h>
@@ -14,7 +12,6 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/util/log.h>
-
 
 static struct wlr_scene_tree *
 get_layer_tree(struct osf_server *server,

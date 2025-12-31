@@ -176,7 +176,6 @@ static void begin_interactive(struct osf_view *view, enum osf_cursor_mode mode,
     server->grab_y = server->cursor->y - view->scene_tree->node.y;
   } else {
     struct wlr_box geo;
-    struct wlr_box geo;
     // wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
     // In wlroots 0.18+, access geometry directly from surface state
     geo = view->xdg_toplevel->base->current.geometry;

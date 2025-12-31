@@ -4,8 +4,6 @@
  * Handles XDG decoration protocol to ensure server-side decorations.
  */
 
-#define WLR_USE_UNSTABLE
-
 #include "server.h"
 
 #include <stdlib.h>
