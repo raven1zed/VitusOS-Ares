@@ -14,6 +14,18 @@
 #include <string>
 #include <wayland-client.h>
 
+// Forward declarations of Wayland structs (Global Scope)
+struct wl_display;
+struct wl_registry;
+struct wl_compositor;
+struct wl_shm;
+struct wl_surface;
+struct wl_output;
+struct wl_buffer;
+struct wl_shm_pool;
+struct zwlr_layer_shell_v1;
+struct zwlr_layer_surface_v1;
+
 namespace opensef {
 
 /**
