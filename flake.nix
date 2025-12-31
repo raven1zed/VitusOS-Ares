@@ -26,6 +26,7 @@
           ];
           
           buildInputs = with pkgs; [
+            # Try explicit version if standard one fails
             wlroots
             wayland
             wayland-protocols
@@ -50,16 +51,28 @@
           ];
 
           shellHook = ''
-            # Manually add wlroots to PKG_CONFIG_PATH
-            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:$PKG_CONFIG_PATH"
-            
             echo "╔════════════════════════════════════════════╗"
-            echo "║     VitusOS Ares Dev Shell                 ║"
-            echo "║     Pure C Compositor + Cairo/Pango UI     ║"
+            echo "║     VitusOS Ares Debug Shell               ║"
             echo "╚════════════════════════════════════════════╝"
+            
+            # 1. FORCE search for wlroots.pc inside the package directly
+            echo "Searching for wlroots.pc in ${pkgs.wlroots}..."
+            WLROOTS_PC_PATH=$(find ${pkgs.wlroots} -name "wlroots.pc" 2>/dev/null | head -n 1)
+            
+            if [ -z "$WLROOTS_PC_PATH" ]; then
+                echo "CRITICAL FAILURE: wlroots.pc not found in package!"
+                echo "Listing package contents:"
+                find ${pkgs.wlroots} -maxdepth 3
+            else
+                echo "FOUND at: $WLROOTS_PC_PATH"
+                # Export the directory containing the .pc file
+                export PKG_CONFIG_PATH="$(dirname $WLROOTS_PC_PATH):$PKG_CONFIG_PATH"
+                echo "Fixed PKG_CONFIG_PATH."
+            fi
+
             echo ""
-            echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'NOT FOUND')"
-            echo "cairo:   $(pkg-config --modversion cairo 2>/dev/null || echo 'NOT FOUND')"
+            echo "Verifying:"
+            echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'STILL MISSING')"
             echo ""
             
             export CC=gcc
