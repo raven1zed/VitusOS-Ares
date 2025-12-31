@@ -60,6 +60,19 @@ public:
 
   // Configuration
   void setLayer(Layer layer);
+
+  // Wayland callbacks (must be public for C-interop)
+  static void registryGlobal(void *data, struct wl_registry *registry,
+                             uint32_t name, const char *interface,
+                             uint32_t version);
+  static void registryGlobalRemove(void *data, struct wl_registry *registry,
+                                   uint32_t name);
+  static void layerSurfaceConfigure(void *data,
+                                    struct zwlr_layer_surface_v1 *surface,
+                                    uint32_t serial, uint32_t width,
+                                    uint32_t height);
+  static void layerSurfaceClosed(void *data,
+                                 struct zwlr_layer_surface_v1 *surface);
   void setAnchor(Anchor anchor);
   void setSize(int width, int height);
   void setExclusiveZone(int zone);
@@ -130,19 +143,6 @@ private:
   // Internal methods
   bool createShmBuffer(int width, int height);
   void destroyShmBuffer();
-
-  // Wayland listeners
-  static void registryGlobal(void *data, struct wl_registry *registry,
-                             uint32_t name, const char *interface,
-                             uint32_t version);
-  static void registryGlobalRemove(void *data, struct wl_registry *registry,
-                                   uint32_t name);
-  static void layerSurfaceConfigure(void *data,
-                                    struct zwlr_layer_surface_v1 *surface,
-                                    uint32_t serial, uint32_t width,
-                                    uint32_t height);
-  static void layerSurfaceClosed(void *data,
-                                 struct zwlr_layer_surface_v1 *surface);
 };
 
 } // namespace opensef
