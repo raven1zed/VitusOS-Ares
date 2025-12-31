@@ -54,8 +54,8 @@
             echo "║     VitusOS Ares Dev Shell                 ║"
             echo "╚════════════════════════════════════════════╝"
             
-            # Fix PKG_CONFIG_PATH only
-            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:$PKG_CONFIG_PATH"
+            # Fix PKG_CONFIG_PATH explicitly for split outputs (unstable channel quirks)
+            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.cairo.dev}/lib/pkgconfig:${pkgs.pango.dev}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
             echo "Detecting wlroots version..."
             if pkg-config --exists wlroots-0.19; then

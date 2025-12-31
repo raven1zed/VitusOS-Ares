@@ -8,12 +8,11 @@
 #ifndef OSF_SURFACE_H
 #define OSF_SURFACE_H
 
-#include <cairo/cairo.h>
+#include <cairo.h>
 #include <functional>
 #include <memory>
 #include <string>
 #include <wayland-client.h>
-
 
 namespace opensef {
 
