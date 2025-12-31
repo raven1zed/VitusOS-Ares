@@ -51,10 +51,10 @@ add_custom_command(OUTPUT ${XDG_OUTPUT_C}
 
 # Core framework library (from R&D research)
 add_library(osf-core STATIC
-    src/core/OSFLayer.cpp
-    src/core/OSFTransaction.cpp
-    src/core/OSFDisplayLink.cpp
-    src/core/OSFResponder.cpp
+    # src/core/OSFLayer.cpp
+    # src/core/OSFTransaction.cpp
+    # src/core/OSFDisplayLink.cpp
+    # src/core/OSFResponder.cpp
     src/core/OSFAresTheme.cpp
 )
 
@@ -68,8 +68,8 @@ target_include_directories(osf-core PUBLIC
 # Rendering library
 add_library(osf-render STATIC
     src/render/OSFSurface.cpp
-    src/render/OSFTextRenderer.cpp
-    src/render/OSFIconLoader.cpp
+    # src/render/OSFTextRenderer.cpp
+    # src/render/OSFIconLoader.cpp
     ${LAYER_SHELL_C}
     ${LAYER_SHELL_H}
     ${XDG_OUTPUT_C}
@@ -98,21 +98,20 @@ target_link_libraries(osf-render PUBLIC
 add_executable(osf-panel
     src/panel/main.cpp
     src/panel/OSFPanel.cpp
-    src/panel/OSFGlobalMenu.cpp
-    src/panel/OSFSystemTray.cpp
-    src/panel/OSFClock.cpp
+    # src/panel/OSFGlobalMenu.cpp
+    # src/panel/OSFSystemTray.cpp
+    # src/panel/OSFClock.cpp
 )
 
 target_link_libraries(osf-panel PRIVATE osf-render)
 
-# Dock
-add_executable(osf-dock
-    src/dock/main.cpp
-    src/dock/OSFDock.cpp
-    src/dock/OSFDockItem.cpp
-)
-
-target_link_libraries(osf-dock PRIVATE osf-render)
+# Dock (Commented out until implemented)
+# add_executable(osf-dock
+#     src/dock/main.cpp
+#     src/dock/OSFDock.cpp
+#     src/dock/OSFDockItem.cpp
+# )
+# target_link_libraries(osf-dock PRIVATE osf-render)
 
 # Install
 install(TARGETS osf-panel osf-dock DESTINATION bin)
