@@ -12,7 +12,7 @@ find_package(PkgConfig REQUIRED)
 
 # wlroots and dependencies
 # wlroots and dependencies (search for versioned pc files)
-pkg_search_module(WLROOTS REQUIRED wlroots wlroots-0.18 wlroots-0.17 wlroots-0.16)
+pkg_search_module(WLROOTS REQUIRED wlroots wlroots-0.19 wlroots-0.18 wlroots-0.17 wlroots-0.16)
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 pkg_check_modules(XKB REQUIRED xkbcommon)

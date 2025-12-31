@@ -8,7 +8,7 @@ project(opensef VERSION 0.2.0 LANGUAGES C CXX)
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
     # Search for versioned packages (NixOS/Arch often use wlroots-0.18 etc.)
-    pkg_search_module(WLROOTS wlroots wlroots-0.18 wlroots-0.17 wlroots-0.16)
+    pkg_search_module(WLROOTS wlroots wlroots-0.19 wlroots-0.18 wlroots-0.17 wlroots-0.16)
 endif()
 
 # Components in dependency order

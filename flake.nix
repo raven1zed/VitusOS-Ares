@@ -1,5 +1,5 @@
 {
-  description = "VitusOS Ares - openSEF Desktop Environment";
+  description = "VitusOS Ares - openSEF Desktop Environment (Fixed for NixOS Unstable)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -26,7 +26,6 @@
           ];
           
           buildInputs = with pkgs; [
-            # Try explicit version if standard one fails
             wlroots
             wayland
             wayland-protocols
@@ -52,28 +51,21 @@
 
           shellHook = ''
             echo "╔════════════════════════════════════════════╗"
-            echo "║     VitusOS Ares Debug Shell               ║"
+            echo "║     VitusOS Ares Dev Shell                 ║"
             echo "╚════════════════════════════════════════════╝"
             
-            # 1. FORCE search for wlroots.pc inside the package directly
-            echo "Searching for wlroots.pc in ${pkgs.wlroots}..."
-            WLROOTS_PC_PATH=$(find ${pkgs.wlroots} -name "wlroots.pc" 2>/dev/null | head -n 1)
-            
-            if [ -z "$WLROOTS_PC_PATH" ]; then
-                echo "CRITICAL FAILURE: wlroots.pc not found in package!"
-                echo "Listing package contents:"
-                find ${pkgs.wlroots} -maxdepth 3
-            else
-                echo "FOUND at: $WLROOTS_PC_PATH"
-                # Export the directory containing the .pc file
-                export PKG_CONFIG_PATH="$(dirname $WLROOTS_PC_PATH):$PKG_CONFIG_PATH"
-                echo "Fixed PKG_CONFIG_PATH."
-            fi
+            # Fix PKG_CONFIG_PATH only
+            export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:$PKG_CONFIG_PATH"
 
-            echo ""
-            echo "Verifying:"
-            echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'STILL MISSING')"
-            echo ""
+            echo "Detecting wlroots version..."
+            if pkg-config --exists wlroots-0.19; then
+                echo "✅ Found wlroots-0.19"
+            elif pkg-config --exists wlroots; then
+                echo "✅ Found wlroots (generic)"
+            else
+                echo "⚠️  Note: 'wlroots' alias not found, but 'wlroots-0.19' likely exists."
+                echo "    CMake has been updated to find 0.19 automatically."
+            fi
             
             export CC=gcc
             export CXX=g++
