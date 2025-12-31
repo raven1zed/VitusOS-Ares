@@ -1,7 +1,8 @@
-# openSEF - Open SeagrEnv Framework (C++ Version)
+# openSEF - Open SeagrEnv Framework
 # Build order matters due to dependencies
 
-project(opensef)
+cmake_minimum_required(VERSION 3.16)
+project(opensef VERSION 0.2.0 LANGUAGES C CXX)
 
 # Check for wlroots (compositor is optional)
 find_package(PkgConfig)
