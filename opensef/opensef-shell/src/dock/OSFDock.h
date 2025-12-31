@@ -1,10 +1,10 @@
 #ifndef OSF_DOCK_H
 #define OSF_DOCK_H
 
+#include "OSFSurface.h"
 #include <memory>
 #include <opensef/OpenSEFAppKit.h>
 #include <vector>
-
 
 namespace opensef {
 
