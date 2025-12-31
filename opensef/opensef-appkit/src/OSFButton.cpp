@@ -5,7 +5,6 @@
 #include <cmath>
 #include <opensef/OpenSEFAppKit.h>
 
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -90,8 +89,9 @@ void OSFButton::render(cairo_t *cr) {
 
   // Draw label
   AresTheme::setCairoColor(cr, textColor);
-  cairo_select_font_face(cr, AresTheme::FontFamily, CAIRO_FONT_SLANT_NORMAL,
-                         CAIRO_FONT_WEIGHT_MEDIUM);
+  cairo_select_font_face(
+      cr, AresTheme::FontFamily, CAIRO_FONT_SLANT_NORMAL,
+      CAIRO_FONT_WEIGHT_NORMAL); // Medium not always available
   cairo_set_font_size(cr, AresTheme::FontSizeNormal);
 
   cairo_text_extents_t extents;

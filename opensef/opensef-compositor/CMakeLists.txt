@@ -11,7 +11,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(PkgConfig REQUIRED)
 
 # wlroots and dependencies
-pkg_check_modules(WLROOTS REQUIRED wlroots)
+# wlroots and dependencies (search for versioned pc files)
+pkg_search_module(WLROOTS REQUIRED wlroots wlroots-0.18 wlroots-0.17 wlroots-0.16)
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 pkg_check_modules(XKB REQUIRED xkbcommon)

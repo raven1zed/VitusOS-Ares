@@ -8,11 +8,13 @@
 #pragma once
 
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 
 namespace opensef {
 

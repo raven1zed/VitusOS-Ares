@@ -3,7 +3,13 @@
  */
 
 #include "../include/OSFLayer.h"
+#include <algorithm>
 #include <cmath>
+
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace opensef {
 
@@ -115,9 +121,9 @@ void OSFLayer::removeFromParent() {
     return;
 
   auto &siblings = parent_->sublayers_;
-  siblings.erase(
-      std::remove(siblings.begin(), siblings.end(), shared_from_this()),
-      siblings.end());
+  // Use std::remove from algorithm
+  auto it = std::remove(siblings.begin(), siblings.end(), shared_from_this());
+  siblings.erase(it, siblings.end());
   parent_ = nullptr;
 }
 
