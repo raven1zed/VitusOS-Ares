@@ -15,7 +15,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 namespace opensef {
 
 // =============================================================================
@@ -124,6 +123,8 @@ protected:
 
   CompletionCallback completionCallback_;
   std::function<void(double)> updateCallback_;
+
+  friend class OSFTransaction;
 };
 
 // =============================================================================
@@ -210,7 +211,6 @@ private:
   static TransactionState &current();
 
   friend class OSFAnimationManager;
-  friend class OSFTransaction;
 };
 
 // =============================================================================

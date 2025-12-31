@@ -40,6 +40,19 @@ add_custom_command(OUTPUT ${XDG_SHELL_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML})
 
+# Generate wlr-layer-shell protocol
+set(LAYER_SHELL_XML "${CMAKE_SOURCE_DIR}/opensef-shell/protocols/wlr-layer-shell-unstable-v1.xml")
+set(LAYER_SHELL_H "${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.h")
+set(LAYER_SHELL_C "${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.c")
+
+add_custom_command(OUTPUT ${LAYER_SHELL_H}
+    COMMAND ${WAYLAND_SCANNER} server-header ${LAYER_SHELL_XML} ${LAYER_SHELL_H}
+    DEPENDS ${LAYER_SHELL_XML})
+
+add_custom_command(OUTPUT ${LAYER_SHELL_C}
+    COMMAND ${WAYLAND_SCANNER} private-code ${LAYER_SHELL_XML} ${LAYER_SHELL_C}
+    DEPENDS ${LAYER_SHELL_XML})
+
 # Main compositor executable
 add_executable(opensef-compositor
     src/main.c
@@ -51,6 +64,8 @@ add_executable(opensef-compositor
     src/decorations.c
     ${XDG_SHELL_C}
     ${XDG_SHELL_H}
+    ${LAYER_SHELL_C}
+    ${LAYER_SHELL_H}
 )
 
 target_include_directories(opensef-compositor PRIVATE
