@@ -4,8 +4,6 @@
  * Handles new monitors, frame rendering, and output configuration.
  */
 
-#define WLR_USE_UNSTABLE
-
 #include "server.h"
 
 #include <stdlib.h>

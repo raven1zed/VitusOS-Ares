@@ -4,8 +4,6 @@
  * Handles XDG toplevel windows: creation, focus, move, resize.
  */
 
-#define WLR_USE_UNSTABLE
-
 #include "server.h"
 
 #include <stdlib.h>
@@ -13,7 +11,6 @@
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
-
 
 /* ============================================================================
  * View at position (for click handling)
@@ -179,7 +176,10 @@ static void begin_interactive(struct osf_view *view, enum osf_cursor_mode mode,
     server->grab_y = server->cursor->y - view->scene_tree->node.y;
   } else {
     struct wlr_box geo;
-    wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+    struct wlr_box geo;
+    // wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+    // In wlroots 0.18+, access geometry directly from surface state
+    geo = view->xdg_toplevel->base->current.geometry;
 
     double border_x = (view->scene_tree->node.x + geo.x) +
                       ((edges & WLR_EDGE_RIGHT) ? geo.width : 0);

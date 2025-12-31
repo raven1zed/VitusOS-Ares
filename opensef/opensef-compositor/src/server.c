@@ -5,13 +5,11 @@
  */
 
 #define _POSIX_C_SOURCE 200112L
-#define WLR_USE_UNSTABLE
 
 #include "server.h"
 
 #include <assert.h>
 #include <stdlib.h>
-
 
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -29,7 +27,6 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
-
 
 /* Forward declarations for handlers defined in other files */
 extern void osf_new_output(struct wl_listener *listener, void *data);
