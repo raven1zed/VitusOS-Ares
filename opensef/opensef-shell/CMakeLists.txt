@@ -102,6 +102,8 @@ add_executable(osf-panel
 
 target_include_directories(osf-panel PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/panel
+    ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    ${CAIRO_INCLUDE_DIRS}
 )
 
 target_link_libraries(osf-panel PRIVATE osf-render)
