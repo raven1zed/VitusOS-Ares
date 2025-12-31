@@ -50,6 +50,19 @@ add_custom_command(OUTPUT ${XDG_OUTPUT_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_OUTPUT_XML} ${XDG_OUTPUT_C}
     DEPENDS ${XDG_OUTPUT_XML})
 
+# XDG shell protocol (Required for xdg_popup_interface symbols)
+set(XDG_SHELL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
+set(XDG_SHELL_H "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h")
+set(XDG_SHELL_C "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c")
+
+add_custom_command(OUTPUT ${XDG_SHELL_H}
+    COMMAND ${WAYLAND_SCANNER} client-header ${XDG_SHELL_XML} ${XDG_SHELL_H}
+    DEPENDS ${XDG_SHELL_XML})
+
+add_custom_command(OUTPUT ${XDG_SHELL_C}
+    COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
+    DEPENDS ${XDG_SHELL_XML})
+
 # Rendering library (uses opensef-core and opensef-appkit)
 add_library(osf-render STATIC
     src/render/OSFSurface.cpp
@@ -58,6 +71,8 @@ add_library(osf-render STATIC
     ${LAYER_SHELL_H}
     ${XDG_OUTPUT_C}
     ${XDG_OUTPUT_H}
+    ${XDG_SHELL_C}
+    ${XDG_SHELL_H}
 )
 
 target_include_directories(osf-render PUBLIC
