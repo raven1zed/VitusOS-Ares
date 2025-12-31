@@ -15,7 +15,6 @@
           name = "opensef-dev";
           
           nativeBuildInputs = with pkgs; [
-            # Build tools
             cmake
             ninja
             pkg-config
@@ -29,7 +28,6 @@
           ];
           
           buildInputs = with pkgs; [
-            # Core Wayland/wlroots (with dev headers)
             wlroots
             wayland
             wayland-protocols
@@ -40,32 +38,50 @@
             seatd
             libGL
             mesa
-            
-            # Additional deps
             libffi
             libcap
             udev
             libxcb
             xorg.libXau
             xorg.libXdmcp
-            
-            # XWayland
             xwayland
             xorg.libX11
             xorg.xcbutilwm
             xorg.xcbutilrenderutil
             xorg.xcbutilimage
             xorg.xcbutilerrors
-            
-            # Cairo/Pango for UI
             cairo
             pango
             librsvg
             glib
-            
-            # Fonts
             fontconfig
             freetype
+          ];
+
+          # CRITICAL: Manually set PKG_CONFIG_PATH for all libs
+          PKG_CONFIG_PATH = with pkgs; lib.makeSearchPath "lib/pkgconfig" [
+            wlroots
+            wayland
+            wayland.dev
+            libxkbcommon
+            libdrm
+            libinput
+            pixman
+            seatd
+            libGL
+            mesa
+            libffi
+            libcap
+            libxcb
+            xorg.libXau
+            cairo
+            pango
+            librsvg
+            glib
+            fontconfig
+            freetype
+          ] + ":" + lib.makeSearchPath "share/pkgconfig" [
+            wayland-protocols
           ];
 
           shellHook = ''
@@ -74,11 +90,12 @@
             echo "║     Pure C Compositor + Cairo/Pango UI     ║"
             echo "╚════════════════════════════════════════════╝"
             echo ""
-            echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'not found')"
-            echo "cairo:   $(pkg-config --modversion cairo 2>/dev/null || echo 'not found')"
+            echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'NOT FOUND')"
+            echo "cairo:   $(pkg-config --modversion cairo 2>/dev/null || echo 'NOT FOUND')"
+            echo "wayland: $(pkg-config --modversion wayland-server 2>/dev/null || echo 'NOT FOUND')"
             echo ""
             echo "Build:"
-            echo "  cd opensef && mkdir -p build && cd build"
+            echo "  cd opensef && rm -rf build && mkdir build && cd build"
             echo "  cmake .. -G Ninja && ninja"
             echo ""
             
