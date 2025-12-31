@@ -49,6 +49,11 @@ static void arrange_layers(struct osf_server *server) {
         continue;
       }
 
+      /* Safety check: Don't touch uninitialized surfaces */
+      if (!wlr_layer->initialized || !layer_surface->scene_layer_surface) {
+        continue;
+      }
+
       /* Let wlr_scene handle the arrangement */
       wlr_scene_layer_surface_v1_configure(layer_surface->scene_layer_surface,
                                            &full_area, &usable_area);
