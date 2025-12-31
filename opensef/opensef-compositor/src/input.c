@@ -223,7 +223,8 @@ static void process_cursor_resize(struct osf_server *server, uint32_t time) {
   }
 
   struct wlr_box geo;
-  wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  // wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  geo = view->xdg_toplevel->base->current.geometry;
   wlr_scene_node_set_position(&view->scene_tree->node, new_left - geo.x,
                               new_top - geo.y);
 
