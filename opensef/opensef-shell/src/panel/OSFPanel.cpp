@@ -6,7 +6,6 @@
 #include <iostream>
 #include <sstream>
 
-
 namespace opensef {
 
 OSFPanel::OSFPanel() {
@@ -62,6 +61,18 @@ void OSFPanel::drawStartButton(cairo_t *cr, double x, double y) {
 
   cairo_move_to(cr, x + 20, y + 10); // align baseline
   cairo_show_text(cr, "Filer");
+
+  // Menu Items
+  cairo_select_font_face(cr, AresTheme::FontFamily, CAIRO_FONT_SLANT_NORMAL,
+                         CAIRO_FONT_WEIGHT_NORMAL);
+  cairo_move_to(cr, x + 70, y + 10);
+  cairo_show_text(cr, "Menu");
+
+  cairo_move_to(cr, x + 120, y + 10);
+  cairo_show_text(cr, "Settings");
+
+  cairo_move_to(cr, x + 190, y + 10);
+  cairo_show_text(cr, "Help");
 }
 
 void OSFPanel::drawClock(cairo_t *cr, int width, int height) {

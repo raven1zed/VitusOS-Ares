@@ -108,4 +108,15 @@ void osf_new_output(struct wl_listener *listener, void *data) {
   wl_list_insert(&server->outputs, &output->link);
 
   wlr_log(WLR_INFO, "Output '%s' configured successfully", wlr_output->name);
+
+  /* Set background color (VitusOS Space Grey) */
+  float color[4] = {0.1f, 0.1f, 0.1f, 1.0f}; // #1a1a1a
+  int width = wlr_output->width;
+  int height = wlr_output->height;
+  if (width == 0)
+    width = 1920; // Fallback
+  if (height == 0)
+    height = 1080;
+
+  wlr_scene_rect_create(server->layer_background, width, height, color);
 }
