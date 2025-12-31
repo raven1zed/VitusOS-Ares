@@ -108,5 +108,19 @@ target_include_directories(osf-panel PRIVATE
 
 target_link_libraries(osf-panel PRIVATE osf-render)
 
+# --- osf-dock Executable ---
+add_executable(osf-dock
+    src/dock/main.cpp
+    src/dock/OSFDock.cpp
+)
+
+target_include_directories(osf-dock PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dock
+    ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    ${CAIRO_INCLUDE_DIRS}
+)
+
+target_link_libraries(osf-dock PRIVATE osf-render)
+
 # Install
 install(TARGETS osf-panel DESTINATION bin)
