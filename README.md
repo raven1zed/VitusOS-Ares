@@ -179,9 +179,14 @@ WLR_BACKENDS=wayland ./opensef-compositor
 |-------|--------|----------|
 | **1. Core Compositor** | ✅ Complete | Dec 2025 |
 | **2. Cairo Shell** | ✅ Complete | Dec 2025 |
-| **3. First Build Test** | 🔄 Next | Jan 2026 |
-| **4. Dock Implementation** | 📋 Planned | Q1 2026 |
+| **3. First Build Test** | ✅ Complete | Jan 2026 |
+| **4. Dock Implementation** | 🔄 In Progress | Jan 2026 |
 | **5. SeaDrop Integration** | 📋 Planned | Q2 2026 |
+
+### Visuals
+- **Theme:** "Mars Light" (Light panels, dark text, orange accents)
+- **Panel:** Top global menu
+- **Dock:** Bottom floating dock (centered)
 | **6. Native Apps** | 📋 Planned | Q3-Q4 2026 |
 
 ---
