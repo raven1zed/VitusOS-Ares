@@ -118,7 +118,7 @@ static void layer_surface_commit(struct wl_listener *listener, void *data) {
   if (wlr_layer->initial_commit ||
       (committed &
        (WLR_LAYER_SURFACE_V1_STATE_LAYER | WLR_LAYER_SURFACE_V1_STATE_ANCHOR |
-        WLR_LAYER_SURFACE_V1_STATE_SIZE |
+        WLR_LAYER_SURFACE_V1_STATE_DESIRED_SIZE |
         WLR_LAYER_SURFACE_V1_STATE_EXCLUSIVE_ZONE |
         WLR_LAYER_SURFACE_V1_STATE_MARGIN))) {
     arrange_layers(layer_surface->server);
