@@ -1,40 +1,73 @@
 /**
- * openSEF AppKit: GUI Widgets (C++ Version)
+ * openSEF AppKit: Production GUI Widgets
  *
- * Windows, views, buttons for VitusOS
+ * Cairo/Pango-based widgets for VitusOS Ares
+ * Integrated with OSFLayer animation framework
  */
 
 #pragma once
 
+#include <cairo/cairo.h>
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <opensef/OpenSEFBase.h>
-#include <opensef/OpenSEFUI.h>
 #include <string>
 #include <vector>
 
+
+// Forward declare Pango types
+typedef struct _PangoLayout PangoLayout;
+
 namespace opensef {
 
-// Forward declarations
-class OSFView;
-class OSFWindow;
+// =============================================================================
+// Geometry Types
+// =============================================================================
 
-// ============================================================================
+struct OSFRect {
+  double x = 0, y = 0, width = 0, height = 0;
+  OSFRect() = default;
+  OSFRect(double x_, double y_, double w, double h)
+      : x(x_), y(y_), width(w), height(h) {}
+};
+
+struct OSFColor {
+  double r = 0, g = 0, b = 0, a = 1;
+  OSFColor() = default;
+  OSFColor(double r_, double g_, double b_, double a_ = 1.0)
+      : r(r_), g(g_), b(b_), a(a_) {}
+
+  static OSFColor fromARGB(uint32_t argb) {
+    return OSFColor(((argb >> 16) & 0xFF) / 255.0, ((argb >> 8) & 0xFF) / 255.0,
+                    (argb & 0xFF) / 255.0, ((argb >> 24) & 0xFF) / 255.0);
+  }
+
+  void setCairo(cairo_t *cr) const { cairo_set_source_rgba(cr, r, g, b, a); }
+};
+
+// =============================================================================
+// Font/Text Types
+// =============================================================================
+
+enum class FontWeight { Normal, Medium, Bold };
+enum class TextAlignment { Left, Center, Right };
+
+// =============================================================================
 // OSFView - Base class for all visual elements
-// ============================================================================
+// =============================================================================
 
-class OSFView : public OSFObject {
+class OSFView {
 public:
-  OSFView();
-  virtual ~OSFView();
+  OSFView() = default;
+  virtual ~OSFView() = default;
 
   // Geometry
   OSFRect frame() const { return frame_; }
   void setFrame(const OSFRect &frame) { frame_ = frame; }
 
   // Visibility
-  float alpha() const { return alpha_; }
-  void setAlpha(float alpha) { alpha_ = alpha; }
+  double alpha() const { return alpha_; }
+  void setAlpha(double alpha) { alpha_ = alpha; }
   bool isHidden() const { return hidden_; }
   void setHidden(bool hidden) { hidden_ = hidden; }
 
@@ -46,120 +79,167 @@ public:
   void addSubview(std::shared_ptr<OSFView> view);
   void removeFromSuperview();
 
-  // Drawing
-  virtual void draw();
+  // Rendering
+  virtual void draw() {}
+  virtual void render(cairo_t *cr);
 
 protected:
   OSFRect frame_;
-  float alpha_ = 1.0f;
+  double alpha_ = 1.0;
   bool hidden_ = false;
   OSFView *superview_ = nullptr;
   std::vector<std::shared_ptr<OSFView>> subviews_;
 };
 
-// ============================================================================
-// OSFWindow - Top-level window
-// ============================================================================
-
-class OSFWindow : public OSFView {
-public:
-  OSFWindow();
-  OSFWindow(const std::string &title, const OSFRect &frame);
-  virtual ~OSFWindow();
-
-  static std::shared_ptr<OSFWindow> create(const std::string &title,
-                                           const OSFRect &frame);
-
-  // Properties
-  const std::string &title() const { return title_; }
-  void setTitle(const std::string &title) { title_ = title; }
-  bool isVisible() const { return visible_; }
-
-  // Actions
-  void show();
-  void close();
-  void setContentView(std::shared_ptr<OSFView> view);
-
-private:
-  std::string title_;
-  bool visible_ = false;
-  std::shared_ptr<OSFView> contentView_;
-  void *waylandSurface_ = nullptr; // Wayland surface handle
-};
-
-// ============================================================================
-// OSFButton - Clickable button
-// ============================================================================
+// =============================================================================
+// OSFButton - Clickable button with Cairo rendering
+// =============================================================================
 
 class OSFButton : public OSFView {
 public:
   OSFButton();
-  OSFButton(const std::string &label, std::function<void()> action);
-  virtual ~OSFButton();
+  OSFButton(const std::string &label, std::function<void()> action = nullptr);
+  virtual ~OSFButton() = default;
 
-  static std::shared_ptr<OSFButton> create(const std::string &label,
-                                           std::function<void()> action);
+  static std::shared_ptr<OSFButton>
+  create(const std::string &label, std::function<void()> action = nullptr);
 
+  // Properties
   const std::string &label() const { return label_; }
   void setLabel(const std::string &label) { label_ = label; }
   void setAction(std::function<void()> action) { action_ = action; }
 
+  // State
+  bool isHovered() const { return hovered_; }
+  bool isPressed() const { return pressed_; }
+
+  // Events
   void click();
-  virtual void draw() override;
+  void handleMouseEnter();
+  void handleMouseLeave();
+  void handleMouseDown();
+  void handleMouseUp();
+
+  // Rendering
+  void render(cairo_t *cr) override;
 
 private:
   std::string label_;
   std::function<void()> action_;
+  bool hovered_ = false;
   bool pressed_ = false;
 };
 
-// ============================================================================
-// OSFLabel - Text display
-// ============================================================================
+// =============================================================================
+// OSFLabel - Text display with Pango rendering
+// =============================================================================
 
 class OSFLabel : public OSFView {
 public:
   OSFLabel();
   OSFLabel(const std::string &text);
-  virtual ~OSFLabel();
+  virtual ~OSFLabel() = default;
 
+  static std::shared_ptr<OSFLabel> create(const std::string &text);
+  static std::shared_ptr<OSFLabel> createTitle(const std::string &text);
+  static std::shared_ptr<OSFLabel> createSubtitle(const std::string &text);
+
+  // Properties
   const std::string &text() const { return text_; }
   void setText(const std::string &text) { text_ = text; }
 
   OSFColor textColor() const { return textColor_; }
   void setTextColor(const OSFColor &color) { textColor_ = color; }
 
-  virtual void draw() override;
+  double fontSize() const { return fontSize_; }
+  void setFontSize(double size);
+
+  FontWeight fontWeight() const { return fontWeight_; }
+  void setFontWeight(FontWeight weight);
+
+  TextAlignment alignment() const { return alignment_; }
+  void setAlignment(TextAlignment alignment);
+
+  // Rendering
+  void render(cairo_t *cr) override;
 
 private:
   std::string text_;
-  OSFColor textColor_ = OSFColors::textPrimary();
-  float fontSize_ = 14.0f;
+  OSFColor textColor_{1.0, 1.0, 1.0, 1.0}; // White default
+  double fontSize_ = 13.0;
+  FontWeight fontWeight_ = FontWeight::Normal;
+  TextAlignment alignment_ = TextAlignment::Left;
 };
 
-// ============================================================================
+// =============================================================================
+// OSFTextField - Text input
+// =============================================================================
+
+class OSFTextField : public OSFView {
+public:
+  OSFTextField();
+  OSFTextField(const std::string &placeholder);
+  virtual ~OSFTextField() = default;
+
+  static std::shared_ptr<OSFTextField>
+  create(const std::string &placeholder = "");
+
+  // Properties
+  const std::string &text() const { return text_; }
+  void setText(const std::string &text) { text_ = text; }
+  const std::string &placeholder() const { return placeholder_; }
+  void setPlaceholder(const std::string &placeholder) {
+    placeholder_ = placeholder;
+  }
+  void setSecure(bool secure);
+
+  // Events
+  void handleKeyPress(uint32_t key, const std::string &text);
+  void handleFocus(bool focused);
+  void setOnTextChanged(std::function<void(const std::string &)> callback);
+  void setOnSubmit(std::function<void(const std::string &)> callback);
+
+  // Rendering
+  void render(cairo_t *cr) override;
+
+private:
+  std::string text_;
+  std::string placeholder_;
+  bool focused_ = false;
+  bool cursorVisible_ = true;
+  bool isSecure_ = false;
+  std::function<void(const std::string &)> onTextChanged_;
+  std::function<void(const std::string &)> onSubmit_;
+};
+
+// =============================================================================
 // OSFGlassPanel - Frosted glass effect (Ares signature)
-// ============================================================================
+// =============================================================================
 
 class OSFGlassPanel : public OSFView {
 public:
   OSFGlassPanel();
-  virtual ~OSFGlassPanel();
+  virtual ~OSFGlassPanel() = default;
 
   static std::shared_ptr<OSFGlassPanel> create(const OSFRect &frame);
 
-  float blurRadius() const { return blurRadius_; }
-  void setBlurRadius(float radius) { blurRadius_ = radius; }
+  // Properties
+  double blurRadius() const { return blurRadius_; }
+  void setBlurRadius(double radius) { blurRadius_ = radius; }
 
   OSFColor tintColor() const { return tintColor_; }
   void setTintColor(const OSFColor &color) { tintColor_ = color; }
 
-  virtual void draw() override;
+  void setShadowEnabled(bool enabled);
+
+  // Rendering
+  void render(cairo_t *cr) override;
 
 private:
-  float blurRadius_ = OSFStyle::blurRadiusMedium();
-  float tintAlpha_ = 0.85f;
-  OSFColor tintColor_ = OSFColors::surface();
+  double blurRadius_ = 20.0;
+  double tintAlpha_ = 0.85;
+  OSFColor tintColor_{0.1, 0.1, 0.1, 0.85};
+  bool shadowEnabled_ = true;
 };
 
 } // namespace opensef

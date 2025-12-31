@@ -10,18 +10,20 @@ if(PkgConfig_FOUND)
 endif()
 
 # Components in dependency order
-add_subdirectory(opensef-base)      # No dependencies
-add_subdirectory(opensef-ui)        # Depends on base (interface only)
-add_subdirectory(opensef-backend)   # Depends on base (Wayland client)
-add_subdirectory(opensef-appkit)    # Depends on base, ui, backend
+add_subdirectory(opensef-base)      # Foundation classes
+add_subdirectory(opensef-core)      # Animation & Layer framework
+add_subdirectory(opensef-appkit)    # Widget library (Buttons, Windows)
 
 # Compositor (only if wlroots found)
 if(WLROOTS_FOUND)
     message(STATUS "wlroots found - building compositor")
     add_subdirectory(opensef-compositor)
 else()
-    message(STATUS "wlroots NOT found - skipping compositor (install wlroots to build)")
+    message(STATUS "wlroots NOT found - skipping compositor")
 endif()
+
+# Shell (Desktop UI)
+add_subdirectory(opensef-shell)
 
 # Test programs
 if(BUILD_TESTING)

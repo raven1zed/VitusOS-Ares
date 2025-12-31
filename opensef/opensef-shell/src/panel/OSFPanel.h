@@ -3,6 +3,8 @@
 
 #include "OSFSurface.h"
 #include <memory>
+#include <opensef/OpenSEFAppKit.h>
+
 
 namespace opensef {
 
@@ -16,10 +18,17 @@ public:
 private:
   std::unique_ptr<OSFSurface> surface_;
 
+  // Widgets (using the widget library)
+  std::shared_ptr<OSFButton> appNameButton_;
+  std::shared_ptr<OSFLabel> menuFile_;
+  std::shared_ptr<OSFLabel> menuSettings_;
+  std::shared_ptr<OSFLabel> menuHelp_;
+  std::shared_ptr<OSFLabel> clockLabel_;
+
   // Rendering
+  void initWidgets();
   void draw(cairo_t *cr, int width, int height);
-  void drawStartButton(cairo_t *cr, double x, double y);
-  void drawClock(cairo_t *cr, int width, int height);
+  void updateClock();
 };
 
 } // namespace opensef
