@@ -256,4 +256,75 @@ Choosing Cairo over GTK4/Qt gives:
 
 ---
 
-*This document is the foundation for building openSEF. Updated December 31, 2025 after architecture pivot.*
+# Boot, Lock Screen & Shutdown UI
+
+## The Golden Rule
+
+> **openSEF is to VitusOS what Cocoa is to macOS**
+>
+> Cocoa doesn't replace Darwin/XNU — it makes them invisible.
+> openSEF doesn't replace systemd — it makes it invisible.
+
+## Boot-to-Shutdown Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Power On                                                        │
+│  └── BIOS/UEFI → Silent (no POST spam)                          │
+│      └── GRUB → Invisible (timeout=0, no menu)                  │
+│          └── Kernel → "quiet splash loglevel=0" (no text)       │
+│              └── Plymouth → VitusOS boot animation              │
+│                  └── systemd → Silent (ShowStatus=no)           │
+│                      └── osf-greeter → Lock screen (FIRST UI)   │
+│                          └── PAM authenticates                   │
+│                              └── osf-compositor launches         │
+│                                  └── osf-panel + osf-dock        │
+│                                      └── Desktop ready           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Required Components
+
+| Component | Purpose | Technology |
+|-----------|---------|------------|
+| Plymouth theme | Boot animation | Plymouth + script |
+| osf-greeter | Lock screen / login | C++ Cairo, PAM |
+| osf-wallpaper | Desktop background | C++ Cairo, layer-shell |
+| osf-shutdown | Shutdown overlay | C++ Cairo, logind D-Bus |
+
+## Kernel & systemd Configuration
+
+```bash
+# /etc/default/grub
+GRUB_TIMEOUT=0
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0"
+
+# /etc/systemd/system.conf
+ShowStatus=no
+```
+
+## Session Entry
+
+```desktop
+# /usr/share/xsessions/opensef.desktop
+[Desktop Entry]
+Name=openSEF
+Comment=VitusOS Ares Desktop
+Exec=/usr/bin/start-opensef
+Type=Application
+```
+
+## Success Criteria
+
+User experience from power button:
+1. **See**: VitusOS logo + progress bar
+2. **See**: Lock screen
+3. **Enter password**: Desktop appears instantly
+4. **Click shutdown**: Confirmation → "Shutting down..." → off
+
+User **never sees**: GRUB, kernel text, systemd output, terminal.
+
+---
+
+*This document is the foundation for building openSEF. Updated January 1, 2026.*
+

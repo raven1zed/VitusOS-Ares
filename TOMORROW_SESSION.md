@@ -1,30 +1,57 @@
 # Tomorrow's Session - January 2, 2026
 
-## Goal: Interactivity & Window Management
+## Context for AI Instances
 
-We have the *look* (Mars Light, Panel, Dock). Now we need the *feel* (Windows that actually work).
+**READ FIRST**: See `walkthrough.md` for full openSEF vision.
 
-## TODO List
+**Key understanding**: openSEF hides Linux's plumbing (systemd, kernel, GRUB). Users never see code/logs.
 
-### Priority 1: Window Management (Tiling)
-- [ ] **Snap to Grid**: Windows should respect the Panel and Dock areas (work area implementation).
-- [ ] **Basic Tiling**: When a second window opens, split screen (50/50).
-- [ ] **Focus Follows Mouse**: Hovering a window should activate it.
+---
+
+## Session Goals
+
+### Priority 1: Wallpaper Client
+- Create `osf-wallpaper` (layer-shell background)
+- Load image, render via Cairo
+- Ends the "black void" era
 
 ### Priority 2: Dock Interactivity
-- [ ] **Click to Launch**: Clicking the "Terminal" icon should spawn `alacritty` or `foot`.
-- [ ] **Hover Effect**: Icons should scale up slightly (1.1x) when hovered (Animation Framework test).
-- [ ] **Active Indicator**: Little dot below running apps.
+- Load SVG icons (librsvg)
+- Click icon → spawn app (fork + exec)
+- Hover effect (scale 1.1x)
 
-### Priority 3: Wallpaper
-- [ ] Remove the black void.
-- [ ] Implement `osf-wallpaper` client that renders the Mars landscape.
+### Priority 3: Session Integration
+- Create `opensef.desktop` session entry
+- Write `start-opensef.sh` launcher script
+- Test selecting openSEF from SDDM/GDM
+
+---
+
+## Commands Reference
+
+```bash
+# Enter dev environment
+nix develop
+
+# Build everything
+cd opensef/build
+cmake .. -G Ninja && ninja
+
+# Run compositor
+WLR_NO_HARDWARE_CURSORS=1 ./opensef-compositor/opensef-compositor
+
+# Run clients (separate terminals)
+WAYLAND_DISPLAY=wayland-1 ./opensef-shell/osf-panel
+WAYLAND_DISPLAY=wayland-1 ./opensef-shell/osf-dock
+```
 
 ---
 
 ## Known Issues
-- [ ] Dock icons are just colored rectangles (Need SVG loading).
-- [ ] Text rendering on the panel is static.
-- [ ] No window decorations (Title bars) yet.
+- Panel/Dock crash if started before compositor is ready
+- Clock format may need locale adjustment
+- Dock icons are colored rectangles (need SVG)
+
+---
 
 *Build first, polish later.*
