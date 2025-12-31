@@ -55,9 +55,9 @@ void OSFPanel::run() {
 }
 
 void OSFPanel::draw(cairo_t *cr, int width, int height) {
-  // 1. Background (Solid for debug visibility)
+  // 1. Background (Semi-transparent Theme Color)
   cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-  cairo_set_source_rgba(cr, 0.2, 0.2, 0.2, 1.0); // Dark grey opaque
+  AresTheme::setCairoColor(cr, AresTheme::PanelBackground);
   cairo_paint(cr);
 
   // switch to OVER for content
@@ -88,7 +88,8 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
 
   // 5. Clock using widget
   updateClock();
-  clockLabel_->setFrame(OSFRect(width - 80, (height - 16) / 2.0, 60, 16));
+  // Adjust clock position for longer text
+  clockLabel_->setFrame(OSFRect(width - 180, (height - 16) / 2.0, 160, 16));
   clockLabel_->render(cr);
 }
 
@@ -97,7 +98,8 @@ void OSFPanel::updateClock() {
   auto tm = *std::localtime(&now);
 
   std::ostringstream oss;
-  oss << std::put_time(&tm, "%H:%M");
+  // Format: Tuesday,12 10:15 PM
+  oss << std::put_time(&tm, "%A,%d %I:%M %p");
   clockLabel_->setText(oss.str());
 }
 

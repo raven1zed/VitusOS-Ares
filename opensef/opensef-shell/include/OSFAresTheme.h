@@ -22,17 +22,18 @@ namespace AresTheme {
 // ==========================================================================
 
 // Mars-inspired warm colors
+// Mars-inspired warm colors
 constexpr uint32_t MarsOrange = 0xFFE57C3A; // Primary accent
 constexpr uint32_t MarsGold = 0xFFD4A93E;   // Secondary accent
 constexpr uint32_t MarsSand = 0xFFB5651D;   // Desert sand
 constexpr uint32_t MarsRed = 0xFFC44536;    // Rust red
 
-// Neutral colors
-constexpr uint32_t LunarGray = 0xFF2D2D2D; // Title bar, panels
-constexpr uint32_t DeepSpace = 0xFF1A1A1A; // Dark backgrounds
-constexpr uint32_t Nebula = 0xFF3D3D3D;    // Hover states
-constexpr uint32_t StarWhite = 0xFFF5F5F5; // Primary text
-constexpr uint32_t MoonGray = 0xFFBBBBBB;  // Secondary text
+// Neutral colors (Light Mode)
+constexpr uint32_t LunarGray = 0xFFF5F5F5; // Title bar, panels (Light)
+constexpr uint32_t DeepSpace = 0xFFFFFFFF; // Window backgrounds (White)
+constexpr uint32_t Nebula = 0xFFE0E0E0;    // Hover states (Light Gray)
+constexpr uint32_t StarWhite = 0xFF1A1A1A; // Primary text (Dark Grey)
+constexpr uint32_t MoonGray = 0xFF555555;  // Secondary text (Medium Grey)
 
 // Traffic light buttons (VitusOS style)
 constexpr uint32_t ButtonClose = 0xFFE57C3A;    // Orange (close)
@@ -40,9 +41,9 @@ constexpr uint32_t ButtonMinimize = 0xFFD4A93E; // Gold (minimize)
 constexpr uint32_t ButtonMaximize = 0xFF4A9FD4; // Blue (maximize)
 
 // Transparency
-constexpr uint32_t GlassBackground = 0xD9202020; // 85% opacity dark
-constexpr uint32_t PanelBackground = 0xE6252525; // 90% opacity panel
-constexpr uint32_t DockBackground = 0xB3303030;  // 70% opacity dock
+constexpr uint32_t GlassBackground = 0xD9FFFFFF; // 85% opacity white
+constexpr uint32_t PanelBackground = 0xF2F5F5F5; // 95% opacity light grey
+constexpr uint32_t DockBackground = 0xB3FFFFFF;  // 70% opacity white
 
 // ==========================================================================
 // Dimensions
