@@ -26,7 +26,7 @@
 
 \## Executive Summary
 
-\*\*Project Name:\*\* openSEF (Open Sea Environment Framework)
+\*\*Project Name:\*\* openSEF (Open SeagrEnv Framework - Seamless Integration Environment)
 
 \*\*What It Is:\*\* Modern GUI framework for VitusOS, forked from GNUstep and modernized with C++17/20, OS1-inspired aesthetic, and hardware-adaptive rendering.
 

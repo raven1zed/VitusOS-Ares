@@ -7,7 +7,7 @@
 
 ## ⚠️ Critical Context for All AI Instances
 
-**openSEF = Open Sea Environment Framework**
+**openSEF = Open SeagrEnv Framework (Seamless Integration Environment)**
 
 openSEF is **BOTH**:
 1. **GUI Framework** (like Cocoa to macOS, Qt to KDE)
