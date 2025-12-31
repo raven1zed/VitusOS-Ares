@@ -4,7 +4,7 @@
 
 ![VitusOS Ares](https://img.shields.io/badge/VitusOS-Ares-E85D04?style=for-the-badge)
 ![openSEF](https://img.shields.io/badge/Framework-openSEF-3D5A80?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Pre--Alpha-yellow?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Prototype-green?style=for-the-badge)
 
 **"Bringing Life to the Beautiful Future We Were Promised"**
 
@@ -14,152 +14,127 @@
 
 ---
 
-## Vision
+## What This Is
 
-VitusOS Ares is not just another Linux desktop. It's the computing experience we were promised:
-- **Technology that recedes** into the background (OS1 from *Her*, 2013)
-- **Interfaces that delight** with polish and animation (macOS Aqua)
-- **Design that feels warm** and human (*The Martian* aesthetic)
+VitusOS Ares is a **custom Linux desktop environment** built from scratch:
+- **Pure C Wayland compositor** using wlroots
+- **C++ UI shell** with Cairo/Pango rendering
+- **Mars-inspired "Ares" aesthetic** — warm, polished, human
 
-### The Ares Experience
-
-When you use VitusOS, you feel:
-| Feeling | Source |
-|---------|--------|
-| **Warmth** | Not cold corporate tech — OS1 + Ares colors |
-| **Polish** | Not rough/unfinished — Aqua vitality |
-| **Simplicity** | Not overwhelming — OS1 minimalism |
-| **Consistency** | Not fragmented chaos — unified design |
-| **Purpose** | "Science the shit out of this" — Ares determination |
+**Current Status (January 2026):** Prototype ready for first build test.
 
 ---
 
-## Design Philosophy
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    VitusOS Ares UI                          │
-├─────────────────────────────────────────────────────────────┤
-│   OS1 (Her 2013)     +    macOS Aqua    +    Ares Theme     │
-│   • Warm colors          • Traffic lights  • Space Orange   │
-│   • Minimal chrome       • Animations      • Mars Mission   │
-│   • Content-first        • Polish          • Determination  │
-│   • Recedes when         • Delightful      • "Science it"   │
-│     not needed           • Responsive                       │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        VitusOS Ares Desktop                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │           C++ UI Shell (opensef-shell)                      │   │
+│   │                                                             │   │
+│   │   osf-panel  ─── Global menu bar (Filer Menu Settings Help) │   │
+│   │   osf-dock   ─── Bottom dock with app icons                 │   │
+│   │                                                             │   │
+│   │   • Cairo/Pango rendering                                   │   │
+│   │   • Connects via wlr-layer-shell protocol                   │   │
+│   │   • AresTheme design system                                 │   │
+│   └──────────────────────────┬──────────────────────────────────┘   │
+│                              │ Wayland Protocol                     │
+│   ┌──────────────────────────┴──────────────────────────────────┐   │
+│   │           Pure C Compositor (opensef-compositor)            │   │
+│   │                                                             │   │
+│   │   server.c    ─── wlroots init, scene graph                 │   │
+│   │   output.c    ─── Monitor handling, background              │   │
+│   │   view.c      ─── Window management                         │   │
+│   │   input.c     ─── Keyboard/mouse handling                   │   │
+│   │   layer_shell.c ─ Dock/panel integration                    │   │
+│   │   decorations.c ─ Server-side window decorations            │   │
+│   │                                                             │   │
+│   │   • Direct wlroots 0.19 integration                         │   │
+│   │   • Scene graph rendering                                   │   │
+│   │   • XDG shell for client windows                            │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Color Palette
+### Why Hybrid C/C++?
+
+**Problem:** wlroots uses C99-only syntax (`[static 4]`) that C++ compilers reject.
+
+**Solution:** 
+- Compositor core in **pure C** (7 files, ~44KB)
+- UI shell as **C++ Wayland clients** (Cairo rendering)
+
+This is the same approach used by labwc, sway, and other production compositors.
+
+---
+
+## File Structure
+
+```
+VitusOS Ares/
+├── opensef/
+│   ├── opensef-compositor/     # Pure C Wayland compositor
+│   │   ├── src/
+│   │   │   ├── main.c          # Entry point
+│   │   │   ├── server.c        # Core initialization
+│   │   │   ├── output.c        # Monitor handling
+│   │   │   ├── view.c          # Window management
+│   │   │   ├── input.c         # Keyboard/mouse
+│   │   │   ├── layer_shell.c   # Dock/panel support
+│   │   │   └── decorations.c   # Window decorations
+│   │   ├── include/
+│   │   │   └── server.h        # Core data structures
+│   │   └── CMakeLists.txt
+│   │
+│   └── opensef-shell/          # C++ UI components
+│       ├── src/
+│       │   ├── render/
+│       │   │   └── OSFSurface.cpp    # Cairo→Wayland bridge
+│       │   ├── panel/
+│       │   │   ├── OSFPanel.cpp      # Global menu bar
+│       │   │   └── main.cpp          # Panel entry point
+│       │   └── core/
+│       │       └── OSFAresTheme.cpp  # Theme implementation
+│       ├── include/
+│       │   ├── OSFSurface.h          # Surface API
+│       │   └── OSFAresTheme.h        # Colors, dimensions
+│       ├── protocols/
+│       │   └── wlr-layer-shell-unstable-v1.xml
+│       └── CMakeLists.txt
+│
+├── flake.nix                   # NixOS development environment
+├── README.md                   # This file
+└── ui-design/                  # UI mockups
+```
+
+---
+
+## Design System
+
+### Ares Color Palette
 
 | Color | Hex | Use |
 |-------|-----|-----|
-| **Space Orange** | `#E85D04` | Primary accent |
-| **Mars Dust** | `#FB8500` | Secondary accent |
-| **Mission Blue** | `#3D5A80` | Tertiary accent |
-| **Deep Burgundy** | `#621212` | OS1 warmth |
-| **Warm Gold** | `#C3BC19` | Highlights |
-| **Lunar Gray** | `#F0F0F0` | Backgrounds |
+| **Space Orange** | `#E57C3A` | Primary accent, traffic light close |
+| **Mars Gold** | `#D4A93E` | Secondary accent, minimize button |
+| **Star White** | `#F5F5F5` | Primary text |
+| **Deep Space** | `#1A1A1A` | Backgrounds |
+| **Lunar Gray** | `#2D2D2D` | Panels, title bars |
 
----
+### UI Dimensions
 
-## openSEF Framework
-
-**openSEF** (Open Seagr(Seamless Integration) Environment Framework) is VitusOS's native GUI framework.
-
-### Architecture (Current)
-
-```
-┌─────────────────────────────────────────────┐
-│      C++ UI Shell (Cairo/Pango)             │
-│   Panel • Dock • Launcher • Settings        │
-│        (Wayland clients via layer-shell)    │
-├─────────────────────────────────────────────┤
-│         Pure C Compositor Core              │
-│   wlroots • XDG shell • Layer shell         │
-│        (Window management + rendering)      │
-└─────────────────────────────────────────────┘
-```
-
-### Components
-
-| Component | Description | Status |
-|-----------|-------------|--------|
-| `opensef-compositor` | Wayland compositor (C) | 🔄 In Progress |
-| `opensef-shell` | Desktop UI (C++/Cairo) | 🔄 In Progress |
-| `opensef-base` | Foundation classes | 📋 Planned |
-| `opensef-appkit` | Widget library | 📋 Planned |
-
----
-
-## SeaDrop
-
-**SeaDrop** is VitusOS's native AirDrop-style file sharing.
-
-*Priority #1 proof-of-concept application for openSEF framework.*
-
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Local Discovery | Find nearby devices | 📋 Planned |
-| Encrypted Transfer | Secure file sharing | 📋 Planned |
-| Cross-Device | Works across VitusOS ecosystem | 📋 Planned |
-
----
-
-## Roadmap
-
-### Phase 1-3: GUI Framework + SeaDrop *(Current)*
-- [x] Architecture research and design
-- [x] wlroots compositor structure
-- [x] Pure C compositor core
-- [ ] Cairo rendering pipeline
-- [ ] Global menu panel
-- [ ] Dock with app icons
-- [ ] SeaDrop v1.0
-
-**Target:** Working demo by mid-2026
-
-### Phase 4-5: Native Apps
-- [ ] Filer (file manager)
-- [ ] Terminal (OS1-styled)
-- [ ] Text Editor
-- [ ] System Settings
-
-**Target:** Daily-drivable alpha by Q4 2026
-
-### Phase 6+: Security & Polish (future plan)
-- [ ] AbuSE security layer
-- [ ] sue mode (security hardening)
-- [ ] Full Sea* suite
-
-**Target:** 2027+
-
----
-
-## Progress Log
-
-### December 31, 2024 — Architecture Pivot
-
-**Change:** Migrated from pure C++ to hybrid C/C++ architecture.
-
-**Reason:** wlroots (compositor library) uses C99-only syntax incompatible with C++ compilers. After multiple workaround attempts, we implemented:
-
-1. **Pure C compositor core** (7 files, ~44KB)
-   - `main.c`, `server.c`, `output.c`, `view.c`
-   - `input.c`, `layer_shell.c`, `decorations.c`
-
-2. **C++ UI as Wayland clients** (Cairo/Pango)
-   - `OSFSurface.h` — Layer-shell integration
-   - `OSFAresTheme.h` — Complete color/dimension system
-
-**Next:** Test compositor build, implement Cairo rendering.
-
----
-
-### December 30, 2024 — Initial Research
-
-- Completed openSEF Design Reference document
-- Analyzed OS1, macOS Aqua, and Gershwin desktop
-- Established color palette and design system
+| Element | Size |
+|---------|------|
+| Panel height | 28px |
+| Dock height | 64px |
+| Window corner radius | 8px |
+| Dock corner radius | 16px |
+| Traffic light buttons | 12px diameter |
 
 ---
 
@@ -167,13 +142,16 @@ When you use VitusOS, you feel:
 
 ### Requirements
 - NixOS (recommended) or Linux with Nix
-- wlroots, Wayland, Cairo, Pango
+- wlroots 0.19+, Wayland, Cairo, Pango
 
 ### Quick Start
 
 ```bash
+# Clone repository
 git clone https://github.com/raven1zed/vitusos-ares.git
 cd vitusos-ares
+
+# Enter development environment
 nix develop
 
 # Build compositor
@@ -181,42 +159,75 @@ cd opensef/opensef-compositor
 mkdir build && cd build
 cmake .. -G Ninja && ninja
 
-# Run
+# Build shell (in new terminal)
+cd opensef/opensef-shell
+mkdir build && cd build
+cmake .. -G Ninja && ninja
+
+# Run compositor
 WLR_BACKENDS=wayland ./opensef-compositor
+
+# Run panel (in separate terminal, same Wayland session)
+./osf-panel
 ```
 
 ---
 
-## References
+## Roadmap
 
-### Design Inspiration
-- **OS1** — [Her (2013) UI Analysis](https://scifiinterfaces.com/category/her-2013/)
-- **Aqua** — [512pixels Aqua Screenshot Library](https://512pixels.net/projects/aqua-screenshot-library/)
-- **Gershwin** — [GhostBSD Gershwin Desktop](https://github.com/gershwin-desktop/gershwin-desktop)
-
-### UI Mockups
-Located in `ui-design/` folder:
-- `Desktop.png` — Full desktop with dock, windows
-- `Onboarding-Welcome Screen.png` — Setup experience
-- `Lockscreen.png` — Lock screen
-- `Bootscreen.png` — Plymouth boot splash
-- `Shutdown Screen.png` — Power off view
+| Phase | Status | Timeline |
+|-------|--------|----------|
+| **1. Core Compositor** | ✅ Complete | Dec 2025 |
+| **2. Cairo Shell** | ✅ Complete | Dec 2025 |
+| **3. First Build Test** | 🔄 Next | Jan 2026 |
+| **4. Dock Implementation** | 📋 Planned | Q1 2026 |
+| **5. SeaDrop Integration** | 📋 Planned | Q2 2026 |
+| **6. Native Apps** | 📋 Planned | Q3-Q4 2026 |
 
 ---
 
-## Contributing
+## Progress Log
 
-VitusOS is in early development. Contributions welcome!
+### January 1, 2026 — Prototype Ready
+- All source files audited and verified
+- CMake configurations cleaned up
+- Ready for first NixOS build test
 
-- **Code:** C (compositor), C++ (UI shell)
-- **Design:** UI/UX mockups and feedback
-- **Testing:** NixOS builds and bug reports
+### December 31, 2025 — Architecture Pivot
+- Migrated from pure C++ to hybrid C/C++
+- Created 7-file pure C compositor core
+- Implemented OSFSurface Cairo→Wayland bridge
+- OSFPanel with global menu items
+
+### December 30, 2025 — Initial Research
+- Completed design system analysis
+- Established Ares color palette
+- Created OSFAresTheme.h
+
+---
+
+## Native Apps (Planned)
+
+| App | Purpose | Priority |
+|-----|---------|----------|
+| **SeaDrop** | File sharing (AirDrop-style) | P1 — Thesis project |
+| **Filer** | File manager | P2 |
+| **Terminow** | Terminal emulator | P3 |
+| **Settings** | System preferences | P4 |
+
+---
+
+## Design Inspiration
+
+- **OS1 (Her, 2013):** Warmth, minimalism, technology that recedes
+- **macOS Aqua:** Polish, animations, "lickable" UI
+- **The Martian:** Determination, "science the shit out of this"
 
 ---
 
 ## License
 
-MIT License © 2024-2025 VitusOS Project
+MIT License © 2025-2026 VitusOS Project
 
 ---
 
@@ -226,6 +237,6 @@ MIT License © 2024-2025 VitusOS Project
 *Delights when interacted with (Aqua)*  
 *Feels warm and human (Ares)*
 
-**VitusOS Ares** — *Reaching for Mars*
+**VitusOS Ares** — *Reaching for Mars* 🚀
 
 </div>
