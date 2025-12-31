@@ -11,10 +11,25 @@ VitusOS Ares is a unified Linux desktop experience combining:
 - macOS Aqua vitality - Polished, animated, delightful interface
 - Ares theme - The Martian (2015) inspired aesthetic
 
+## ⚠️ **Critical Understanding**
+
+> **openSEF is to VitusOS what Cocoa is to macOS.**
+
+openSEF serves **two purposes**:
+1. **GUI Framework** — Native apps are built with openSEF widgets (like Cocoa apps)
+2. **Desktop Environment** — Compositor, panel, dock, greeter, installer
+
+**The End Goal:**
+- From power button: Boot animation → Lock screen → Desktop → Shutdown animation
+- Users **never see** GRUB, kernel messages, systemd logs, or terminal commands
+- systemd still exists, openSEF just hides it
+
+**The UI design is in early iteration.** The architecture/foundation must be solid and maintainable so design changes don't require rewrites.
+
 ## **Core Mission**
 "Bringing Life to the Beautiful Future We Were Promised"
 ## **Framework**
-openSEF (Custom GUI framework, C++/ObjC, Wayland + Vulkan)
+openSEF (Custom GUI framework, C++, Wayland + Cairo)
 ## **Design Philosophy**
 - Warm over cold
 - Minimal over complex
@@ -304,4 +319,33 @@ This isn't just another Linux desktop. This is the vision of computing that feel
 
 *That's VitusOS Ares. That's what we're building.*
 
-Document prepared for Claude Opus implementation | VitusOS Ares Project | December 30, 2025
+---
+
+# **Installer UI**
+
+The installer is **the very first thing** new users experience. It must match desktop polish.
+
+## **Installer Flow**
+1. Live boot → Desktop with "Install VitusOS" icon
+2. Click → `osf-installer` opens (openSEF-native app)
+3. Step wizard: Language → Disk → User → Install → Done
+4. First boot → Same boot animation → Lock screen → Desktop
+
+## **Design Principles (macOS Installer Reference)**
+- Single centered window, no desktop clutter
+- One step at a time, never overwhelming 
+- Progress bar with time estimate
+- No partitioning jargon for basic users ("Erase and Install")
+- "Advanced" options hidden by default
+- Same visual language as desktop (Ares theme)
+
+## **UI Elements**
+- `osf-installer` built with openSEF widgets
+- Uses `OSFAresTheme` colors and dimensions
+- Traffic light buttons for close (no minimize/maximize during install)
+- Large, clear typography
+- Minimal icons
+
+---
+
+Document prepared for Claude Opus implementation | VitusOS Ares Project | January 1, 2026

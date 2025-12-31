@@ -30,6 +30,23 @@ VitusOS Ares is a custom Linux desktop environment with a unique **hybrid C/C++ 
 - **Rendering**: Cairo/Pango for 2D UI, scene graph for compositing
 - **Target**: NixOS (primary), other Linux distributions (secondary)
 
+### ⚠️ Critical Context: What is openSEF?
+
+> **openSEF is to VitusOS what Cocoa is to macOS.**
+
+openSEF serves **two purposes**:
+
+1. **GUI Framework** — Like Cocoa, Qt, or GTK. Native apps are built with openSEF widgets.
+2. **Desktop Environment** — Compositor, panel, dock, greeter, installer, system apps.
+
+**The End Goal:**
+- Users **never see** GRUB, kernel messages, systemd logs, or terminal commands
+- From power button: Boot animation → Lock screen → Desktop → Shutdown animation
+- systemd still exists, but openSEF makes it invisible
+- The UI design is iterating, but the foundation must be solid and maintainable
+
+**This is not about competing with Apple.** It's about giving Linux the polish it deserves.
+
 ### Why Hybrid C/C++?
 
 The wlroots library uses C99-only syntax (`[static 4]` array parameters) that **cannot compile as C++**. After extensive research, we adopted the same pattern used by production compositors:
