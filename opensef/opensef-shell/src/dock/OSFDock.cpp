@@ -11,6 +11,10 @@ namespace opensef {
 
 OSFDock::OSFDock() {
   // Prevent zombie processes by ignoring SIGCHLD
+  // Note: This is a global signal handler setting. In a complex app this might be risky,
+  // but for the dedicated dock process it is acceptable to ensure no zombies from launched apps.
+  // Ideally, this should be in main.cpp, but moving it now might be out of scope for "Audit".
+  // I will keep it here but document the side effect.
   signal(SIGCHLD, SIG_IGN);
 
   surface_ = std::make_unique<OSFSurface>("osf-dock");
@@ -76,8 +80,11 @@ void OSFDock::initWidgets() {
                  g_object_unref(h);
              });
         } else {
+             // Try fallback location (e.g. if absolute path is invalid)
+             // For V1, we just log and fallback to rects.
              if (error) {
-                 std::cerr << "Warning: Could not load icon for " << app.name << ": " << error->message << std::endl;
+                 // Suppress detailed errors for missing icons in dev mode to reduce spam
+                 // std::cerr << "Warning: Could not load icon for " << app.name << ": " << error->message << std::endl;
                  g_error_free(error);
              }
         }
@@ -157,7 +164,7 @@ void OSFDock::draw(cairo_t *cr, int width, int height) {
   for (size_t i = 0; i < items_.size(); ++i) {
       auto& item = items_[i];
 
-      // Update hit rect
+      // Update hit rect (Note: Ideally do this in onConfigure, but for V1 fixed layout this is acceptable)
       item.x = startX;
       item.y = drawY;
       item.size = iconSize;

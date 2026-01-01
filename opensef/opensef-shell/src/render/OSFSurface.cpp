@@ -290,8 +290,9 @@ void OSFSurface::registryGlobal(void *data, struct wl_registry *registry,
     self->layerShell_ = static_cast<zwlr_layer_shell_v1 *>(
         wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, 1));
   } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+      uint32_t ver = version > 7 ? 7 : version;
       self->seat_ = static_cast<wl_seat *>(
-          wl_registry_bind(registry, name, &wl_seat_interface, 7));
+          wl_registry_bind(registry, name, &wl_seat_interface, ver));
       wl_seat_add_listener(self->seat_, &seat_listener, self);
   }
 }

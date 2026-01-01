@@ -3,7 +3,6 @@
 
 #include "OSFSurface.h"
 #include <memory>
-#include <opensef/OpenSEFAppKit.h>
 #include <vector>
 #include <string>
 #include <librsvg/rsvg.h>
