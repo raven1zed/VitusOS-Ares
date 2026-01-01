@@ -1,57 +1,74 @@
-# Phase 1 Unified Checklist
+# Phase 1 Checklist — Framework Foundation
 
-This checklist merges the two Phase 1 definitions currently in the repo:
+**Source:** VitusOS Ares.md v2.0 (January 2, 2026)
 
-- **VitusOS Ares roadmap**: *Phase 1: Fork & Foundation (Weeks 1–8)* in `VitusOS Ares.md`
-- **openSEF Design Reference**: *Phase 1: Core Window System* in `openSEF Design Reference.md`
+---
 
-Use it as a single, canonical Phase 1 checklist. Mark items complete as they land
-in the repo, and add links to the relevant PRs or commits.
+## Objective
 
-## 1) Fork & Foundation (roadmap track)
+Establish the minimal Foundation and AppKit surface that makes openSEF a real application framework.
 
-- [ ] Fork GNUstep repositories:
-  - [ ] `gnustep/libs-base` → `opensef-base`
-  - [ ] `gnustep/libs-gui` → `opensef-gui`
-  - [ ] `gnustep/libs-back` → `opensef-backend`
-- [ ] Rename project identifiers throughout the forked codebases:
-  - [ ] Update references from GNUstep → openSEF
-  - [ ] Update copyright headers / licensing
-- [ ] Establish the new repo layout under the VitusOS org
-- [ ] Analyze each fork for retention vs. replacement:
-  - [ ] `opensef-base` (Foundation classes)
-  - [ ] `opensef-gui` (AppKit/UI components)
-  - [ ] `opensef-backend` (rendering backend)
-- [ ] Define Wayland + GPU acceleration replacement plan for backend
-- [ ] Migrate build system to CMake:
-  - [ ] CMake project configured for openSEF
-  - [ ] Core libs build from CMake (base/gui/backend)
-  - [ ] Document build instructions
+---
 
-## 2) Core Window System (design-reference track)
+## Deliverables
 
-- [ ] Basic window chrome:
-  - [ ] Title bar
-  - [ ] Traffic lights (close/minimize/maximize)
-- [ ] Window shadows and borders
-- [ ] Window animations:
-  - [ ] Minimize
-  - [ ] Maximize
-  - [ ] Close
-- [ ] Focus management:
-  - [ ] Active window state
-  - [ ] Inactive window state
+### 1. Application Lifecycle
+- [ ] `OSFApplication` class with `run()`, `stop()`, launch/terminate callbacks
+- [ ] Singleton access pattern (`OSFApplication::shared()`)
+- [ ] Command-line argument handling
 
-## 3) Phase 1 Exit Criteria (unified)
+### 2. Run Loop
+- [ ] `OSFRunLoop` task scheduling
+- [ ] Timer integration
+- [ ] Event source management
 
-- [ ] Forks exist and are renamed (base/gui/backend)
-- [ ] CMake builds the core libraries
-- [ ] A basic window can be created, focused, and animated
-- [ ] Window chrome renders correctly (title bar + traffic lights)
-- [ ] Shadows/borders are present in the core window system
+### 3. Notification Center
+- [ ] `OSFNotificationCenter` pub/sub system
+- [ ] Post notifications by name
+- [ ] Add/remove observers with callbacks
 
-## 4) Tracking Notes (optional)
+### 4. Bundle System
+- [ ] `OSFBundle` metadata loader
+- [ ] Info.plist or equivalent manifest parsing
+- [ ] Resource path resolution
 
-- **Owner:** _(fill in)_
-- **Target window:** _(fill in)_
-- **Primary tracking issue:** _(fill in)_
+### 5. Window + View Hierarchy
+- [ ] `OSFWindow` class (minimal, not yet connected to Wayland surface)
+- [ ] `OSFView` base class with frame, subviews, rendering
+- [ ] View tree traversal and rendering order
+
+### 6. Sample App
+- [ ] Minimal app that proves lifecycle + view rendering
+- [ ] Uses OSFApplication to launch
+- [ ] Creates OSFWindow + OSFView hierarchy
+- [ ] Renders something visible (even offscreen buffer is acceptable for Phase 1)
+
+---
+
+## Definition of Done
+
+> A minimal openSEF app can launch via OSFApplication, create a window, and render a view hierarchy.
+
+---
+
+## Current Status Assessment (January 2, 2026)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| OSFApplication | ❌ Missing | No application lifecycle class exists |
+| OSFRunLoop | ❌ Missing | OSFSurface has run(), but no standalone RunLoop |
+| OSFNotificationCenter | ❌ Missing | Not implemented |
+| OSFBundle | ❌ Missing | Not implemented |
+| OSFWindow | 🔄 Partial | OSFWaylandSurface exists but is Phase 2 level |
+| OSFView | ✅ Exists | OSFView class in opensef-appkit |
+| Sample App | 🔄 Partial | hello-window.cpp exists but uses OSFBackend not OSFApplication |
+
+**Assessment:** Phase 1 is ~20% complete. The compositor and shell work (Phase 7 level) was built before the framework foundation was solid. Need to backfill Phase 1 primitives.
+
+---
+
+## Notes for AI Instances
+
+- **Phase 1 is framework, not shell.** Don't confuse with panel/dock (Phase 7).
+- **OSFApplication is the linchpin.** Everything else depends on it.
+- **Keep it minimal.** Phase 1 success = one app runs. Polish comes later.
