@@ -18,7 +18,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 namespace opensef {
 
 // ============================================================================
@@ -62,6 +61,7 @@ template <typename T> using OSFArray = std::vector<T>;
 class OSFRunLoop {
 public:
   using Task = std::function<void()>;
+  friend class OSFApplication;
 
   static OSFRunLoop &main();
 
