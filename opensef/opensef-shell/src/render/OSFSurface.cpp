@@ -269,17 +269,26 @@ void OSFSurface::run() {
     wl_display_dispatch_pending(display_);
     wl_display_flush(display_);
 
-    struct pollfd fds[2];
-    int nfds = 0;
-    fds[nfds++] = {displayFd, POLLIN, 0};
+    std::vector<struct pollfd> fds;
+    // 0: Display
+    fds.push_back({displayFd, POLLIN, 0});
 
-    int timerIndex = -1;
+    // 1: Frame Timer (optional)
+    int frameTimerIndex = -1;
     if (timerFd_ >= 0) {
-      timerIndex = nfds;
-      fds[nfds++] = {timerFd_, POLLIN, 0};
+      frameTimerIndex = fds.size();
+      fds.push_back({timerFd_, POLLIN, 0});
     }
 
-    int ret = poll(fds, nfds, -1);
+    // Dynamic Timers
+    // We rebuild this map-to-vector mapping each loop to handle safe removal
+    // during callbacks (though modifying map during iteration requires care,
+    // re-polling handles it naturally)
+    for (auto const &[fd, info] : timers_) {
+      fds.push_back({fd, POLLIN, 0});
+    }
+
+    int ret = poll(fds.data(), fds.size(), -1);
     if (ret < 0) {
       if (errno == EINTR) {
         continue;
@@ -287,13 +296,15 @@ void OSFSurface::run() {
       break;
     }
 
+    // Check Display
     if (fds[0].revents & POLLIN) {
       if (wl_display_dispatch(display_) == -1) {
         break;
       }
     }
 
-    if (timerIndex >= 0 && (fds[timerIndex].revents & POLLIN)) {
+    // Check Frame Timer
+    if (frameTimerIndex != -1 && (fds[frameTimerIndex].revents & POLLIN)) {
       uint64_t expirations = 0;
       if (read(timerFd_, &expirations, sizeof(expirations)) > 0) {
         if (tickCallback_) {
@@ -302,6 +313,57 @@ void OSFSurface::run() {
         requestRedraw();
       }
     }
+
+    // Check Dynamic Timers
+    // We iterate the map and check against the fds we populated.
+    // Note: fds indices > frameTimerIndex correspond to timers_ in order.
+    // However, it's safer to check the fd directly from the map against the
+    // struct results? Or just iterate the fds vector starting from after the
+    // known ones.
+
+    // Easier approach: iterate the fds array for the dynamic part
+    size_t dynamicStart = (frameTimerIndex != -1) ? 2 : 1;
+    for (size_t i = dynamicStart; i < fds.size(); ++i) {
+      if (fds[i].revents & POLLIN) {
+        int fd = fds[i].fd;
+        auto it = timers_.find(fd);
+        if (it != timers_.end()) {
+          uint64_t expirations = 0;
+          if (read(fd, &expirations, sizeof(expirations)) > 0) {
+            if (it->second.callback) {
+              it->second.callback();
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+int OSFSurface::addTimer(int intervalMs, std::function<void()> callback) {
+  int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+  if (fd < 0)
+    return -1;
+
+  struct itimerspec spec = {};
+  spec.it_value.tv_sec = intervalMs / 1000;
+  spec.it_value.tv_nsec = (intervalMs % 1000) * 1000000;
+  spec.it_interval = spec.it_value;
+
+  if (timerfd_settime(fd, 0, &spec, nullptr) < 0) {
+    close(fd);
+    return -1;
+  }
+
+  timers_[fd] = {fd, callback};
+  return fd;
+}
+
+void OSFSurface::removeTimer(int timerId) {
+  auto it = timers_.find(timerId);
+  if (it != timers_.end()) {
+    close(it->second.fd);
+    timers_.erase(it);
   }
 }
 
