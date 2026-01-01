@@ -7,8 +7,9 @@
 #include "OSFCompositor.h"
 #include "OSFDesktopLayers.h"
 
-
+#include <cstdlib>
 #include <iostream>
+#include <wayland-server-core.h>
 
 namespace opensef {
 
@@ -18,7 +19,13 @@ OSFShutdownScreen::OSFShutdownScreen(OSFCompositor *compositor,
   std::cout << "[openSEF] ShutdownScreen initialized" << std::endl;
 }
 
-OSFShutdownScreen::~OSFShutdownScreen() { destroyNodes(); }
+OSFShutdownScreen::~OSFShutdownScreen() {
+  destroyNodes();
+  if (timerSource_) {
+    wl_event_source_remove(timerSource_);
+    timerSource_ = nullptr;
+  }
+}
 
 void OSFShutdownScreen::showGoodbye() {
   if (visible_)
@@ -30,8 +37,10 @@ void OSFShutdownScreen::showGoodbye() {
 
   std::cout << "[openSEF] ShutdownScreen: goodbye" << std::endl;
 
-  // In real implementation, trigger shutdown after a brief delay
-  // For now, just show the screen
+  // Trigger shutdown after a brief delay (2 seconds)
+  wl_event_loop *loop = wl_display_get_event_loop(compositor_->display());
+  timerSource_ = wl_event_loop_add_timer(loop, handleTimer, this);
+  wl_event_source_timer_update(timerSource_, 2000);
 }
 
 void OSFShutdownScreen::showRestart() {
@@ -44,12 +53,20 @@ void OSFShutdownScreen::showRestart() {
 
   std::cout << "[openSEF] ShutdownScreen: restart" << std::endl;
 
-  // In real implementation, trigger restart after a brief delay
+  // Trigger restart after a brief delay (2 seconds)
+  wl_event_loop *loop = wl_display_get_event_loop(compositor_->display());
+  timerSource_ = wl_event_loop_add_timer(loop, handleTimer, this);
+  wl_event_source_timer_update(timerSource_, 2000);
 }
 
 void OSFShutdownScreen::hide() {
   if (!visible_)
     return;
+
+  if (timerSource_) {
+    wl_event_source_remove(timerSource_);
+    timerSource_ = nullptr;
+  }
 
   visible_ = false;
   currentAction_ = PowerAction::None;
@@ -64,13 +81,23 @@ void OSFShutdownScreen::createNodes(const char *text) {
   AresTheme::hexToRGBA(AresTheme::PureBlack, bgColor);
 
   // Get screen dimensions from compositor
-  // For now, use placeholder dimensions - should get from output
-  int width = 1920; // TODO: Get from actual output
+  int width = 1920;
   int height = 1080;
+  int x = 0;
+  int y = 0;
+
+  if (compositor_->outputLayout()) {
+    struct wlr_box box;
+    wlr_output_layout_get_box(compositor_->outputLayout(), nullptr, &box);
+    width = box.width;
+    height = box.height;
+    x = box.x;
+    y = box.y;
+  }
 
   background_ = layers_->createRect(DesktopLayer::Lock, width, height, bgColor);
   if (background_) {
-    wlr_scene_node_set_position(&background_->node, 0, 0);
+    wlr_scene_node_set_position(&background_->node, x, y);
   }
 
   // Note: Text rendering ("goodbye" / "restart") requires font infrastructure
@@ -90,16 +117,28 @@ void OSFShutdownScreen::destroyNodes() {
 void OSFShutdownScreen::executeAction() {
   switch (currentAction_) {
   case PowerAction::Shutdown:
-    // TODO: Execute system shutdown
-    // system("poweroff");
+    std::cout << "[openSEF] Executing system shutdown..." << std::endl;
+    std::system("systemctl poweroff");
     break;
   case PowerAction::Restart:
-    // TODO: Execute system restart
-    // system("reboot");
+    std::cout << "[openSEF] Executing system restart..." << std::endl;
+    std::system("systemctl reboot");
     break;
   default:
     break;
   }
+}
+
+int OSFShutdownScreen::handleTimer(void *data) {
+  auto *screen = static_cast<OSFShutdownScreen *>(data);
+
+  if (screen->timerSource_) {
+    wl_event_source_remove(screen->timerSource_);
+    screen->timerSource_ = nullptr;
+  }
+
+  screen->executeAction();
+  return 0;
 }
 
 } // namespace opensef
