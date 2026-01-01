@@ -17,11 +17,12 @@ export _JAVA_AWT_WM_NONREPARENTING=1
 # Assuming opensef-compositor is in the path or relative
 # This script is likely installed to /usr/bin or similar in production
 
-# Check if we are in dev environment (relative paths) or installed (PATH)
-if [ -f "./opensef-compositor/opensef-compositor" ]; then
-    COMPOSITOR="./opensef-compositor/opensef-compositor"
-    # In dev mode, use relative paths for clients
-    STARTUP_CMD="./opensef-shell/osf-panel & ./opensef-shell/osf-dock & ./opensef-shell/osf-wallpaper resources/wallpaper.png"
+# Check if we are in dev environment (CMake build directory)
+if [ -f "./opensef/build/opensef-compositor/opensef-compositor" ]; then
+    COMPOSITOR="./opensef/build/opensef-compositor/opensef-compositor"
+    # In dev mode, use relative paths to build artifacts
+    SHELL_DIR="./opensef/build/opensef-shell"
+    STARTUP_CMD="$SHELL_DIR/osf-panel & $SHELL_DIR/osf-dock & $SHELL_DIR/osf-wallpaper resources/wallpaper.png"
 else
     COMPOSITOR="opensef-compositor"
     # In installed mode, assume clients are in PATH
