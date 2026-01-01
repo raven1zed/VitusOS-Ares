@@ -143,7 +143,7 @@ static int createShmFile(int size) {
   }
   unlink(name);
   if (ftruncate(fd, size) < 0) {
-    close(fd);
+    ::close(fd);
     return -1;
   }
   return fd;
@@ -171,7 +171,7 @@ static bool createBuffer(WindowImpl *impl, int width, int height) {
     impl->shmData = nullptr;
   }
   if (impl->shmFd >= 0) {
-    close(impl->shmFd);
+    ::close(impl->shmFd);
     impl->shmFd = -1;
   }
 
@@ -184,7 +184,7 @@ static bool createBuffer(WindowImpl *impl, int width, int height) {
   impl->shmData =
       mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, impl->shmFd, 0);
   if (impl->shmData == MAP_FAILED) {
-    close(impl->shmFd);
+    ::close(impl->shmFd);
     impl->shmFd = -1;
     impl->shmData = nullptr;
     return false;
@@ -255,7 +255,7 @@ void OSFWindow::disconnect() {
     impl_->shmData = nullptr;
   }
   if (impl_->shmFd >= 0) {
-    close(impl_->shmFd);
+    ::close(impl_->shmFd);
     impl_->shmFd = -1;
   }
   if (impl_->xdgToplevel) {
