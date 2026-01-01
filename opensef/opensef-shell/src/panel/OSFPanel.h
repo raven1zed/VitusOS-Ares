@@ -4,7 +4,7 @@
 #include "OSFSurface.h"
 #include <memory>
 #include <opensef/OpenSEFAppKit.h>
-
+#include <vector>
 
 namespace opensef {
 
@@ -25,10 +25,16 @@ private:
   std::shared_ptr<OSFLabel> menuHelp_;
   std::shared_ptr<OSFLabel> clockLabel_;
 
+  // List of all widgets for hit testing
+  std::vector<std::shared_ptr<OSFView>> widgets_;
+
   // Rendering
   void initWidgets();
   void draw(cairo_t *cr, int width, int height);
   void updateClock();
+
+  // Input dispatch
+  void handlePointerEvent(const PointerEvent& event);
 };
 
 } // namespace opensef
