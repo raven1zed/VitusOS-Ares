@@ -8,7 +8,7 @@ Run these commands in your VM terminal:
 
 ```bash
 # 1. Update code
-cd virtucos-ares
+cd vitusos-ares
 git pull
 
 # 2. Enter dev environment
