@@ -18,8 +18,7 @@
 #define OPENSEF_THEME "Ares"
 
 // Core modules
+#include <opensef/OSFWindowDecorations.h>
 #include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
-#include <opensef/OpenSEFUI.h>
-

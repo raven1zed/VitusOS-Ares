@@ -103,7 +103,6 @@ public:
 
   // Drawing
   virtual void render(cairo_t *cr);
-  virtual void draw(cairo_t *cr);
 
   // Standard height
   static constexpr float kTitleBarHeight = 28.0f;

@@ -6,10 +6,9 @@
 
 #pragma once
 
+#include <opensef/OSFWindowDecorations.h>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
-#include <opensef/OpenSEFUI.h>
-
 
 #include <ctime>
 #include <functional>

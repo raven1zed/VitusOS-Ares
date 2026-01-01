@@ -17,11 +17,10 @@
 
 #pragma once
 
+#include <opensef/OSFWindowDecorations.h>
 #include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBackend.h>
 #include <opensef/OpenSEFBase.h>
-#include <opensef/OpenSEFUI.h>
-
 
 #include <functional>
 #include <memory>

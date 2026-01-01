@@ -12,11 +12,10 @@
 
 #include <cmath>
 #include <iostream>
+#include <opensef/OSFWindowDecorations.h>
 #include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBackend.h>
-#include <opensef/OpenSEFUI.h>
 #include <vector>
-
 
 using namespace opensef;
 
