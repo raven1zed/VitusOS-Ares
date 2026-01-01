@@ -12,6 +12,8 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
+#include <map>
 #include <wayland-client.h>
 
 // Forward declarations of Wayland structs (Global Scope)
@@ -84,10 +86,19 @@ public:
   void damage(int x, int y, int width, int height);
   void commit();
 
-  // Event loop
+  // Event loop & Timers
   void run();
   void stop();
   bool isRunning() const { return running_; }
+
+  /**
+   * Adds a repeating timer.
+   * @param intervalMs Interval in milliseconds.
+   * @param callback Function to call when timer expires.
+   * @return Timer ID (fd) or -1 on failure.
+   */
+  int addTimer(int intervalMs, std::function<void()> callback);
+  void removeTimer(int timerId);
 
   // Callbacks
   using ConfigureCallback = std::function<void(int width, int height)>;
@@ -144,6 +155,13 @@ private:
   int marginTop_ = 0, marginRight_ = 0, marginBottom_ = 0, marginLeft_ = 0;
   bool running_ = false;
   bool configured_ = false;
+
+  // Timer state
+  struct TimerInfo {
+      int fd;
+      std::function<void()> callback;
+  };
+  std::map<int, TimerInfo> timers_;
 
   // Callbacks
   ConfigureCallback configureCallback_;
