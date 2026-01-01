@@ -52,17 +52,17 @@ void OSFTitleBar::layoutButtons() {
   maximizeButton_->setFrame(OSFRect(x, y, buttonDiameter, buttonDiameter));
 }
 
-void OSFTitleBar::draw() {
+void OSFTitleBar::render(cairo_t *cr) {
   // Layout buttons
   layoutButtons();
 
   // TODO: Draw title bar background
   // TODO: Draw title text centered
-  // TODO: Draw buttons
 
-  closeButton_->draw();
-  minimizeButton_->draw();
-  maximizeButton_->draw();
+  // Draw buttons
+  closeButton_->render(cr);
+  minimizeButton_->render(cr);
+  maximizeButton_->render(cr);
 }
 
 } // namespace opensef

@@ -12,6 +12,8 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
+#include <map>
 #include <wayland-client.h>
 
 // Forward declarations of Wayland structs (Global Scope)
@@ -51,6 +53,15 @@ inline int operator&(Anchor a, Anchor b) {
  */
 class OSFSurface {
 public:
+  struct CairoDestroyer {
+    void operator()(cairo_t *context) const {
+      if (context) {
+        cairo_destroy(context);
+      }
+    }
+  };
+  using CairoContextPtr = std::unique_ptr<cairo_t, CairoDestroyer>;
+
   OSFSurface(const std::string &namespace_name);
   ~OSFSurface();
 
@@ -79,24 +90,45 @@ public:
   void setMargin(int top, int right, int bottom, int left);
 
   // Rendering
-  cairo_t *beginPaint();
+  CairoContextPtr beginPaint();
   void endPaint();
   void damage(int x, int y, int width, int height);
   void commit();
+  void requestRedraw();
 
-  // Event loop
+  // Event loop & Timers
   void run();
   void stop();
   bool isRunning() const { return running_; }
+
+  /**
+   * Adds a repeating timer.
+   * @param intervalMs Interval in milliseconds.
+   * @param callback Function to call when timer expires.
+   * @return Timer ID (fd) or -1 on failure.
+   */
+  int addTimer(int intervalMs, std::function<void()> callback);
+  void removeTimer(int timerId);
 
   // Callbacks
   using ConfigureCallback = std::function<void(int width, int height)>;
   using DrawCallback = std::function<void(cairo_t *cr, int width, int height)>;
   using CloseCallback = std::function<void()>;
+  using MouseCallback = std::function<void(int x, int y, uint32_t button)>;
+  using MouseEnterCallback = std::function<void(int x, int y)>;
+  using MouseLeaveCallback = std::function<void()>;
+  using TickCallback = std::function<void()>;
 
   void onConfigure(ConfigureCallback cb) { configureCallback_ = cb; }
   void onDraw(DrawCallback cb) { drawCallback_ = cb; }
   void onClose(CloseCallback cb) { closeCallback_ = cb; }
+  void onMouseDown(MouseCallback cb) { mouseDownCallback_ = cb; }
+  void onMouseUp(MouseCallback cb) { mouseUpCallback_ = cb; }
+  void onMouseMove(std::function<void(int x, int y)> cb) { mouseMoveCallback_ = cb; }
+  void onMouseEnter(MouseEnterCallback cb) { mouseEnterCallback_ = cb; }
+  void onMouseLeave(MouseLeaveCallback cb) { mouseLeaveCallback_ = cb; }
+  void onTick(TickCallback cb) { tickCallback_ = cb; }
+  void setFrameTimer(int intervalMs);
 
   // Getters
   int width() const { return width_; }
@@ -109,18 +141,25 @@ private:
   struct ::wl_registry *registry_ = nullptr;
   struct ::wl_compositor *compositor_ = nullptr;
   struct ::wl_shm *shm_ = nullptr;
+  struct ::wl_seat *seat_ = nullptr;
+  struct ::wl_pointer *pointer_ = nullptr;
   struct ::wl_surface *surface_ = nullptr;
   struct ::wl_output *output_ = nullptr;
   struct ::zwlr_layer_shell_v1 *layerShell_ = nullptr;
   struct ::zwlr_layer_surface_v1 *layerSurface_ = nullptr;
 
+  // Input state
+  int pointerX_ = 0;
+  int pointerY_ = 0;
+
   // Cairo rendering
   cairo_surface_t *cairoSurface_ = nullptr;
-  cairo_t *cairoContext_ = nullptr;
   struct ::wl_buffer *buffer_ = nullptr;
   void *shmData_ = nullptr;
   int shmSize_ = 0;
   int shmFd_ = -1;
+  int timerFd_ = -1;
+  int timerIntervalMs_ = 0;
 
   // State
   std::string namespace_;
@@ -135,14 +174,35 @@ private:
   bool running_ = false;
   bool configured_ = false;
 
+  // Timer state
+  struct TimerInfo {
+      int fd;
+      std::function<void()> callback;
+  };
+  std::map<int, TimerInfo> timers_;
+
   // Callbacks
   ConfigureCallback configureCallback_;
   DrawCallback drawCallback_;
   CloseCallback closeCallback_;
+  MouseCallback mouseDownCallback_;
+  MouseCallback mouseUpCallback_;
+  std::function<void(int, int)> mouseMoveCallback_;
+  MouseEnterCallback mouseEnterCallback_;
+  MouseLeaveCallback mouseLeaveCallback_;
+  TickCallback tickCallback_;
 
   // Internal methods
   bool createShmBuffer(int width, int height);
   void destroyShmBuffer();
+
+  // Wayland Listeners
+  static void seatCapabilities(void *data, struct wl_seat *seat, uint32_t capabilities);
+  static void pointerEnter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
+  static void pointerLeave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
+  static void pointerMotion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+  static void pointerButton(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+  static void pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
 };
 
 } // namespace opensef

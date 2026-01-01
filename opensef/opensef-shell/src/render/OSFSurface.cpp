@@ -1,12 +1,18 @@
 #include "OSFSurface.h"
 
 #include <cassert>
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
+#include <poll.h>
+#include <sys/timerfd.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <poll.h>
+#include <sys/timerfd.h>
+#include <vector>
 
 // Generated protocol headers
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -14,7 +20,6 @@
 
 namespace opensef {
 
-// Forward declarations of listener structs
 // Forward declarations of listener structs
 extern const struct wl_registry_listener registry_listener;
 extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
@@ -107,6 +112,11 @@ void OSFSurface::disconnect() {
   running_ = false;
   destroyShmBuffer();
 
+  if (timerFd_ >= 0) {
+    close(timerFd_);
+    timerFd_ = -1;
+  }
+
   if (layerSurface_) {
     zwlr_layer_surface_v1_destroy(layerSurface_);
     layerSurface_ = nullptr;
@@ -118,6 +128,14 @@ void OSFSurface::disconnect() {
   if (layerShell_) {
     zwlr_layer_shell_v1_destroy(layerShell_);
     layerShell_ = nullptr;
+  }
+  if (pointer_) {
+      wl_pointer_release(pointer_);
+      pointer_ = nullptr;
+  }
+  if (seat_) {
+      wl_seat_destroy(seat_);
+      seat_ = nullptr;
   }
   if (shm_) {
     wl_shm_destroy(shm_);
@@ -183,29 +201,26 @@ void OSFSurface::setMargin(int top, int right, int bottom, int left) {
   }
 }
 
-cairo_t *OSFSurface::beginPaint() {
+OSFSurface::CairoContextPtr OSFSurface::beginPaint() {
   if (!configuredWidth_ || !configuredHeight_)
-    return nullptr;
+    return CairoContextPtr(nullptr);
 
   if (configuredWidth_ != width_ || configuredHeight_ != height_ ||
       !cairoSurface_) {
     // Resize buffer if needed
     destroyShmBuffer();
     if (!createShmBuffer(configuredWidth_, configuredHeight_)) {
-      return nullptr;
+      return CairoContextPtr(nullptr);
     }
     width_ = configuredWidth_;
     height_ = configuredHeight_;
   }
 
-  return cairo_create(cairoSurface_);
+  return CairoContextPtr(cairo_create(cairoSurface_));
 }
 
 void OSFSurface::endPaint() {
-  // Nothing logic specific here, cairo_t is destroyed by caller usually?
-  // Actually, beginPaint should probably return a managed pointer or the caller
-  // destroys it. In this API design, caller gets a raw pointer. They should
-  // destroy it with cairo_destroy. But let's assume standard usage pattern.
+  // No-op: cairo_t is owned by the returned CairoContextPtr.
 }
 
 void OSFSurface::damage(int x, int y, int width, int height) {
@@ -217,13 +232,98 @@ void OSFSurface::commit() {
   wl_surface_commit(surface_);
 }
 
+void OSFSurface::requestRedraw() {
+  if (!configured_ || !drawCallback_)
+    return;
+
+  auto cr = beginPaint();
+  if (!cr)
+    return;
+
+  drawCallback_(cr.get(), width_, height_);
+  endPaint();
+  damage(0, 0, width_, height_);
+  commit();
+}
+
 void OSFSurface::run() {
-  while (running_ && wl_display_dispatch(display_) != -1) {
-    // Event loop
+  if (!display_) {
+    return;
+  }
+
+  int displayFd = wl_display_get_fd(display_);
+
+  while (running_) {
+    wl_display_dispatch_pending(display_);
+    wl_display_flush(display_);
+
+    struct pollfd fds[2];
+    int nfds = 0;
+    fds[nfds++] = {displayFd, POLLIN, 0};
+
+    int timerIndex = -1;
+    if (timerFd_ >= 0) {
+      timerIndex = nfds;
+      fds[nfds++] = {timerFd_, POLLIN, 0};
+    }
+
+    int ret = poll(fds, nfds, -1);
+    if (ret < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      break;
+    }
+
+    if (fds[0].revents & POLLIN) {
+      if (wl_display_dispatch(display_) == -1) {
+        break;
+      }
+    }
+
+    if (timerIndex >= 0 && (fds[timerIndex].revents & POLLIN)) {
+      uint64_t expirations = 0;
+      if (read(timerFd_, &expirations, sizeof(expirations)) > 0) {
+        if (tickCallback_) {
+          tickCallback_();
+        }
+        requestRedraw();
+      }
+    }
   }
 }
 
 void OSFSurface::stop() { running_ = false; }
+
+void OSFSurface::setFrameTimer(int intervalMs) {
+  timerIntervalMs_ = intervalMs;
+
+  if (intervalMs <= 0) {
+    if (timerFd_ >= 0) {
+      close(timerFd_);
+      timerFd_ = -1;
+    }
+    return;
+  }
+
+  if (timerFd_ < 0) {
+    timerFd_ = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+  }
+
+  if (timerFd_ < 0) {
+    std::cerr << "Failed to create timerfd for OSFSurface" << std::endl;
+    return;
+  }
+
+  struct itimerspec spec = {};
+  spec.it_value.tv_sec = intervalMs / 1000;
+  spec.it_value.tv_nsec = (intervalMs % 1000) * 1000000;
+  spec.it_interval = spec.it_value;
+
+  if (timerfd_settime(timerFd_, 0, &spec, nullptr) < 0) {
+    std::cerr << "Failed to arm timerfd for OSFSurface" << std::endl;
+  }
+}
 
 bool OSFSurface::createShmBuffer(int width, int height) {
   int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
@@ -281,12 +381,91 @@ void OSFSurface::registryGlobal(void *data, struct wl_registry *registry,
   } else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
     self->layerShell_ = static_cast<zwlr_layer_shell_v1 *>(
         wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, 1));
+  } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+      self->seat_ = static_cast<wl_seat *>(
+          wl_registry_bind(registry, name, &wl_seat_interface, 7));
+      wl_seat_add_listener(self->seat_, &seat_listener, self);
   }
 }
 
 void OSFSurface::registryGlobalRemove(void *data, struct wl_registry *registry,
                                       uint32_t name) {
   // Handle global removal if necessary
+}
+
+// Seat & Pointer Implementation
+const struct wl_seat_listener seat_listener = {
+    .capabilities = OSFSurface::seatCapabilities,
+    .name = [](void*, struct wl_seat*, const char*){},
+};
+
+const struct wl_pointer_listener pointer_listener = {
+    .enter = OSFSurface::pointerEnter,
+    .leave = OSFSurface::pointerLeave,
+    .motion = OSFSurface::pointerMotion,
+    .button = OSFSurface::pointerButton,
+    .axis = OSFSurface::pointerAxis,
+    .frame = [](void*, struct wl_pointer*){},
+    .axis_source = [](void*, struct wl_pointer*, uint32_t){},
+    .axis_stop = [](void*, struct wl_pointer*, uint32_t, uint32_t){},
+    .discrete = [](void*, struct wl_pointer*, uint32_t, int32_t){},
+};
+
+void OSFSurface::seatCapabilities(void *data, struct wl_seat *seat, uint32_t capabilities) {
+    auto self = static_cast<OSFSurface *>(data);
+    bool hasPointer = capabilities & WL_SEAT_CAPABILITY_POINTER;
+
+    if (hasPointer && !self->pointer_) {
+        self->pointer_ = wl_seat_get_pointer(seat);
+        wl_pointer_add_listener(self->pointer_, &pointer_listener, self);
+    } else if (!hasPointer && self->pointer_) {
+        wl_pointer_release(self->pointer_);
+        self->pointer_ = nullptr;
+    }
+}
+
+void OSFSurface::pointerEnter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
+    auto self = static_cast<OSFSurface *>(data);
+    self->pointerX_ = wl_fixed_to_int(sx);
+    self->pointerY_ = wl_fixed_to_int(sy);
+
+    if (self->mouseEnterCallback_) {
+      self->mouseEnterCallback_(self->pointerX_, self->pointerY_);
+    }
+}
+
+void OSFSurface::pointerLeave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface) {
+    auto self = static_cast<OSFSurface *>(data);
+    if (self->mouseLeaveCallback_) {
+      self->mouseLeaveCallback_();
+    }
+}
+
+void OSFSurface::pointerMotion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy) {
+    auto self = static_cast<OSFSurface *>(data);
+    self->pointerX_ = wl_fixed_to_int(sx);
+    self->pointerY_ = wl_fixed_to_int(sy);
+
+    if (self->mouseMoveCallback_) {
+        self->mouseMoveCallback_(self->pointerX_, self->pointerY_);
+    }
+}
+
+void OSFSurface::pointerButton(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
+    auto self = static_cast<OSFSurface *>(data);
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        if (self->mouseDownCallback_) {
+            self->mouseDownCallback_(self->pointerX_, self->pointerY_, button);
+        }
+    } else {
+        if (self->mouseUpCallback_) {
+            self->mouseUpCallback_(self->pointerX_, self->pointerY_, button);
+        }
+    }
+}
+
+void OSFSurface::pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value) {
+    // Handle scroll
 }
 
 void OSFSurface::layerSurfaceConfigure(void *data,
@@ -308,10 +487,9 @@ void OSFSurface::layerSurfaceConfigure(void *data,
 
   // Auto-paint on configure (basic frame loop)
   if (self->drawCallback_) {
-    cairo_t *cr = self->beginPaint();
+    auto cr = self->beginPaint();
     if (cr) {
-      self->drawCallback_(cr, width, height);
-      cairo_destroy(cr); // Clean up cairo context
+      self->drawCallback_(cr.get(), width, height);
       self->endPaint();
       self->damage(0, 0, width, height);
       self->commit();
