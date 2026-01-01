@@ -71,7 +71,7 @@ void OSFPanel::run() {
         cairo_t *cr = crPtr.get();
         if (cr) {
           this->draw(cr, surface_->width(), surface_->height());
-          cairo_destroy(cr);
+
           surface_->endPaint();
           surface_->damage(0, 0, surface_->width(), surface_->height());
           surface_->commit();

@@ -22,7 +22,7 @@ if [ -f "./opensef/build/opensef-compositor/opensef-compositor" ]; then
     COMPOSITOR="./opensef/build/opensef-compositor/opensef-compositor"
     # In dev mode, use relative paths to build artifacts
     SHELL_DIR="./opensef/build/opensef-shell"
-    STARTUP_CMD="$SHELL_DIR/osf-panel & $SHELL_DIR/osf-dock & $SHELL_DIR/osf-wallpaper resources/wallpaper.png"
+    STARTUP_CMD="$SHELL_DIR/osf-panel & $SHELL_DIR/osf-dock & $SHELL_DIR/osf-wallpaper ../resources/wallpaper.png"
 else
     COMPOSITOR="opensef-compositor"
     # In installed mode, assume clients are in PATH
