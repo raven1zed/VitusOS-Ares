@@ -16,6 +16,8 @@ extern "C" {
 
 #include <cstdint>
 
+struct wl_event_source;
+
 namespace opensef {
 
 // Forward declarations
@@ -69,6 +71,12 @@ private:
 
   // Execute the power action
   void executeAction();
+
+  // Timer source for delayed shutdown/restart
+  wl_event_source *timerSource_ = nullptr;
+
+  // Timer handler
+  static int handleTimer(void *data);
 };
 
 } // namespace opensef
