@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(opensef-base SHARED
+    src/OSFApplication.cpp
+    src/OSFBundle.cpp
+    src/OSFNotificationCenter.cpp
     src/OSFObject.cpp
+    src/OSFRunLoop.cpp
 )
 
 target_include_directories(opensef-base PUBLIC

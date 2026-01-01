@@ -12,8 +12,8 @@
 
 #include <cmath>
 #include <iostream>
+#include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBackend.h>
-#include <opensef/OpenSEFBase.h>
 #include <opensef/OpenSEFUI.h>
 #include <vector>
 

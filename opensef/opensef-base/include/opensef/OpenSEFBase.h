@@ -8,9 +8,14 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 
@@ -51,51 +56,101 @@ using OSFString = std::string;
 template <typename T> using OSFArray = std::vector<T>;
 
 // ============================================================================
-// Basic types (replacing Foundation types)
+// OSFRunLoop - Basic task runner
 // ============================================================================
 
-struct OSFRect {
-  float x = 0, y = 0;
-  float width = 0, height = 0;
+class OSFRunLoop {
+public:
+  using Task = std::function<void()>;
 
-  OSFRect() = default;
-  OSFRect(float x, float y, float w, float h)
-      : x(x), y(y), width(w), height(h) {}
+  static OSFRunLoop &main();
 
-  static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
-};
+  void run();
+  void stop();
+  bool isRunning() const { return running_; }
 
-struct OSFPoint {
-  float x = 0, y = 0;
+  void postTask(Task task);
 
-  OSFPoint() = default;
-  OSFPoint(float x, float y) : x(x), y(y) {}
-};
+private:
+  OSFRunLoop() = default;
 
-struct OSFSize {
-  float width = 0, height = 0;
-
-  OSFSize() = default;
-  OSFSize(float w, float h) : width(w), height(h) {}
+  std::mutex mutex_;
+  std::condition_variable cv_;
+  std::deque<Task> tasks_;
+  bool running_ = false;
 };
 
 // ============================================================================
-// Color (RGBA)
+// OSFNotificationCenter - Publish/subscribe notifications
 // ============================================================================
 
-struct OSFColor {
-  float r = 0, g = 0, b = 0, a = 1;
+class OSFNotificationCenter {
+public:
+  using Callback = std::function<void()>;
 
-  OSFColor() = default;
-  OSFColor(float r, float g, float b, float a = 1.0f)
-      : r(r), g(g), b(b), a(a) {}
+  struct ObserverToken {
+    std::string name;
+    std::size_t id = 0;
+  };
 
-  static OSFColor fromHex(uint32_t hex, float alpha = 1.0f) {
-    return OSFColor(((hex >> 16) & 0xFF) / 255.0f, ((hex >> 8) & 0xFF) / 255.0f,
-                    (hex & 0xFF) / 255.0f, alpha);
-  }
+  static OSFNotificationCenter &defaultCenter();
 
-  OSFColor withAlpha(float alpha) const { return OSFColor(r, g, b, alpha); }
+  ObserverToken addObserver(const std::string &name, Callback callback);
+  void removeObserver(const ObserverToken &token);
+  void postNotification(const std::string &name);
+
+private:
+  OSFNotificationCenter() = default;
+
+  std::mutex mutex_;
+  std::unordered_map<std::string, std::vector<std::pair<std::size_t, Callback>>>
+      observers_;
+  std::size_t nextObserverID_ = 1;
+};
+
+// ============================================================================
+// OSFBundle - Resource bundle metadata
+// ============================================================================
+
+class OSFBundle {
+public:
+  OSFBundle() = default;
+  OSFBundle(std::string identifier, std::string resourcePath);
+
+  static OSFBundle mainBundle();
+
+  const std::string &identifier() const { return identifier_; }
+  const std::string &resourcePath() const { return resourcePath_; }
+
+private:
+  std::string identifier_;
+  std::string resourcePath_;
+};
+
+// ============================================================================
+// OSFApplication - Application lifecycle
+// ============================================================================
+
+class OSFApplication {
+public:
+  using Callback = std::function<void()>;
+
+  static OSFApplication &shared();
+
+  void setOnLaunch(Callback callback) { onLaunch_ = std::move(callback); }
+  void setOnTerminate(Callback callback) { onTerminate_ = std::move(callback); }
+
+  void run();
+  void stop();
+
+  OSFRunLoop &runLoop() { return runLoop_; }
+
+private:
+  OSFApplication() = default;
+
+  OSFRunLoop runLoop_;
+  Callback onLaunch_;
+  Callback onTerminate_;
 };
 
 } // namespace opensef

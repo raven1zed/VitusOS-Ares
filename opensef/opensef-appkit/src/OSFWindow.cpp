@@ -2,6 +2,7 @@
  * OSFWindow.cpp - Window implementation
  */
 
+#include <cairo/cairo.h>
 #include <iostream>
 #include <opensef/OpenSEFAppKit.h>
 
@@ -27,7 +28,27 @@ void OSFWindow::show() {
   std::cout << "[openSEF] Window '" << title_ << "' shown (" << frame_.width
             << "x" << frame_.height << ")" << std::endl;
 
-  // TODO: Create Wayland surface and show
+  if (!contentView_) {
+    return;
+  }
+
+  int width = static_cast<int>(frame_.width);
+  int height = static_cast<int>(frame_.height);
+  if (width <= 0 || height <= 0) {
+    return;
+  }
+
+  cairo_surface_t *surface =
+      cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+  cairo_t *cr = cairo_create(surface);
+
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+  cairo_paint(cr);
+
+  contentView_->render(cr);
+
+  cairo_destroy(cr);
+  cairo_surface_destroy(surface);
 }
 
 void OSFWindow::close() {
