@@ -5,10 +5,10 @@
  * It creates a real Wayland window using OSFWindow.
  */
 
+#include <cairo/cairo.h>
 #include <iostream>
 #include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFBase.h>
-
 
 using namespace opensef;
 
