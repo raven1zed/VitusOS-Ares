@@ -10,6 +10,9 @@
 #include <sys/timerfd.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <poll.h>
+#include <sys/timerfd.h>
+#include <vector>
 
 // Generated protocol headers
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -17,7 +20,6 @@
 
 namespace opensef {
 
-// Forward declarations of listener structs
 // Forward declarations of listener structs
 extern const struct wl_registry_listener registry_listener;
 extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
