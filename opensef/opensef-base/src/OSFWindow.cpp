@@ -1,0 +1,427 @@
+/**
+ * OSFWindow.cpp - Application Window Implementation
+ *
+ * Phase 2: Windowing Integration
+ *
+ * Implements OSFWindow using XDG shell protocol for standard windows.
+ * This is separate from OSFSurface which uses layer-shell.
+ */
+
+#include <opensef/OSFWindow.h>
+#include <opensef/OpenSEFAppKit.h>
+
+#include <cairo/cairo.h>
+#include <cstring>
+#include <fcntl.h>
+#include <iostream>
+#include <poll.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <wayland-client.h>
+
+// XDG shell protocol
+#include "xdg-shell-client-protocol.h"
+
+namespace opensef {
+
+// ============================================================================
+// Implementation Details (PIMPL)
+// ============================================================================
+
+struct OSFWindow::Impl {
+  // Wayland objects
+  wl_display *display = nullptr;
+  wl_registry *registry = nullptr;
+  wl_compositor *compositor = nullptr;
+  wl_shm *shm = nullptr;
+  wl_surface *surface = nullptr;
+  xdg_wm_base *xdgWmBase = nullptr;
+  xdg_surface *xdgSurface = nullptr;
+  xdg_toplevel *xdgToplevel = nullptr;
+
+  // Buffer state
+  wl_buffer *buffer = nullptr;
+  void *shmData = nullptr;
+  int shmFd = -1;
+  int shmSize = 0;
+  cairo_surface_t *cairoSurface = nullptr;
+
+  // State
+  bool configured = false;
+  bool closed = false;
+
+  // Parent reference
+  OSFWindow *window = nullptr;
+};
+
+// ============================================================================
+// Wayland Protocol Listeners
+// ============================================================================
+
+static void registryGlobal(void *data, wl_registry *registry, uint32_t name,
+                           const char *interface, uint32_t version) {
+  auto *impl = static_cast<OSFWindow::Impl *>(data);
+
+  if (strcmp(interface, wl_compositor_interface.name) == 0) {
+    impl->compositor = static_cast<wl_compositor *>(
+        wl_registry_bind(registry, name, &wl_compositor_interface, 4));
+  } else if (strcmp(interface, wl_shm_interface.name) == 0) {
+    impl->shm = static_cast<wl_shm *>(
+        wl_registry_bind(registry, name, &wl_shm_interface, 1));
+  } else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
+    impl->xdgWmBase = static_cast<xdg_wm_base *>(
+        wl_registry_bind(registry, name, &xdg_wm_base_interface, 1));
+  }
+}
+
+static void registryGlobalRemove(void *, wl_registry *, uint32_t) {
+  // Handle global removal if needed
+}
+
+static const wl_registry_listener registryListener = {
+    .global = registryGlobal,
+    .global_remove = registryGlobalRemove,
+};
+
+static void xdgWmBasePing(void *, xdg_wm_base *base, uint32_t serial) {
+  xdg_wm_base_pong(base, serial);
+}
+
+static const xdg_wm_base_listener xdgWmBaseListener = {
+    .ping = xdgWmBasePing,
+};
+
+static void xdgSurfaceConfigure(void *data, xdg_surface *surface,
+                                uint32_t serial) {
+  auto *impl = static_cast<OSFWindow::Impl *>(data);
+  xdg_surface_ack_configure(surface, serial);
+  impl->configured = true;
+}
+
+static const xdg_surface_listener xdgSurfaceListener = {
+    .configure = xdgSurfaceConfigure,
+};
+
+static void xdgToplevelConfigure(void *data, xdg_toplevel *, int32_t width,
+                                 int32_t height, wl_array *) {
+  auto *impl = static_cast<OSFWindow::Impl *>(data);
+  if (width > 0 && height > 0 && impl->window) {
+    // Update size if compositor requests it
+    impl->window->setSize(width, height);
+  }
+}
+
+static void xdgToplevelClose(void *data, xdg_toplevel *) {
+  auto *impl = static_cast<OSFWindow::Impl *>(data);
+  impl->closed = true;
+  if (impl->window && impl->window->closeCallback_) {
+    impl->window->closeCallback_();
+  }
+}
+
+static void xdgToplevelConfigureBounds(void *, xdg_toplevel *, int32_t,
+                                       int32_t) {
+  // Ignore bounds for now
+}
+
+static void xdgToplevelWmCapabilities(void *, xdg_toplevel *, wl_array *) {
+  // Ignore capabilities for now
+}
+
+static const xdg_toplevel_listener xdgToplevelListener = {
+    .configure = xdgToplevelConfigure,
+    .close = xdgToplevelClose,
+    .configure_bounds = xdgToplevelConfigureBounds,
+    .wm_capabilities = xdgToplevelWmCapabilities,
+};
+
+// ============================================================================
+// Buffer Creation
+// ============================================================================
+
+static int createShmFile(int size) {
+  char name[] = "/tmp/osf-window-XXXXXX";
+  int fd = mkstemp(name);
+  if (fd < 0) {
+    return -1;
+  }
+  unlink(name);
+  if (ftruncate(fd, size) < 0) {
+    close(fd);
+    return -1;
+  }
+  return fd;
+}
+
+static bool createBuffer(OSFWindow::Impl *impl, int width, int height) {
+  int stride = width * 4;
+  int size = stride * height;
+
+  if (impl->shmData && impl->shmSize == size) {
+    // Reuse existing buffer
+    return true;
+  }
+
+  // Clean up old buffer
+  if (impl->cairoSurface) {
+    cairo_surface_destroy(impl->cairoSurface);
+    impl->cairoSurface = nullptr;
+  }
+  if (impl->buffer) {
+    wl_buffer_destroy(impl->buffer);
+    impl->buffer = nullptr;
+  }
+  if (impl->shmData) {
+    munmap(impl->shmData, impl->shmSize);
+    impl->shmData = nullptr;
+  }
+  if (impl->shmFd >= 0) {
+    close(impl->shmFd);
+    impl->shmFd = -1;
+  }
+
+  // Create new buffer
+  impl->shmFd = createShmFile(size);
+  if (impl->shmFd < 0) {
+    return false;
+  }
+
+  impl->shmData =
+      mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, impl->shmFd, 0);
+  if (impl->shmData == MAP_FAILED) {
+    close(impl->shmFd);
+    impl->shmFd = -1;
+    impl->shmData = nullptr;
+    return false;
+  }
+  impl->shmSize = size;
+
+  wl_shm_pool *pool = wl_shm_create_pool(impl->shm, impl->shmFd, size);
+  impl->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride,
+                                           WL_SHM_FORMAT_ARGB8888);
+  wl_shm_pool_destroy(pool);
+
+  impl->cairoSurface = cairo_image_surface_create_for_data(
+      static_cast<unsigned char *>(impl->shmData), CAIRO_FORMAT_ARGB32, width,
+      height, stride);
+
+  return true;
+}
+
+// ============================================================================
+// OSFWindow Implementation
+// ============================================================================
+
+OSFWindow::OSFWindow(int width, int height, const std::string &title)
+    : title_(title), width_(width), height_(height),
+      impl_(std::make_unique<Impl>()) {
+  impl_->window = this;
+}
+
+OSFWindow::~OSFWindow() { disconnect(); }
+
+bool OSFWindow::connect(const char *displayName) {
+  impl_->display = wl_display_connect(displayName);
+  if (!impl_->display) {
+    std::cerr << "[OSFWindow] Failed to connect to Wayland display"
+              << std::endl;
+    return false;
+  }
+
+  impl_->registry = wl_display_get_registry(impl_->display);
+  wl_registry_add_listener(impl_->registry, &registryListener, impl_.get());
+  wl_display_roundtrip(impl_->display);
+
+  if (!impl_->compositor || !impl_->shm || !impl_->xdgWmBase) {
+    std::cerr << "[OSFWindow] Missing required Wayland globals" << std::endl;
+    disconnect();
+    return false;
+  }
+
+  xdg_wm_base_add_listener(impl_->xdgWmBase, &xdgWmBaseListener, impl_.get());
+
+  return true;
+}
+
+void OSFWindow::disconnect() {
+  if (impl_->cairoSurface) {
+    cairo_surface_destroy(impl_->cairoSurface);
+    impl_->cairoSurface = nullptr;
+  }
+  if (impl_->buffer) {
+    wl_buffer_destroy(impl_->buffer);
+    impl_->buffer = nullptr;
+  }
+  if (impl_->shmData) {
+    munmap(impl_->shmData, impl_->shmSize);
+    impl_->shmData = nullptr;
+  }
+  if (impl_->shmFd >= 0) {
+    close(impl_->shmFd);
+    impl_->shmFd = -1;
+  }
+  if (impl_->xdgToplevel) {
+    xdg_toplevel_destroy(impl_->xdgToplevel);
+    impl_->xdgToplevel = nullptr;
+  }
+  if (impl_->xdgSurface) {
+    xdg_surface_destroy(impl_->xdgSurface);
+    impl_->xdgSurface = nullptr;
+  }
+  if (impl_->surface) {
+    wl_surface_destroy(impl_->surface);
+    impl_->surface = nullptr;
+  }
+  if (impl_->xdgWmBase) {
+    xdg_wm_base_destroy(impl_->xdgWmBase);
+    impl_->xdgWmBase = nullptr;
+  }
+  if (impl_->shm) {
+    wl_shm_destroy(impl_->shm);
+    impl_->shm = nullptr;
+  }
+  if (impl_->compositor) {
+    wl_compositor_destroy(impl_->compositor);
+    impl_->compositor = nullptr;
+  }
+  if (impl_->registry) {
+    wl_registry_destroy(impl_->registry);
+    impl_->registry = nullptr;
+  }
+  if (impl_->display) {
+    wl_display_disconnect(impl_->display);
+    impl_->display = nullptr;
+  }
+}
+
+void OSFWindow::show() {
+  if (!impl_->display || !impl_->compositor || !impl_->xdgWmBase) {
+    std::cerr << "[OSFWindow] Not connected" << std::endl;
+    return;
+  }
+
+  if (impl_->surface) {
+    return; // Already shown
+  }
+
+  // Create surface
+  impl_->surface = wl_compositor_create_surface(impl_->compositor);
+
+  // Create XDG surface
+  impl_->xdgSurface =
+      xdg_wm_base_get_xdg_surface(impl_->xdgWmBase, impl_->surface);
+  xdg_surface_add_listener(impl_->xdgSurface, &xdgSurfaceListener, impl_.get());
+
+  // Create toplevel
+  impl_->xdgToplevel = xdg_surface_get_toplevel(impl_->xdgSurface);
+  xdg_toplevel_add_listener(impl_->xdgToplevel, &xdgToplevelListener,
+                            impl_.get());
+  xdg_toplevel_set_title(impl_->xdgToplevel, title_.c_str());
+  xdg_toplevel_set_app_id(impl_->xdgToplevel, "opensef.app");
+
+  // Commit empty to get configure event
+  wl_surface_commit(impl_->surface);
+  wl_display_roundtrip(impl_->display);
+
+  // Wait for configure
+  while (!impl_->configured && wl_display_dispatch(impl_->display) != -1) {
+  }
+
+  visible_ = true;
+}
+
+void OSFWindow::hide() {
+  if (impl_->xdgToplevel) {
+    xdg_toplevel_destroy(impl_->xdgToplevel);
+    impl_->xdgToplevel = nullptr;
+  }
+  if (impl_->xdgSurface) {
+    xdg_surface_destroy(impl_->xdgSurface);
+    impl_->xdgSurface = nullptr;
+  }
+  if (impl_->surface) {
+    wl_surface_destroy(impl_->surface);
+    impl_->surface = nullptr;
+  }
+  visible_ = false;
+}
+
+void OSFWindow::close() {
+  running_ = false;
+  hide();
+}
+
+void OSFWindow::setTitle(const std::string &title) {
+  title_ = title;
+  if (impl_->xdgToplevel) {
+    xdg_toplevel_set_title(impl_->xdgToplevel, title.c_str());
+  }
+}
+
+void OSFWindow::setSize(int width, int height) {
+  if (width_ == width && height_ == height) {
+    return;
+  }
+  width_ = width;
+  height_ = height;
+  if (resizeCallback_) {
+    resizeCallback_(width, height);
+  }
+}
+
+void OSFWindow::setContentView(std::shared_ptr<OSFView> view) {
+  contentView_ = view;
+}
+
+void OSFWindow::runEventLoop() {
+  if (!impl_->display) {
+    return;
+  }
+
+  running_ = true;
+  int fd = wl_display_get_fd(impl_->display);
+
+  while (running_ && !impl_->closed) {
+    wl_display_flush(impl_->display);
+
+    // Render frame
+    if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
+      cairo_t *cr = cairo_create(impl_->cairoSurface);
+
+      // Clear background (white)
+      cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+      cairo_paint(cr);
+
+      // Render content view if present
+      if (contentView_) {
+        contentView_->render(cr);
+      }
+
+      cairo_destroy(cr);
+
+      // Attach and commit
+      wl_surface_attach(impl_->surface, impl_->buffer, 0, 0);
+      wl_surface_damage_buffer(impl_->surface, 0, 0, width_, height_);
+      wl_surface_commit(impl_->surface);
+    }
+
+    // Poll for events
+    struct pollfd pfd = {fd, POLLIN, 0};
+    if (poll(&pfd, 1, 16) > 0) { // ~60fps
+      if (pfd.revents & POLLIN) {
+        if (wl_display_dispatch(impl_->display) == -1) {
+          break;
+        }
+      }
+    }
+  }
+}
+
+void OSFWindow::stopEventLoop() { running_ = false; }
+
+std::shared_ptr<OSFWindow> OSFWindow::create(int width, int height,
+                                             const std::string &title) {
+  return std::make_shared<OSFWindow>(width, height, title);
+}
+
+} // namespace opensef
