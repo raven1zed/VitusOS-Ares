@@ -28,16 +28,6 @@ target_link_libraries(welcome-screen PRIVATE
     opensef-backend
 )
 
-# Phase 1 minimal app
-add_executable(phase1-minimal
-    phase1-minimal.cpp
-)
-
-target_link_libraries(phase1-minimal PRIVATE
-    opensef-base
-    opensef-appkit
-)
-
 # Phase 1 validation (exercises all foundation classes)
 add_executable(phase1-validation
     phase1_validation.cpp
