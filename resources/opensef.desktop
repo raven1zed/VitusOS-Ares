@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=openSEF
+Comment=VitusOS Ares Desktop Environment
+Exec=start-opensef.sh
+Type=Application
+DesktopNames=openSEF
+Keywords=wayland;desktop;

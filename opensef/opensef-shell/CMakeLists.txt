@@ -118,9 +118,24 @@ target_include_directories(osf-dock PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/dock
     ${WAYLAND_CLIENT_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
+    ${RSVG_INCLUDE_DIRS}
 )
 
-target_link_libraries(osf-dock PRIVATE osf-render)
+target_link_libraries(osf-dock PRIVATE osf-render ${RSVG_LIBRARIES})
+
+# --- osf-wallpaper Executable ---
+add_executable(osf-wallpaper
+    src/wallpaper/main.cpp
+    src/wallpaper/OSFWallpaper.cpp
+)
+
+target_include_directories(osf-wallpaper PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/wallpaper
+    ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    ${CAIRO_INCLUDE_DIRS}
+)
+
+target_link_libraries(osf-wallpaper PRIVATE osf-render)
 
 # Install
-install(TARGETS osf-panel DESTINATION bin)
+install(TARGETS osf-panel osf-dock osf-wallpaper DESTINATION bin)

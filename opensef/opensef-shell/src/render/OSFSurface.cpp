@@ -119,6 +119,14 @@ void OSFSurface::disconnect() {
     zwlr_layer_shell_v1_destroy(layerShell_);
     layerShell_ = nullptr;
   }
+  if (pointer_) {
+      wl_pointer_release(pointer_);
+      pointer_ = nullptr;
+  }
+  if (seat_) {
+      wl_seat_destroy(seat_);
+      seat_ = nullptr;
+  }
   if (shm_) {
     wl_shm_destroy(shm_);
     shm_ = nullptr;
@@ -281,12 +289,85 @@ void OSFSurface::registryGlobal(void *data, struct wl_registry *registry,
   } else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
     self->layerShell_ = static_cast<zwlr_layer_shell_v1 *>(
         wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, 1));
+  } else if (strcmp(interface, wl_seat_interface.name) == 0) {
+      self->seat_ = static_cast<wl_seat *>(
+          wl_registry_bind(registry, name, &wl_seat_interface, 7));
+      wl_seat_add_listener(self->seat_, &seat_listener, self);
   }
 }
 
 void OSFSurface::registryGlobalRemove(void *data, struct wl_registry *registry,
                                       uint32_t name) {
   // Handle global removal if necessary
+}
+
+// Seat & Pointer Implementation
+const struct wl_seat_listener seat_listener = {
+    .capabilities = OSFSurface::seatCapabilities,
+    .name = [](void*, struct wl_seat*, const char*){},
+};
+
+const struct wl_pointer_listener pointer_listener = {
+    .enter = OSFSurface::pointerEnter,
+    .leave = OSFSurface::pointerLeave,
+    .motion = OSFSurface::pointerMotion,
+    .button = OSFSurface::pointerButton,
+    .axis = OSFSurface::pointerAxis,
+    .frame = [](void*, struct wl_pointer*){},
+    .axis_source = [](void*, struct wl_pointer*, uint32_t){},
+    .axis_stop = [](void*, struct wl_pointer*, uint32_t, uint32_t){},
+    .discrete = [](void*, struct wl_pointer*, uint32_t, int32_t){},
+};
+
+void OSFSurface::seatCapabilities(void *data, struct wl_seat *seat, uint32_t capabilities) {
+    auto self = static_cast<OSFSurface *>(data);
+    bool hasPointer = capabilities & WL_SEAT_CAPABILITY_POINTER;
+
+    if (hasPointer && !self->pointer_) {
+        self->pointer_ = wl_seat_get_pointer(seat);
+        wl_pointer_add_listener(self->pointer_, &pointer_listener, self);
+    } else if (!hasPointer && self->pointer_) {
+        wl_pointer_release(self->pointer_);
+        self->pointer_ = nullptr;
+    }
+}
+
+void OSFSurface::pointerEnter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
+    auto self = static_cast<OSFSurface *>(data);
+    self->pointerX_ = wl_fixed_to_int(sx);
+    self->pointerY_ = wl_fixed_to_int(sy);
+    // Could add cursor setting logic here
+}
+
+void OSFSurface::pointerLeave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface) {
+    // Handle leave
+}
+
+void OSFSurface::pointerMotion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy) {
+    auto self = static_cast<OSFSurface *>(data);
+    self->pointerX_ = wl_fixed_to_int(sx);
+    self->pointerY_ = wl_fixed_to_int(sy);
+
+    if (self->mouseMoveCallback_) {
+        self->mouseMoveCallback_(self->pointerX_, self->pointerY_);
+    }
+}
+
+void OSFSurface::pointerButton(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
+    auto self = static_cast<OSFSurface *>(data);
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
+        if (self->mouseDownCallback_) {
+            self->mouseDownCallback_(self->pointerX_, self->pointerY_, button);
+        }
+    } else {
+        if (self->mouseUpCallback_) {
+            self->mouseUpCallback_(self->pointerX_, self->pointerY_, button);
+        }
+    }
+}
+
+void OSFSurface::pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value) {
+    // Handle scroll
 }
 
 void OSFSurface::layerSurfaceConfigure(void *data,
