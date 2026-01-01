@@ -9,6 +9,10 @@
 
 #pragma once
 
+extern "C" {
+#include <wlr/types/wlr_scene.h>
+}
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -57,10 +61,20 @@ private:
   int hoveredViewIndex_ = -1;
   int hoveredWorkspaceIndex_ = -1;
 
+  // Scene graph
+  wlr_scene_tree *sceneTree_ = nullptr;
+  wlr_scene_rect *overlay_ = nullptr;
+  std::vector<wlr_scene_tree *> thumbnailNodes_;
+
   // Drawing
   void drawOverlay(uint32_t *buf, int sw, int sh);
   void drawWindowThumbnails(uint32_t *buf, int sw, int sh);
   void drawWorkspaceStrip(uint32_t *buf, int sw, int sh);
+
+  // Scene graph helpers
+  void createScene();
+  void destroyScene();
+  void updateThumbnails();
 };
 
 } // namespace opensef

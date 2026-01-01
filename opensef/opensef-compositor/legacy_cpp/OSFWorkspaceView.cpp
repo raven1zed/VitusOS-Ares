@@ -6,9 +6,16 @@
 #include "OSFCompositor.h"
 #include "OSFDecorations.h"
 #include "OSFView.h"
-
+#include "OSFOutput.h"
 
 #include <algorithm>
+#include <cmath>
+#include <vector>
+
+extern "C" {
+#include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_surface.h>
+}
 
 namespace opensef {
 
@@ -17,9 +24,17 @@ using namespace AresColors;
 OSFWorkspaceView::OSFWorkspaceView(OSFCompositor *compositor)
     : compositor_(compositor) {}
 
-void OSFWorkspaceView::show() { visible_ = true; }
+void OSFWorkspaceView::show() {
+  if (visible_) return;
+  visible_ = true;
+  createScene();
+}
 
-void OSFWorkspaceView::hide() { visible_ = false; }
+void OSFWorkspaceView::hide() {
+  if (!visible_) return;
+  visible_ = false;
+  destroyScene();
+}
 
 void OSFWorkspaceView::tick() {
   // Animate visibility
@@ -32,64 +47,33 @@ void OSFWorkspaceView::tick() {
     animProgress_ = 1.0f;
 }
 
-void OSFWorkspaceView::render(uint32_t *buffer, int screenW, int screenH) {
-  if (animProgress_ < 0.01f)
-    return; // Not visible
+void OSFWorkspaceView::createScene() {
+  if (sceneTree_) return;
 
-  drawOverlay(buffer, screenW, screenH);
-  drawWorkspaceStrip(buffer, screenW, screenH);
-  drawWindowThumbnails(buffer, screenW, screenH);
-}
+  // Attach directly to the root scene tree for overlay
+  sceneTree_ = wlr_scene_tree_create(&compositor_->scene()->tree);
 
-void OSFWorkspaceView::drawOverlay(uint32_t *buf, int sw, int sh) {
-  // Semi-transparent dark overlay
-  uint8_t overlayAlpha = static_cast<uint8_t>(180 * animProgress_);
-  uint32_t overlayColor = (overlayAlpha << 24) | 0x1A1A2E; // Dark blue-black
+  // Get output geometry to size the overlay
+  wlr_box box;
+  wlr_output_layout_get_box(compositor_->outputLayout(), nullptr, &box);
 
-  for (int y = 0; y < sh; y++) {
-    for (int x = 0; x < sw; x++) {
-      // Blend with existing
-      uint32_t existing = buf[y * sw + x];
-      uint8_t eR = (existing >> 16) & 0xFF;
-      uint8_t eG = (existing >> 8) & 0xFF;
-      uint8_t eB = existing & 0xFF;
+  // Create dark overlay (Dark blue-black semi-transparent)
+  // Color 0x1A1A2E with alpha ~0.7 (180/255)
+  float overlayColor[4] = {
+    0.102f, 0.102f, 0.180f, 0.7f
+  };
+  overlay_ = wlr_scene_rect_create(sceneTree_, box.width, box.height, overlayColor);
+  wlr_scene_node_set_position(&overlay_->node, box.x, box.y);
 
-      uint8_t oR = (overlayColor >> 16) & 0xFF;
-      uint8_t oG = (overlayColor >> 8) & 0xFF;
-      uint8_t oB = overlayColor & 0xFF;
-
-      float a = overlayAlpha / 255.0f;
-      uint8_t rR = static_cast<uint8_t>(eR * (1 - a) + oR * a);
-      uint8_t rG = static_cast<uint8_t>(eG * (1 - a) + oG * a);
-      uint8_t rB = static_cast<uint8_t>(eB * (1 - a) + oB * a);
-
-      buf[y * sw + x] = 0xFF000000 | (rR << 16) | (rG << 8) | rB;
-    }
-  }
-}
-
-void OSFWorkspaceView::drawWorkspaceStrip(uint32_t *buf, int sw, int sh) {
+  // Create workspace strip
   // Top strip showing all workspaces
   int stripHeight = 60;
   int stripY = 20;
 
-  // Slight lighter background for strip area
-  uint32_t stripColor = 0x40FFFFFF;
-  for (int y = stripY; y < stripY + stripHeight && y < sh; y++) {
-    for (int x = 0; x < sw; x++) {
-      uint32_t existing = buf[y * sw + x];
-      uint8_t eR = (existing >> 16) & 0xFF;
-      uint8_t eG = (existing >> 8) & 0xFF;
-      uint8_t eB = existing & 0xFF;
-
-      // Lighten slightly
-      uint8_t rR = std::min(255, eR + 20);
-      uint8_t rG = std::min(255, eG + 20);
-      uint8_t rB = std::min(255, eB + 20);
-
-      buf[y * sw + x] = 0xFF000000 | (rR << 16) | (rG << 8) | rB;
-    }
-  }
+  // Slight lighter background for strip area: 0x40FFFFFF (white with 25% alpha)
+  float stripColor[4] = {1.0f, 1.0f, 1.0f, 0.25f};
+  wlr_scene_rect *stripRect = wlr_scene_rect_create(sceneTree_, box.width, stripHeight, stripColor);
+  wlr_scene_node_set_position(&stripRect->node, box.x, box.y + stripY);
 
   // Draw workspace thumbnails (3 workspaces for now)
   int workspaceCount = 3;
@@ -97,46 +81,166 @@ void OSFWorkspaceView::drawWorkspaceStrip(uint32_t *buf, int sw, int sh) {
   int thumbHeight = 40;
   int spacing = 20;
   int totalWidth = workspaceCount * thumbWidth + (workspaceCount - 1) * spacing;
-  int startX = (sw - totalWidth) / 2;
+  int startX = box.x + (box.width - totalWidth) / 2;
+  int startY = box.y + stripY + (stripHeight - thumbHeight) / 2;
 
   for (int i = 0; i < workspaceCount; i++) {
     int x = startX + i * (thumbWidth + spacing);
-    int y = stripY + (stripHeight - thumbHeight) / 2;
 
     // Workspace thumbnail background
-    uint32_t thumbColor = (i == 0) ? (0xFF000000 | SpaceOrange) : 0xFF404040;
-
-    for (int ty = 0; ty < thumbHeight; ty++) {
-      for (int tx = 0; tx < thumbWidth; tx++) {
-        int px = x + tx;
-        int py = y + ty;
-        if (px >= 0 && px < sw && py >= 0 && py < sh) {
-          buf[py * sw + px] = thumbColor;
-        }
-      }
+    // (i == 0) ? (0xFF000000 | SpaceOrange) : 0xFF404040;
+    // SpaceOrange = 0xE85D04 -> R=0xE8, G=0x5D, B=0x04
+    float thumbColor[4];
+    if (i == 0) {
+        thumbColor[0] = 0xE8 / 255.0f;
+        thumbColor[1] = 0x5D / 255.0f;
+        thumbColor[2] = 0x04 / 255.0f;
+        thumbColor[3] = 1.0f;
+    } else {
+        thumbColor[0] = 0x40 / 255.0f;
+        thumbColor[1] = 0x40 / 255.0f;
+        thumbColor[2] = 0x40 / 255.0f;
+        thumbColor[3] = 1.0f;
     }
+
+    wlr_scene_rect *wsRect = wlr_scene_rect_create(sceneTree_, thumbWidth, thumbHeight, thumbColor);
+    wlr_scene_node_set_position(&wsRect->node, x, startY);
+  }
+
+  // Create window thumbnails
+  updateThumbnails();
+}
+
+void OSFWorkspaceView::destroyScene() {
+  if (sceneTree_) {
+    wlr_scene_node_destroy(&sceneTree_->node);
+    sceneTree_ = nullptr;
+    overlay_ = nullptr;
+    thumbnailNodes_.clear();
   }
 }
 
+void OSFWorkspaceView::updateThumbnails() {
+  if (!sceneTree_) return;
+
+  // Clear existing thumbnails
+  for (auto *node : thumbnailNodes_) {
+    wlr_scene_node_destroy(&node->node);
+  }
+  thumbnailNodes_.clear();
+
+  const auto &views = compositor_->views();
+  if (views.empty()) return;
+
+  // Count mapped windows
+  int count = 0;
+  for (const auto &view : views) {
+      if (view->toplevel()->base->mapped) count++;
+  }
+
+  if (count == 0) return;
+
+  wlr_box box;
+  wlr_output_layout_get_box(compositor_->outputLayout(), nullptr, &box);
+
+  int cols = static_cast<int>(std::ceil(std::sqrt(count)));
+  int rows = static_cast<int>(std::ceil(static_cast<float>(count) / cols));
+
+  int padding = 50;
+  int topOffset = 100; // Leave room for strip
+  int availWidth = box.width - padding * 2;
+  int availHeight = box.height - topOffset - padding;
+
+  // Grid layout logic
+  int thumbW = availWidth / cols - padding;
+  int thumbH = availHeight / rows - padding;
+
+  // Clamp thumbnail size
+  if (thumbW > 600) thumbW = 600;
+  if (thumbH > 400) thumbH = 400;
+  if (thumbW < 100) thumbW = 100;
+  if (thumbH < 100) thumbH = 100;
+
+  int current = 0;
+  for (const auto &view : views) {
+    if (!view->toplevel()->base->mapped) continue;
+
+    // Get the surface buffer
+    // Accessing surface->current.buffer for rendering
+    wlr_surface *surface = view->toplevel()->base->surface;
+    if (!surface) continue;
+
+    struct wlr_buffer *buffer = surface->current.buffer;
+    if (!buffer) continue;
+
+    int row = current / cols;
+    int col = current % cols;
+
+    int x = box.x + padding + col * (thumbW + padding);
+    int y = box.y + topOffset + row * (thumbH + padding);
+
+    // Create container for this thumbnail
+    wlr_scene_tree *thumbTree = wlr_scene_tree_create(sceneTree_);
+    thumbnailNodes_.push_back(thumbTree);
+
+    wlr_scene_node_set_position(&thumbTree->node, x, y);
+
+    // Calculate scale to fit thumbW x thumbH
+    int bufferWidth = buffer->width;
+    int bufferHeight = buffer->height;
+
+    float scaleX = static_cast<float>(thumbW) / bufferWidth;
+    float scaleY = static_cast<float>(thumbH) / bufferHeight;
+    float scale = std::min(scaleX, scaleY);
+
+    // Create buffer node
+    wlr_scene_buffer *bufNode = wlr_scene_buffer_create(thumbTree, buffer);
+    if (bufNode) {
+       wlr_scene_buffer_set_dest_size(bufNode, bufferWidth * scale, bufferHeight * scale);
+
+       // Center it
+       int finalW = static_cast<int>(bufferWidth * scale);
+       int finalH = static_cast<int>(bufferHeight * scale);
+       int offX = (thumbW - finalW) / 2;
+       int offY = (thumbH - finalH) / 2;
+       wlr_scene_node_set_position(&bufNode->node, offX, offY);
+    }
+
+    current++;
+  }
+}
+
+void OSFWorkspaceView::render(uint32_t *buffer, int screenW, int screenH) {
+  // Legacy software render path - replaced by scene graph usage
+  (void)buffer;
+  (void)screenW;
+  (void)screenH;
+}
+
+void OSFWorkspaceView::drawOverlay(uint32_t *buf, int sw, int sh) {
+  (void)buf; (void)sw; (void)sh;
+}
+
+void OSFWorkspaceView::drawWorkspaceStrip(uint32_t *buf, int sw, int sh) {
+  (void)buf; (void)sw; (void)sh;
+}
+
 void OSFWorkspaceView::drawWindowThumbnails(uint32_t *buf, int sw, int sh) {
-  // TODO: Draw thumbnails of all windows in current workspace
-  // For now, just show placeholder
-  (void)buf;
-  (void)sw;
-  (void)sh;
+  (void)buf; (void)sw; (void)sh;
 }
 
 bool OSFWorkspaceView::handleClick(int x, int y) {
   if (!visible_)
     return false;
 
-  // Check if clicked on overlay (not on a window) -> hide
-  // TODO: Implement proper hit testing
-  (void)x;
-  (void)y;
+  // Modal behavior: any click hides the view
+  if (overlay_) {
+     // TODO: Implement proper hit testing to select window
+     hide();
+     return true;
+  }
 
-  hide();
-  return true;
+  return false;
 }
 
 void OSFWorkspaceView::updateHover(int x, int y) {
