@@ -86,13 +86,13 @@ This is the same approach used by labwc, sway, and other production compositors.
 
 | Component | Status |
 |-----------|--------|
+| **Framework Foundation** | ✅ Phase 1 Complete |
+| **Windowing Integration** | ✅ Phase 2 Complete |
 | **Compositor Core** | ✅ Working (windows, input, layer-shell) |
-| **Panel** | ✅ Working (menu bar with clock) |
+| **Panel** | ✅ Working (global menu bar with clock) |
 | **Dock** | ✅ Working (placeholder icons) |
-| **Widget Library** | ✅ Button, Label, TextField, GlassPanel |
-| **Window Tiling** | 🔄 In Progress |
-| **Interactivity** | 🔄 In Progress |
-| **Wallpaper** | 📋 Planned |
+| **Widget Library** | ✅ Button, Label, TextField |
+| **Layout + Responder** | 📋 Phase 3 Planned |
 
 ---
 
@@ -102,10 +102,10 @@ This is the same approach used by labwc, sway, and other production compositors.
 
 | Color | Hex | Use |
 |-------|-----|-----|
-| **Space Orange** | `#E57C3A` | Primary accent, close button |
+| **Space Orange** | `#E85D04` | Primary accent, close button |
 | **Mars Gold** | `#D4A93E` | Secondary accent, minimize button |
-| **Star White** | `#1A1A1A` | Primary text |
-| **Deep Space** | `#FFFFFF` | Window backgrounds |
+| **Deep Space** | `#1A1A1A` | Dark backgrounds |
+| **Star White** | `#FFFFFF` | Window backgrounds, text |
 | **Lunar Gray** | `#F5F5F5` | Panels, title bars |
 
 ### UI Dimensions
@@ -223,8 +223,8 @@ VitusOS Ares/
 | Phase | Focus | Status |
 |-------|-------|--------|
 | **1** | Framework Foundation | ✅ **Complete** |
-| **2** | Windowing Integration | 🔄 Next Up |
-| **3** | Layout & Input | 📋 Planned |
+| **2** | Windowing Integration | ✅ **Complete** |
+| **3** | Layout & Input | 📋 **Next Up** |
 | **4** | Theming & Appearance | 📋 Planned |
 | **5** | Controls & Text | 📋 Planned |
 | **6** | System Services | 📋 Planned |
@@ -232,7 +232,7 @@ VitusOS Ares/
 | **8** | Performance | 📋 Planned |
 | **9** | Final Polish | 📋 Planned |
 
-> **Note:** We previously built the Shell (Phase 7) before the Framework Foundation (Phase 1). We are now backfilling the foundation to ensure stability.
+> **Note:** We previously built the Shell (Phase 7) before completing the foundation phases. Phases 1-2 are now complete.
 
 ---
 
