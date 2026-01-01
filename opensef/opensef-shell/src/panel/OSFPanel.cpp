@@ -27,10 +27,12 @@ OSFPanel::OSFPanel() {
   surface_->onDraw([this](cairo_t *cr, int w, int h) { this->draw(cr, w, h); });
   surface_->onMouseMove(
       [this](int x, int y) { this->handlePointerMove(x, y); });
-  surface_->onMouseDown(
-      [this](int x, int y, uint32_t button) { this->handlePointerDown(x, y, button); });
-  surface_->onMouseUp(
-      [this](int x, int y, uint32_t button) { this->handlePointerUp(x, y, button); });
+  surface_->onMouseDown([this](int x, int y, uint32_t button) {
+    this->handlePointerDown(x, y, button);
+  });
+  surface_->onMouseUp([this](int x, int y, uint32_t button) {
+    this->handlePointerUp(x, y, button);
+  });
   surface_->onMouseLeave([this]() { this->clearHover(); });
   surface_->onTick([this]() { surface_->requestRedraw(); });
   surface_->setFrameTimer(1000);
@@ -65,7 +67,8 @@ void OSFPanel::run() {
     surface_->addTimer(1000, [this]() {
       if (surface_->width() > 0 && surface_->height() > 0) {
         // Create paint context manually to force redraw
-        cairo_t *cr = surface_->beginPaint();
+        auto crPtr = surface_->beginPaint();
+        cairo_t *cr = crPtr.get();
         if (cr) {
           this->draw(cr, surface_->width(), surface_->height());
           cairo_destroy(cr);

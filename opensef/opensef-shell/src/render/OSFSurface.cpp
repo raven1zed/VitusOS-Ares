@@ -29,10 +29,6 @@ const struct wl_pointer_listener pointer_listener = {
     .motion = OSFSurface::pointerMotion,
     .button = OSFSurface::pointerButton,
     .axis = OSFSurface::pointerAxis,
-    .frame = [](void *, struct wl_pointer *) {},
-    .axis_source = [](void *, struct wl_pointer *, uint32_t) {},
-    .axis_stop = [](void *, struct wl_pointer *, uint32_t, uint32_t) {},
-    .discrete = [](void *, struct wl_pointer *, uint32_t, int32_t) {},
 };
 
 const struct wl_seat_listener seat_listener = {
@@ -399,7 +395,7 @@ void OSFSurface::registryGlobal(void *data, struct wl_registry *registry,
         wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, 1));
   } else if (strcmp(interface, wl_seat_interface.name) == 0) {
     self->seat_ = static_cast<wl_seat *>(
-        wl_registry_bind(registry, name, &wl_seat_interface, 7));
+        wl_registry_bind(registry, name, &wl_seat_interface, 3));
     wl_seat_add_listener(self->seat_, &seat_listener, self);
   }
 }
