@@ -23,6 +23,8 @@ add_library(opensef-appkit STATIC
     src/OSFTextField.cpp
     src/OSFGlassPanel.cpp
     src/VulkanTextRenderer.cpp
+    src/OSFTitleBar.cpp
+    src/OSFWindowButton.cpp
 )
 
 target_include_directories(opensef-appkit PUBLIC

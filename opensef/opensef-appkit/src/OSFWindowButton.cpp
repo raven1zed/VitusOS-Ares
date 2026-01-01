@@ -61,9 +61,46 @@ void OSFWindowButton::click() {
   }
 }
 
-void OSFWindowButton::draw() {
-  // TODO: Draw circle with color based on state
-  // For now, this is a stub
+void OSFWindowButton::render(cairo_t *cr) {
+  // Calculate center
+  double centerX = frame_.x + frame_.width / 2.0;
+  double centerY = frame_.y + frame_.height / 2.0;
+  double radius = frame_.width / 2.0; // Assume square
+
+  // Pick color
+  OSFColor color = normalColor();
+void OSFWindowButton::draw(cairo_t *cr) {
+  // Determine color based on state
+  OSFColor color;
+  if (pressed_) {
+    color = pressedColor();
+  } else if (hovered_) {
+    color = hoverColor();
+  }
+
+  // Draw circle
+  cairo_save(cr);
+  color.setCairo(cr);
+  cairo_arc(cr, centerX, centerY, radius, 0, 2 * M_PI);
+  cairo_fill(cr);
+
+  // Optional: Border for better visibility on dark backgrounds?
+  // macOS doesn't really have a border, but let's keep it simple.
+
+  } else {
+    color = normalColor();
+  }
+
+  // Draw circle
+  float radius = kButtonRadius;
+  float centerX = frame_.x + frame_.width / 2.0f;
+  float centerY = frame_.y + frame_.height / 2.0f;
+
+  cairo_save(cr);
+  color.setCairo(cr);
+  cairo_arc(cr, centerX, centerY, radius, 0, 2 * 3.1415926535);
+  cairo_fill(cr);
+  cairo_restore(cr);
 }
 
 } // namespace opensef

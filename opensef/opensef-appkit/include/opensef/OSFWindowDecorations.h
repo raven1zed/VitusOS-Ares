@@ -10,7 +10,7 @@
 #include <functional>
 #include <memory>
 #include <opensef/OpenSEFBase.h>
-#include <opensef/OpenSEFUI.h>
+#include <opensef/OpenSEFAppKit.h>
 #include <string>
 #include <vector>
 
@@ -55,7 +55,7 @@ public:
   void setAction(std::function<void()> action) { action_ = action; }
   void click();
 
-  virtual void draw();
+  virtual void render(cairo_t *cr);
 
   // Button radius (macOS standard is 6px radius = 12px diameter)
   static constexpr float kButtonRadius = 6.0f;
@@ -103,7 +103,8 @@ public:
   void setOnMaximize(std::function<void()> action);
 
   // Drawing
-  virtual void draw();
+  virtual void render(cairo_t *cr);
+  virtual void draw(cairo_t *cr);
 
   // Standard height
   static constexpr float kTitleBarHeight = 28.0f;
