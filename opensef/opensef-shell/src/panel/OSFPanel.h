@@ -34,7 +34,14 @@ private:
   void updateClock();
 
   // Input dispatch
-  void handlePointerEvent(const PointerEvent& event);
+  void handlePointerMove(int x, int y);
+  void handlePointerDown(int x, int y, uint32_t button);
+  void handlePointerUp(int x, int y, uint32_t button);
+  void clearHover();
+  std::shared_ptr<OSFButton> hitTestButton(int x, int y);
+
+  std::shared_ptr<OSFButton> hoveredButton_;
+  std::shared_ptr<OSFButton> pressedButton_;
 };
 
 } // namespace opensef
