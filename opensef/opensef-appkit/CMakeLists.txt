@@ -18,6 +18,7 @@ add_library(opensef-appkit STATIC
     src/OSFLabel.cpp
     src/OSFTextField.cpp
     src/OSFGlassPanel.cpp
+    src/OSFWidgets.cpp
 )
 
 target_include_directories(opensef-appkit PUBLIC
@@ -28,6 +29,7 @@ target_include_directories(opensef-appkit PUBLIC
 
 target_link_libraries(opensef-appkit PUBLIC
     opensef-core
+    Vulkan::Vulkan
     ${CAIRO_LIBRARIES}
     ${PANGO_LIBRARIES}
 )

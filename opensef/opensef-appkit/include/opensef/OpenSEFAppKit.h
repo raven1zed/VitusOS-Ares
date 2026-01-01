@@ -162,6 +162,7 @@ public:
 
   // Rendering
   void render(cairo_t *cr) override;
+  void draw() override;
 
 private:
   std::string text_;
@@ -234,6 +235,7 @@ public:
 
   // Rendering
   void render(cairo_t *cr) override;
+  void draw() override;
 
 private:
   double blurRadius_ = 20.0;
