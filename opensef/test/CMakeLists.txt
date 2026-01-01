@@ -38,7 +38,17 @@ target_link_libraries(phase1-minimal PRIVATE
     opensef-appkit
 )
 
+# Phase 1 validation (exercises all foundation classes)
+add_executable(phase1-validation
+    phase1_validation.cpp
+)
+
+target_link_libraries(phase1-validation PRIVATE
+    opensef-base
+)
+
 # Compile options
 target_compile_options(hello-window PRIVATE -Wall -Wextra)
 target_compile_options(welcome-screen PRIVATE -Wall -Wextra)
 target_compile_options(phase1-minimal PRIVATE -Wall -Wextra)
+target_compile_options(phase1-validation PRIVATE -Wall -Wextra)

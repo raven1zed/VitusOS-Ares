@@ -218,23 +218,21 @@ VitusOS Ares/
 
 ## Roadmap
 
-| Phase | Status | Timeline |
-|-------|--------|----------|
-| **1. Core Compositor** | ✅ Complete | Dec 2025 |
-| **2. Cairo Shell** | ✅ Complete | Dec 2025 |
-| **3. First Build Test** | ✅ Complete | Jan 2026 |
-| **4. Window Management** | 🔄 In Progress | Jan 2026 |
-| **5. SeaDrop Integration** | 📋 Planned | Q2 2026 |
-| **6. Native Apps** | 📋 Planned | Q3-Q4 2026 |
+**See [VitusOS Ares.md](VitusOS%20Ares.md) for the full 9-Phase Roadmap.**
 
-### Planned Native Apps
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **1** | Framework Foundation | ✅ **Complete** |
+| **2** | Windowing Integration | 🔄 Next Up |
+| **3** | Layout & Input | 📋 Planned |
+| **4** | Theming & Appearance | 📋 Planned |
+| **5** | Controls & Text | 📋 Planned |
+| **6** | System Services | 📋 Planned |
+| **7** | Shell & System Apps | ⚠️ Partial (Built Early) |
+| **8** | Performance | 📋 Planned |
+| **9** | Final Polish | 📋 Planned |
 
-| App | Purpose | Priority |
-|-----|---------|----------|
-| **SeaDrop** | File sharing (AirDrop-style) | P1 — Thesis project |
-| **Filer** | File manager | P2 |
-| **Terminow** | Terminal emulator | P3 |
-| **Settings** | System preferences | P4 |
+> **Note:** We previously built the Shell (Phase 7) before the Framework Foundation (Phase 1). We are now backfilling the foundation to ensure stability.
 
 ---
 
