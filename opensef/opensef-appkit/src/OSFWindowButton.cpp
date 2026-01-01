@@ -61,6 +61,14 @@ void OSFWindowButton::click() {
   }
 }
 
+void OSFWindowButton::render(cairo_t *cr) {
+  // Calculate center
+  double centerX = frame_.x + frame_.width / 2.0;
+  double centerY = frame_.y + frame_.height / 2.0;
+  double radius = frame_.width / 2.0; // Assume square
+
+  // Pick color
+  OSFColor color = normalColor();
 void OSFWindowButton::draw(cairo_t *cr) {
   // Determine color based on state
   OSFColor color;
@@ -68,6 +76,17 @@ void OSFWindowButton::draw(cairo_t *cr) {
     color = pressedColor();
   } else if (hovered_) {
     color = hoverColor();
+  }
+
+  // Draw circle
+  cairo_save(cr);
+  color.setCairo(cr);
+  cairo_arc(cr, centerX, centerY, radius, 0, 2 * M_PI);
+  cairo_fill(cr);
+
+  // Optional: Border for better visibility on dark backgrounds?
+  // macOS doesn't really have a border, but let's keep it simple.
+
   } else {
     color = normalColor();
   }

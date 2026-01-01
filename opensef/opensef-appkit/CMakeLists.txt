@@ -18,6 +18,8 @@ add_library(opensef-appkit STATIC
     src/OSFLabel.cpp
     src/OSFTextField.cpp
     src/OSFGlassPanel.cpp
+    src/OSFTitleBar.cpp
+    src/OSFWindowButton.cpp
 )
 
 target_include_directories(opensef-appkit PUBLIC
