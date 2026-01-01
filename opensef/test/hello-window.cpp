@@ -8,7 +8,7 @@
 #include <memory>
 #include <opensef/OSFWindowDecorations.h>
 #include <opensef/OpenSEFAppKit.h>
-#include <opensef/OpenSEFBackend.h>
+
 #include <opensef/OpenSEFBase.h>
 
 using namespace opensef;

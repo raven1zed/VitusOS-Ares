@@ -12,9 +12,8 @@ add_executable(hello-window
 
 target_link_libraries(hello-window PRIVATE
     opensef-base
-    opensef-ui
+    opensef-core
     opensef-appkit
-    opensef-backend
 )
 
 # Welcome Screen - multilingual greeting
@@ -24,8 +23,8 @@ add_executable(welcome-screen
 
 target_link_libraries(welcome-screen PRIVATE
     opensef-base
-    opensef-ui
-    opensef-backend
+    opensef-core
+    opensef-appkit
 )
 
 # Phase 1 validation (exercises all foundation classes)
