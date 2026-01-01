@@ -13,12 +13,23 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 
 // Forward declare Pango types
 typedef struct _PangoLayout PangoLayout;
 
 namespace opensef {
+
+// Global Vulkan state access for widgets (AppKit/Compositor integration)
+// The application must set this before calling draw() on widgets using Vulkan.
+extern VkCommandBuffer g_CurrentVulkanCommandBuffer;
+
+/**
+ * Initialize the AppKit Vulkan subsystem.
+ * Must be called once after Vulkan initialization.
+ */
+void OSFAppKitInitializeVulkan(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool, VkRenderPass renderPass);
 
 // =============================================================================
 // Geometry Types

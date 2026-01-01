@@ -4,9 +4,17 @@
 
 #include <iostream>
 #include <opensef/OpenSEFAppKit.h>
+#include <opensef/VulkanTextRenderer.h>
 
 
 namespace opensef {
+
+// Global Vulkan state
+VkCommandBuffer g_CurrentVulkanCommandBuffer = VK_NULL_HANDLE;
+
+void OSFAppKitInitializeVulkan(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool, VkRenderPass renderPass) {
+    VulkanTextRenderer::shared().initialize(device, physicalDevice, queue, commandPool, renderPass);
+}
 
 // ============================================================================
 // OSFLabel
@@ -22,7 +30,19 @@ void OSFLabel::draw() {
   if (hidden_)
     return;
 
-  // TODO: Vulkan text rendering
+  // Retrieve current command buffer from a context/renderer singleton
+  // The application/backend must set g_CurrentVulkanCommandBuffer before calling draw()
+  VkCommandBuffer cmd = g_CurrentVulkanCommandBuffer;
+
+  if (cmd != VK_NULL_HANDLE) {
+      glm::vec4 colorVec(textColor_.r, textColor_.g, textColor_.b, textColor_.a);
+
+      // Calculate position relative to window or parent (simplified)
+      float x = static_cast<float>(frame_.x);
+      float y = static_cast<float>(frame_.y + fontSize_); // Baseline approx
+
+      VulkanTextRenderer::shared().drawText(cmd, text_, x, y, 1.0f, colorVec);
+  }
 
   OSFView::draw();
 }
