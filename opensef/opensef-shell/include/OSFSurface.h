@@ -10,10 +10,10 @@
 
 #include <cairo.h>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 #include <wayland-client.h>
 
 // Forward declarations of Wayland structs (Global Scope)
@@ -89,6 +89,22 @@ public:
   void setExclusiveZone(int zone);
   void setMargin(int top, int right, int bottom, int left);
 
+  // Wayland Listeners (Public for C-interop)
+  static void seatCapabilities(void *data, struct wl_seat *seat,
+                               uint32_t capabilities);
+  static void pointerEnter(void *data, struct wl_pointer *pointer,
+                           uint32_t serial, struct wl_surface *surface,
+                           wl_fixed_t sx, wl_fixed_t sy);
+  static void pointerLeave(void *data, struct wl_pointer *pointer,
+                           uint32_t serial, struct wl_surface *surface);
+  static void pointerMotion(void *data, struct wl_pointer *pointer,
+                            uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
+  static void pointerButton(void *data, struct wl_pointer *pointer,
+                            uint32_t serial, uint32_t time, uint32_t button,
+                            uint32_t state);
+  static void pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time,
+                          uint32_t axis, wl_fixed_t value);
+
   // Rendering
   CairoContextPtr beginPaint();
   void endPaint();
@@ -124,7 +140,9 @@ public:
   void onClose(CloseCallback cb) { closeCallback_ = cb; }
   void onMouseDown(MouseCallback cb) { mouseDownCallback_ = cb; }
   void onMouseUp(MouseCallback cb) { mouseUpCallback_ = cb; }
-  void onMouseMove(std::function<void(int x, int y)> cb) { mouseMoveCallback_ = cb; }
+  void onMouseMove(std::function<void(int x, int y)> cb) {
+    mouseMoveCallback_ = cb;
+  }
   void onMouseEnter(MouseEnterCallback cb) { mouseEnterCallback_ = cb; }
   void onMouseLeave(MouseLeaveCallback cb) { mouseLeaveCallback_ = cb; }
   void onTick(TickCallback cb) { tickCallback_ = cb; }
@@ -176,8 +194,8 @@ private:
 
   // Timer state
   struct TimerInfo {
-      int fd;
-      std::function<void()> callback;
+    int fd;
+    std::function<void()> callback;
   };
   std::map<int, TimerInfo> timers_;
 
@@ -195,14 +213,6 @@ private:
   // Internal methods
   bool createShmBuffer(int width, int height);
   void destroyShmBuffer();
-
-  // Wayland Listeners
-  static void seatCapabilities(void *data, struct wl_seat *seat, uint32_t capabilities);
-  static void pointerEnter(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
-  static void pointerLeave(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
-  static void pointerMotion(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-  static void pointerButton(void *data, struct wl_pointer *pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
-  static void pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
 };
 
 } // namespace opensef
