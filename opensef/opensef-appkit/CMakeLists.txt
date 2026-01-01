@@ -36,6 +36,7 @@ target_include_directories(opensef-appkit PUBLIC
 )
 
 target_link_libraries(opensef-appkit PUBLIC
+    opensef-base
     opensef-core
     Vulkan::Vulkan
     ${CAIRO_LIBRARIES}

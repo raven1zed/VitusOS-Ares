@@ -23,6 +23,7 @@ target_include_directories(opensef-core PUBLIC
 )
 
 target_link_libraries(opensef-core PUBLIC
+    opensef-base
     ${CAIRO_LIBRARIES}
 )
 
