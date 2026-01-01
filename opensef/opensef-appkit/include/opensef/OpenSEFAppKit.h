@@ -29,6 +29,8 @@ struct OSFRect {
   OSFRect() = default;
   OSFRect(double x_, double y_, double w, double h)
       : x(x_), y(y_), width(w), height(h) {}
+
+  static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
 };
 
 struct OSFColor {
@@ -36,6 +38,11 @@ struct OSFColor {
   OSFColor() = default;
   OSFColor(double r_, double g_, double b_, double a_ = 1.0)
       : r(r_), g(g_), b(b_), a(a_) {}
+
+  static OSFColor fromHex(uint32_t hex, double alpha = 1.0) {
+    return OSFColor(((hex >> 16) & 0xFF) / 255.0, ((hex >> 8) & 0xFF) / 255.0,
+                    (hex & 0xFF) / 255.0, alpha);
+  }
 
   static OSFColor fromARGB(uint32_t argb) {
     return OSFColor(((argb >> 16) & 0xFF) / 255.0, ((argb >> 8) & 0xFF) / 255.0,
@@ -240,6 +247,34 @@ private:
   double tintAlpha_ = 0.85;
   OSFColor tintColor_{0.1, 0.1, 0.1, 0.85};
   bool shadowEnabled_ = true;
+};
+
+// =============================================================================
+// OSFWindow - Window abstraction for AppKit
+// =============================================================================
+
+class OSFWindow {
+public:
+  OSFWindow();
+  OSFWindow(const std::string &title, const OSFRect &frame);
+  virtual ~OSFWindow();
+
+  static std::shared_ptr<OSFWindow> create(const std::string &title,
+                                           const OSFRect &frame);
+
+  const std::string &title() const { return title_; }
+  OSFRect frame() const { return frame_; }
+  bool isVisible() const { return visible_; }
+
+  void show();
+  void close();
+  void setContentView(std::shared_ptr<OSFView> view);
+
+private:
+  std::string title_;
+  OSFRect frame_;
+  bool visible_ = false;
+  std::shared_ptr<OSFView> contentView_;
 };
 
 } // namespace opensef

@@ -9,7 +9,7 @@
 
 #include <functional>
 #include <memory>
-#include <opensef/OpenSEFBase.h>
+#include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFUI.h>
 #include <string>
 #include <vector>
