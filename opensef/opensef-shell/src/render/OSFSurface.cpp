@@ -7,6 +7,9 @@
 #include <iostream>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <poll.h>
+#include <sys/timerfd.h>
+#include <vector>
 
 // Generated protocol headers
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
@@ -14,7 +17,6 @@
 
 namespace opensef {
 
-// Forward declarations of listener structs
 // Forward declarations of listener structs
 extern const struct wl_registry_listener registry_listener;
 extern const struct zwlr_layer_surface_v1_listener layer_surface_listener;
@@ -106,6 +108,12 @@ bool OSFSurface::connect(const char *display_name) {
 void OSFSurface::disconnect() {
   running_ = false;
   destroyShmBuffer();
+
+  // Close timer fds
+  for (auto const& [fd, info] : timers_) {
+      close(fd);
+  }
+  timers_.clear();
 
   if (layerSurface_) {
     zwlr_layer_surface_v1_destroy(layerSurface_);
@@ -225,10 +233,100 @@ void OSFSurface::commit() {
   wl_surface_commit(surface_);
 }
 
+int OSFSurface::addTimer(int intervalMs, std::function<void()> callback) {
+    int fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+    if (fd < 0) {
+        perror("timerfd_create");
+        return -1;
+    }
+
+    struct itimerspec its;
+    its.it_value.tv_sec = intervalMs / 1000;
+    its.it_value.tv_nsec = (intervalMs % 1000) * 1000000;
+    its.it_interval.tv_sec = intervalMs / 1000;
+    its.it_interval.tv_nsec = (intervalMs % 1000) * 1000000;
+
+    if (timerfd_settime(fd, 0, &its, NULL) == -1) {
+        perror("timerfd_settime");
+        close(fd);
+        return -1;
+    }
+
+    timers_[fd] = {fd, callback};
+    return fd;
+}
+
+void OSFSurface::removeTimer(int timerId) {
+    if (timers_.count(timerId)) {
+        close(timerId);
+        timers_.erase(timerId);
+    }
+}
+
 void OSFSurface::run() {
-  while (running_ && wl_display_dispatch(display_) != -1) {
-    // Event loop
-  }
+    int wl_fd = wl_display_get_fd(display_);
+
+    std::vector<struct pollfd> fds;
+
+    while (running_) {
+        // Prepare poll fds
+        fds.clear();
+
+        // Wayland display fd
+        fds.push_back({wl_fd, POLLIN, 0});
+
+        // Timer fds
+        for (auto const& [fd, info] : timers_) {
+            fds.push_back({fd, POLLIN, 0});
+        }
+
+        // Flush any pending Wayland requests
+        while (wl_display_prepare_read(display_) != 0) {
+            wl_display_dispatch_pending(display_);
+        }
+
+        if (wl_display_flush(display_) < 0 && errno != EAGAIN) {
+            wl_display_cancel_read(display_);
+            running_ = false;
+            break;
+        }
+
+        // Poll
+        if (poll(fds.data(), fds.size(), -1) < 0) {
+             wl_display_cancel_read(display_);
+             if (errno != EINTR) {
+                 perror("poll");
+                 running_ = false;
+             }
+             continue;
+        }
+
+        // Check Wayland events
+        if (fds[0].revents & POLLIN) {
+            wl_display_read_events(display_);
+            wl_display_dispatch_pending(display_);
+        } else {
+            wl_display_cancel_read(display_);
+        }
+
+        // Check Timers
+        for (size_t i = 1; i < fds.size(); ++i) {
+            if (fds[i].revents & POLLIN) {
+                uint64_t expirations;
+                ssize_t s = read(fds[i].fd, &expirations, sizeof(expirations));
+                if (s != sizeof(expirations)) {
+                     // Error reading timer
+                     continue;
+                }
+
+                // Find callback
+                auto it = timers_.find(fds[i].fd);
+                if (it != timers_.end()) {
+                    it->second.callback();
+                }
+            }
+        }
+    }
 }
 
 void OSFSurface::stop() { running_ = false; }

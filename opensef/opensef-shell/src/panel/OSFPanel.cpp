@@ -48,6 +48,21 @@ void OSFPanel::initWidgets() {
 
 void OSFPanel::run() {
   if (surface_->connect()) {
+    // Add a 1-second timer to update the clock
+    surface_->addTimer(1000, [this]() {
+      if (surface_->width() > 0 && surface_->height() > 0) {
+        // Create paint context manually to force redraw
+        cairo_t *cr = surface_->beginPaint();
+        if (cr) {
+          this->draw(cr, surface_->width(), surface_->height());
+          cairo_destroy(cr);
+          surface_->endPaint();
+          surface_->damage(0, 0, surface_->width(), surface_->height());
+          surface_->commit();
+        }
+      }
+    });
+
     surface_->run();
   } else {
     std::cerr << "Failed to connect OSFPanel to display." << std::endl;
