@@ -200,15 +200,15 @@ Reality: Code sometimes resembles "C with classes"
 
 **Total: ~1,340 lines of pure C**
 
-## C++ Shell Foundation 🔄
+## C++ Shell Foundation ✅
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `OSFSurface.h` | Cairo layer surface | ✅ Header |
+| `OSFSurface.h` | Cairo layer surface | ✅ Complete |
 | `OSFAresTheme.h` | Theme constants | ✅ Complete |
-| `OSFSurface.cpp` | Implementation | ❌ Needed |
-| `OSFPanel.cpp` | Global menu | ❌ Needed |
-| `OSFDock.cpp` | Dock | ❌ Needed |
+| `OSFSurface.cpp` | Implementation | ✅ Complete |
+| `OSFPanel.cpp` | Global menu | ✅ Complete |
+| `OSFDock.cpp` | Dock | ✅ Complete |
 
 ---
 
