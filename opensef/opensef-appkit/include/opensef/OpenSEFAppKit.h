@@ -15,7 +15,6 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-
 // Forward declare Pango types
 typedef struct _PangoLayout PangoLayout;
 
@@ -29,7 +28,9 @@ extern VkCommandBuffer g_CurrentVulkanCommandBuffer;
  * Initialize the AppKit Vulkan subsystem.
  * Must be called once after Vulkan initialization.
  */
-void OSFAppKitInitializeVulkan(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue queue, VkCommandPool commandPool, VkRenderPass renderPass);
+void OSFAppKitInitializeVulkan(VkDevice device, VkPhysicalDevice physicalDevice,
+                               VkQueue queue, VkCommandPool commandPool,
+                               VkRenderPass renderPass);
 
 // =============================================================================
 // Geometry Types
@@ -263,9 +264,10 @@ private:
 };
 
 // =============================================================================
-// OSFWindow - Window abstraction for AppKit
+// OSFWindow - Window abstraction for AppKit (Phase 2 - Coming Soon)
 // =============================================================================
 
+/*
 class OSFWindow {
 public:
   OSFWindow();
@@ -289,5 +291,6 @@ private:
   bool visible_ = false;
   std::shared_ptr<OSFView> contentView_;
 };
+*/
 
 } // namespace opensef
