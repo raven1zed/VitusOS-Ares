@@ -8,6 +8,7 @@
 #include "OSFDesktopLayers.h"
 
 
+#include <cstdlib>
 #include <iostream>
 
 namespace opensef {
@@ -94,8 +95,7 @@ void OSFShutdownScreen::executeAction() {
     // system("poweroff");
     break;
   case PowerAction::Restart:
-    // TODO: Execute system restart
-    // system("reboot");
+    system("reboot");
     break;
   default:
     break;
