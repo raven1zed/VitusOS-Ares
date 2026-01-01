@@ -40,5 +40,4 @@ target_link_libraries(phase1-validation PRIVATE
 # Compile options
 target_compile_options(hello-window PRIVATE -Wall -Wextra)
 target_compile_options(welcome-screen PRIVATE -Wall -Wextra)
-target_compile_options(phase1-minimal PRIVATE -Wall -Wextra)
 target_compile_options(phase1-validation PRIVATE -Wall -Wextra)

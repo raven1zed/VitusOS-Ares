@@ -4,6 +4,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(opensef VERSION 0.2.0 LANGUAGES C CXX)
 
+option(BUILD_TESTING "Build test programs" ON)
+
 # Check for wlroots (compositor is optional)
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
