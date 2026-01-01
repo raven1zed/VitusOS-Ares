@@ -51,6 +51,15 @@ inline int operator&(Anchor a, Anchor b) {
  */
 class OSFSurface {
 public:
+  struct CairoDestroyer {
+    void operator()(cairo_t *context) const {
+      if (context) {
+        cairo_destroy(context);
+      }
+    }
+  };
+  using CairoContextPtr = std::unique_ptr<cairo_t, CairoDestroyer>;
+
   OSFSurface(const std::string &namespace_name);
   ~OSFSurface();
 
@@ -79,10 +88,11 @@ public:
   void setMargin(int top, int right, int bottom, int left);
 
   // Rendering
-  cairo_t *beginPaint();
+  CairoContextPtr beginPaint();
   void endPaint();
   void damage(int x, int y, int width, int height);
   void commit();
+  void requestRedraw();
 
   // Event loop
   void run();
@@ -94,6 +104,9 @@ public:
   using DrawCallback = std::function<void(cairo_t *cr, int width, int height)>;
   using CloseCallback = std::function<void()>;
   using MouseCallback = std::function<void(int x, int y, uint32_t button)>;
+  using MouseEnterCallback = std::function<void(int x, int y)>;
+  using MouseLeaveCallback = std::function<void()>;
+  using TickCallback = std::function<void()>;
 
   void onConfigure(ConfigureCallback cb) { configureCallback_ = cb; }
   void onDraw(DrawCallback cb) { drawCallback_ = cb; }
@@ -101,6 +114,10 @@ public:
   void onMouseDown(MouseCallback cb) { mouseDownCallback_ = cb; }
   void onMouseUp(MouseCallback cb) { mouseUpCallback_ = cb; }
   void onMouseMove(std::function<void(int x, int y)> cb) { mouseMoveCallback_ = cb; }
+  void onMouseEnter(MouseEnterCallback cb) { mouseEnterCallback_ = cb; }
+  void onMouseLeave(MouseLeaveCallback cb) { mouseLeaveCallback_ = cb; }
+  void onTick(TickCallback cb) { tickCallback_ = cb; }
+  void setFrameTimer(int intervalMs);
 
   // Getters
   int width() const { return width_; }
@@ -126,11 +143,12 @@ private:
 
   // Cairo rendering
   cairo_surface_t *cairoSurface_ = nullptr;
-  cairo_t *cairoContext_ = nullptr;
   struct ::wl_buffer *buffer_ = nullptr;
   void *shmData_ = nullptr;
   int shmSize_ = 0;
   int shmFd_ = -1;
+  int timerFd_ = -1;
+  int timerIntervalMs_ = 0;
 
   // State
   std::string namespace_;
@@ -152,6 +170,9 @@ private:
   MouseCallback mouseDownCallback_;
   MouseCallback mouseUpCallback_;
   std::function<void(int, int)> mouseMoveCallback_;
+  MouseEnterCallback mouseEnterCallback_;
+  MouseLeaveCallback mouseLeaveCallback_;
+  TickCallback tickCallback_;
 
   // Internal methods
   bool createShmBuffer(int width, int height);

@@ -28,9 +28,12 @@ private:
   void draw(cairo_t *cr, int width, int height);
   void initWidgets();
   void onMouseUp(int x, int y, uint32_t button);
+  void onMouseMove(int x, int y);
+  void clearHover();
 
   std::unique_ptr<OSFSurface> surface_;
   std::vector<DockItem> items_;
+  int hoveredIndex_ = -1;
 
   // Dock items
   // std::vector<std::shared_ptr<OSFButton>> dockItems_; // Using custom struct for now

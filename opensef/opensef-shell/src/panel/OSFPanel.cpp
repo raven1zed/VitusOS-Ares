@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <linux/input-event-codes.h>
 #include <sstream>
 
 namespace opensef {
@@ -24,6 +25,15 @@ OSFPanel::OSFPanel() {
 
   // Bind callbacks
   surface_->onDraw([this](cairo_t *cr, int w, int h) { this->draw(cr, w, h); });
+  surface_->onMouseMove(
+      [this](int x, int y) { this->handlePointerMove(x, y); });
+  surface_->onMouseDown(
+      [this](int x, int y, uint32_t button) { this->handlePointerDown(x, y, button); });
+  surface_->onMouseUp(
+      [this](int x, int y, uint32_t button) { this->handlePointerUp(x, y, button); });
+  surface_->onMouseLeave([this]() { this->clearHover(); });
+  surface_->onTick([this]() { surface_->requestRedraw(); });
+  surface_->setFrameTimer(1000);
 }
 
 void OSFPanel::initWidgets() {
@@ -44,6 +54,9 @@ void OSFPanel::initWidgets() {
   // Clock label (positioned in draw based on width)
   clockLabel_ = OSFLabel::create("");
   clockLabel_->setAlignment(TextAlignment::Right);
+
+  widgets_.clear();
+  widgets_.push_back(appNameButton_);
 }
 
 void OSFPanel::run() {
@@ -68,13 +81,9 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
   AresTheme::roundedRect(cr, 12, (height - 12) / 2.0, 12, 12, 2);
   cairo_fill(cr);
 
-  // 3. App name (bold)
-  cairo_select_font_face(cr, AresTheme::FontFamily, CAIRO_FONT_SLANT_NORMAL,
-                         CAIRO_FONT_WEIGHT_BOLD);
-  cairo_set_font_size(cr, AresTheme::FontSizeNormal);
-  AresTheme::setCairoColor(cr, AresTheme::StarWhite);
-  cairo_move_to(cr, 32, (height + 12) / 2.0);
-  cairo_show_text(cr, "Filer");
+  // 3. App name button
+  appNameButton_->setFrame(OSFRect(32, (height - 18) / 2.0, 60, 18));
+  appNameButton_->render(cr);
 
   // 4. Menu items using OSFLabel widgets
   menuFile_->setFrame(OSFRect(80, (height - 16) / 2.0, 40, 16));
@@ -101,6 +110,78 @@ void OSFPanel::updateClock() {
   // Format: Tuesday,12 10:15 PM
   oss << std::put_time(&tm, "%A,%d %I:%M %p");
   clockLabel_->setText(oss.str());
+}
+
+std::shared_ptr<OSFButton> OSFPanel::hitTestButton(int x, int y) {
+  for (const auto &widget : widgets_) {
+    auto button = std::dynamic_pointer_cast<OSFButton>(widget);
+    if (!button) {
+      continue;
+    }
+
+    auto frame = button->frame();
+    if (x >= frame.x && x <= frame.x + frame.width && y >= frame.y &&
+        y <= frame.y + frame.height) {
+      return button;
+    }
+  }
+
+  return nullptr;
+}
+
+void OSFPanel::handlePointerMove(int x, int y) {
+  auto button = hitTestButton(x, y);
+  if (button == hoveredButton_) {
+    return;
+  }
+
+  if (hoveredButton_) {
+    hoveredButton_->handleMouseLeave();
+  }
+
+  hoveredButton_ = button;
+
+  if (hoveredButton_) {
+    hoveredButton_->handleMouseEnter();
+  }
+
+  surface_->requestRedraw();
+}
+
+void OSFPanel::handlePointerDown(int x, int y, uint32_t button) {
+  if (button != BTN_LEFT) {
+    return;
+  }
+
+  handlePointerMove(x, y);
+
+  pressedButton_ = hoveredButton_;
+  if (pressedButton_) {
+    pressedButton_->handleMouseDown();
+    surface_->requestRedraw();
+  }
+}
+
+void OSFPanel::handlePointerUp(int x, int y, uint32_t button) {
+  if (button != BTN_LEFT) {
+    return;
+  }
+
+  handlePointerMove(x, y);
+
+  if (pressedButton_) {
+    pressedButton_->handleMouseUp();
+    pressedButton_.reset();
+    surface_->requestRedraw();
+  }
+}
+
+void OSFPanel::clearHover() {
+  if (hoveredButton_) {
+    hoveredButton_->handleMouseLeave();
+    hoveredButton_.reset();
+    surface_->requestRedraw();
+  }
 }
 
 } // namespace opensef

@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <csignal>
 #include <fcntl.h>
+#include <linux/input-event-codes.h>
 
 namespace opensef {
 
@@ -37,6 +38,9 @@ OSFDock::OSFDock() {
   surface_->onMouseUp([this](int x, int y, uint32_t button) {
       this->onMouseUp(x, y, button);
   });
+
+  surface_->onMouseMove([this](int x, int y) { this->onMouseMove(x, y); });
+  surface_->onMouseLeave([this]() { this->clearHover(); });
 }
 
 OSFDock::~OSFDock() = default;
@@ -87,6 +91,10 @@ void OSFDock::initWidgets() {
 }
 
 void OSFDock::onMouseUp(int x, int y, uint32_t button) {
+    if (button != BTN_LEFT) {
+        return;
+    }
+
     // Basic hit testing
     for (const auto& item : items_) {
         if (x >= item.x && x <= item.x + item.size &&
@@ -120,6 +128,30 @@ void OSFDock::onMouseUp(int x, int y, uint32_t button) {
             }
             return;
         }
+    }
+}
+
+void OSFDock::onMouseMove(int x, int y) {
+    int newHover = -1;
+    for (size_t i = 0; i < items_.size(); ++i) {
+        const auto& item = items_[i];
+        if (x >= item.x && x <= item.x + item.size &&
+            y >= item.y && y <= item.y + item.size) {
+            newHover = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (newHover != hoveredIndex_) {
+        hoveredIndex_ = newHover;
+        surface_->requestRedraw();
+    }
+}
+
+void OSFDock::clearHover() {
+    if (hoveredIndex_ != -1) {
+        hoveredIndex_ = -1;
+        surface_->requestRedraw();
     }
 }
 
@@ -161,6 +193,12 @@ void OSFDock::draw(cairo_t *cr, int width, int height) {
       item.x = startX;
       item.y = drawY;
       item.size = iconSize;
+
+      if (static_cast<int>(i) == hoveredIndex_) {
+          AresTheme::setCairoColor(cr, AresTheme::Nebula);
+          AresTheme::roundedRect(cr, startX - 4, drawY - 4, iconSize + 8, iconSize + 8, 14);
+          cairo_fill(cr);
+      }
 
       if (item.svgHandle) {
           // Render SVG
