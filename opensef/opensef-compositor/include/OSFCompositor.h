@@ -68,6 +68,7 @@ public:
   void focusView(OSFView *view);
   OSFView *viewAt(double x, double y, wlr_surface **surface, double *sx,
                   double *sy);
+  const std::list<std::unique_ptr<OSFView>> &views() const { return views_; }
 
   // Input
   void setCursorMode(int mode);

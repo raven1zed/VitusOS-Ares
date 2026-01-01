@@ -81,13 +81,23 @@ void OSFShutdownScreen::createNodes(const char *text) {
   AresTheme::hexToRGBA(AresTheme::PureBlack, bgColor);
 
   // Get screen dimensions from compositor
-  // For now, use placeholder dimensions - should get from output
-  int width = 1920; // TODO: Get from actual output
+  int width = 1920;
   int height = 1080;
+  int x = 0;
+  int y = 0;
+
+  if (compositor_->outputLayout()) {
+    struct wlr_box box;
+    wlr_output_layout_get_box(compositor_->outputLayout(), nullptr, &box);
+    width = box.width;
+    height = box.height;
+    x = box.x;
+    y = box.y;
+  }
 
   background_ = layers_->createRect(DesktopLayer::Lock, width, height, bgColor);
   if (background_) {
-    wlr_scene_node_set_position(&background_->node, 0, 0);
+    wlr_scene_node_set_position(&background_->node, x, y);
   }
 
   // Note: Text rendering ("goodbye" / "restart") requires font infrastructure
