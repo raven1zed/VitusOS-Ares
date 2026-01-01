@@ -8,7 +8,6 @@
  */
 
 #include <opensef/OSFWindow.h>
-#include <opensef/OpenSEFAppKit.h>
 
 #include <cairo/cairo.h>
 #include <cstring>
@@ -369,9 +368,7 @@ void OSFWindow::setSize(int width, int height) {
   }
 }
 
-void OSFWindow::setContentView(std::shared_ptr<OSFView> view) {
-  contentView_ = view;
-}
+// Content view removed in favor of drawCallback (see onDraw)
 
 void OSFWindow::runEventLoop() {
   if (!impl_->display) {
@@ -392,9 +389,9 @@ void OSFWindow::runEventLoop() {
       cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
       cairo_paint(cr);
 
-      // Render content view if present
-      if (contentView_) {
-        contentView_->render(cr);
+      // Call draw callback if set
+      if (drawCallback_) {
+        drawCallback_(cr, width_, height_);
       }
 
       cairo_destroy(cr);

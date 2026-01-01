@@ -3,8 +3,8 @@
  *
  * Phase 2: Windowing Integration
  *
- * OSFWindow wraps an XDG surface and connects to the view hierarchy.
- * This is separate from OSFSurface (which handles layer-shell for panel/dock).
+ * OSFWindow wraps an XDG surface for standard application windows.
+ * This is separate from OSFSurface (which uses layer-shell for panel/dock).
  */
 
 #pragma once
@@ -13,14 +13,10 @@
 #include <memory>
 #include <string>
 
-// Forward declarations
-struct wl_display;
-struct wl_surface;
+// Forward declaration for Cairo context
+typedef struct _cairo cairo_t;
 
 namespace opensef {
-
-// Forward declarations
-class OSFView;
 
 /**
  * OSFWindow - A top-level application window
@@ -32,6 +28,7 @@ class OSFWindow {
 public:
   using CloseCallback = std::function<void()>;
   using ResizeCallback = std::function<void(int width, int height)>;
+  using DrawCallback = std::function<void(cairo_t *cr, int width, int height)>;
 
   /**
    * Create a new window with given dimensions.
@@ -59,10 +56,6 @@ public:
   int height() const { return height_; }
   void setSize(int width, int height);
 
-  // Content
-  void setContentView(std::shared_ptr<OSFView> view);
-  std::shared_ptr<OSFView> contentView() const { return contentView_; }
-
   // Event loop (blocking)
   void runEventLoop();
   void stopEventLoop();
@@ -70,12 +63,15 @@ public:
   // Callbacks
   void onClose(CloseCallback callback) { closeCallback_ = callback; }
   void onResize(ResizeCallback callback) { resizeCallback_ = callback; }
+  void onDraw(DrawCallback callback) { drawCallback_ = callback; }
 
   // Factory
   static std::shared_ptr<OSFWindow> create(int width, int height,
                                            const std::string &title = "");
 
 private:
+  friend struct Impl;
+
   // Window state
   std::string title_;
   int width_ = 0;
@@ -83,12 +79,10 @@ private:
   bool visible_ = false;
   bool running_ = false;
 
-  // Content
-  std::shared_ptr<OSFView> contentView_;
-
   // Callbacks
   CloseCallback closeCallback_;
   ResizeCallback resizeCallback_;
+  DrawCallback drawCallback_;
 
   // Wayland state (implementation in .cpp)
   struct Impl;

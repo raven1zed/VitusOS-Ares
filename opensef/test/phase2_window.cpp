@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include <opensef/OSFWindow.h>
-#include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBase.h>
 
 
@@ -36,12 +35,23 @@ int main() {
   }
   std::cout << "    ✓ Connected to display\n\n";
 
-  // 3. Create content view
-  std::cout << "[3] Creating content view...\n";
-  auto label = OSFLabel::create("Hello from Phase 2!");
-  label->setFrame(OSFRect(50, 100, 300, 50));
-  label->setTextColor(OSFColor::fromHex(0xE85D04)); // Space Orange
-  std::cout << "    ✓ Label created\n\n";
+  // 3. Set up draw callback
+  std::cout << "[3] Setting up draw callback...\n";
+  window->onDraw([](cairo_t *cr, int width, int height) {
+    // Draw a simple rectangle
+    cairo_set_source_rgb(cr, 0.91, 0.36, 0.02); // Space Orange
+    cairo_rectangle(cr, 50, 50, width - 100, height - 100);
+    cairo_fill(cr);
+
+    // Draw text
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 24);
+    cairo_move_to(cr, 80, 160);
+    cairo_show_text(cr, "Phase 2 Works!");
+  });
+  std::cout << "    ✓ Draw callback set\n\n";
 
   // 4. Set up close handler
   std::cout << "[4] Setting up event handlers...\n";

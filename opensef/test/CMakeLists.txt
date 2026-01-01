@@ -21,7 +21,6 @@ add_executable(phase2-window
 
 target_link_libraries(phase2-window PRIVATE
     opensef-base
-    opensef-appkit
 )
 
 # Compile options
