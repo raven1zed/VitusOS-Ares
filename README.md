@@ -30,7 +30,7 @@ VitusOS Ares is a **complete linux distro with openSEF that's work both as a des
 > This project is developed by **[@raven1zed](https://github.com/raven1zed)** (Human Architect) with significant AI assistance from **Claude** (Anthropic) and **Gemini** (Google DeepMind).
 >
 > - **Human (@raven1zed)**: Vision, design direction, architecture decisions, code review, testing
-> - **AI (Claude/Gemini)**: Code implementation, documentation, debugging, research
+> - **AI (Claude/Gemini/Codex)**: Code implementation, documentation, debugging, research
 >
 > We believe in transparency about AI's role in software development. The architectural decisions, design philosophy, and quality assurance are human-driven. AI accelerates implementation but doesn't replace human creativity and judgment.
 
