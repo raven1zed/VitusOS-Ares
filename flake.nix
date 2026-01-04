@@ -26,6 +26,7 @@
             gdb
             gnumake
             git
+            weston
           ];
           
           buildInputs = with pkgs; [
