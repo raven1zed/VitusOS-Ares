@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <opensef/OpenSEFAppKit.h>
+#include <opensef/OSFWindow.h>
 #include <pango/pangocairo.h>
 
 #ifndef M_PI

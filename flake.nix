@@ -19,7 +19,8 @@
             ninja
             pkg-config
             wayland-scanner
-            gcc
+            clang
+            llvmPackages.libcxxClang
             gdb
             gnumake
             git
@@ -72,8 +73,9 @@
                 echo "    CMake has been updated to find 0.19 automatically."
             fi
             
-            export CC=gcc
-            export CXX=g++
+            export CC=clang
+            export CXX=clang++
+            echo "Using Clang compiler: $(clang --version | head -n1)"
           '';
         };
       }

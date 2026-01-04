@@ -11,7 +11,7 @@ pkgs.mkShell {
     ninja
     pkg-config
     wayland-scanner
-    gcc
+    clang
     gdb
     gnumake
     git
@@ -39,6 +39,10 @@ pkgs.mkShell {
     glib
     fontconfig
     freetype
+    vulkan-headers
+    vulkan-loader
+    vulkan-tools
+    glm
   ];
 
   shellHook = ''
@@ -48,7 +52,12 @@ pkgs.mkShell {
     echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'NOT FOUND')"
     echo "cairo:   $(pkg-config --modversion cairo 2>/dev/null || echo 'NOT FOUND')"
     echo ""
-    echo "Build: cd opensef && mkdir -p build && cd build && cmake .. -G Ninja && ninja"
+    
+    export CC=clang
+    export CXX=clang++
+    echo "Using Clang compiler (required for Objective-C support)"
+    echo ""
+    echo "Build: cmake -B build -G Ninja && cmake --build build"
     echo ""
   '';
 }

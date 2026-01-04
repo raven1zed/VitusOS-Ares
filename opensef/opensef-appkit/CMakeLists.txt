@@ -17,7 +17,6 @@ find_package(Freetype REQUIRED)
 find_package(glm REQUIRED)
 
 add_library(opensef-appkit STATIC
-    src/OSFView.cpp
     src/OSFButton.cpp
     src/OSFLabel.cpp
     src/OSFTextField.cpp

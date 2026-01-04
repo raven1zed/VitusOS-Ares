@@ -163,6 +163,7 @@ public:
 
   // OSFResponder overrides (Phase 3)
   bool acceptsFirstResponder() const override { return true; }
+  bool mouseDown(OSFEvent &event) override;
   bool keyDown(OSFEvent &event) override;
   void becomeFirstResponder() override;
   void resignFirstResponder() override;

@@ -14,6 +14,7 @@ public:
   ~OSFPanel() = default;
 
   void run();
+  bool connect() { return surface_ && surface_->connect(); }
   OSFSurface *surface() const { return surface_.get(); }
 
 private:

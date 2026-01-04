@@ -30,6 +30,7 @@ add_executable(phase3-app
 
 target_link_libraries(phase3-app PRIVATE
     opensef-base
+    opensef-appkit
 )
 
 # Compile options
