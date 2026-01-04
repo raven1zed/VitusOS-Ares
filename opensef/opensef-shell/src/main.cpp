@@ -30,11 +30,9 @@ int main(int argc, char **argv) {
   auto &app = OSFApplication::shared();
 
   // 1. Wallpaper
-  // Path to wallpaper? For now hardcode or use a default
-  // In NixOS VM, we might look in /run/current-system/sw/share/backgrounds or
-  // similar Or just a colored rect if file not found (handled by OSFWallpaper)
-  auto wallpaper = std::make_shared<OSFWallpaper>(
-      "/usr/share/backgrounds/vitus_default.jpg");
+  // Load from local resources (relative to build binary)
+  auto wallpaper =
+      std::make_shared<OSFWallpaper>("resources/wallpaper.png");
   if (wallpaper->connect()) {
     app.addExternalEventSource(wallpaper->surface()->displayFd(), [=]() {
       wallpaper->surface()->processEvents();

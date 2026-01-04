@@ -19,6 +19,8 @@
             ninja
             pkg-config
             wayland-scanner
+            whitesur-icon-theme
+            imagemagick
             clang
             llvmPackages.libcxxClang
             gdb

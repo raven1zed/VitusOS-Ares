@@ -57,10 +57,10 @@ void OSFDock::initWidgets() {
     };
 
     std::vector<AppDef> apps = {
-        {"Filer", "/usr/share/icons/Adwaita/scalable/apps/system-file-manager-symbolic.svg", "nautilus"},
-        {"Terminal", "/usr/share/icons/Adwaita/scalable/apps/utilities-terminal-symbolic.svg", "gnome-terminal"},
-        {"Browser", "/usr/share/icons/Adwaita/scalable/apps/web-browser-symbolic.svg", "firefox"},
-        {"Settings", "/usr/share/icons/Adwaita/scalable/apps/preferences-system-symbolic.svg", "gnome-control-center"}
+        {"Filer", "resources/icons/file_manager.svg", "nautilus"},
+        {"Terminal", "resources/icons/terminal.svg", "gnome-terminal"},
+        {"Browser", "resources/icons/browser.svg", "firefox"},
+        {"Settings", "resources/icons/settings.svg", "gnome-control-center"}
     };
 
     // Note: Icons paths are examples. In the Nix environment, we rely on XDG_DATA_DIRS or specific paths.

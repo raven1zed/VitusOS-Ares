@@ -11,6 +11,8 @@ pkgs.mkShell {
     ninja
     pkg-config
     wayland-scanner
+    whitesur-icon-theme
+    imagemagick
     clang
     gdb
     gnumake
