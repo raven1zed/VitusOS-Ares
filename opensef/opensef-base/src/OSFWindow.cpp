@@ -14,6 +14,10 @@
 // Needed for OSFView hitTest
 #include <opensef/OSFView.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #include <cairo/cairo.h>
 #include <cstring>
 #include <fcntl.h>
@@ -597,8 +601,52 @@ void OSFWindow::runEventLoop() {
     wl_display_flush(impl_->display);
     if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
       cairo_t *cr = cairo_create(impl_->cairoSurface);
-      cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+      
+      // === VitusOS CSD (Client Side Decorations) ===
+
+      // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
+      cairo_save(cr);
+      cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+      cairo_set_source_rgba(cr, 0.18, 0.18, 0.18, 0.85); // 85% opacity
       cairo_paint(cr);
+      cairo_restore(cr);
+
+      // 2. Titlebar (Slightly lighter, also glass)
+      cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
+      cairo_rectangle(cr, 0, 0, width_, 30); // 30px height
+      cairo_fill(cr);
+
+      // 3. Traffic Lights
+      // Red
+      cairo_set_source_rgba(cr, 1.0, 0.37, 0.35, 1.0); // #FF5F5A
+      cairo_arc(cr, 20, 15, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+      // Yellow
+      cairo_set_source_rgba(cr, 1.0, 0.73, 0.19, 1.0); // #FFBB30
+      cairo_arc(cr, 40, 15, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+      // Green
+      cairo_set_source_rgba(cr, 0.16, 0.78, 0.25, 1.0); // #28C840
+      cairo_arc(cr, 60, 15, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+
+      // 4. Title Text (White)
+      if (!title_.empty()) {
+        cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
+        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 13);
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, title_.c_str(), &extents);
+        cairo_move_to(cr, (width_ - extents.width) / 2, 20);
+        cairo_show_text(cr, title_.c_str());
+      }
+      
+      // Separator Line
+      cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
+      cairo_move_to(cr, 0, 30);
+      cairo_line_to(cr, width_, 30);
+      cairo_stroke(cr);
+
       if (drawCallback_)
         drawCallback_(cr, width_, height_);
       cairo_destroy(cr);
@@ -660,8 +708,52 @@ bool OSFWindow::processEvents() {
 
   if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
     cairo_t *cr = cairo_create(impl_->cairoSurface);
-    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    
+    // === VitusOS CSD (Client Side Decorations) ===
+
+    // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
+    cairo_save(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_rgba(cr, 0.18, 0.18, 0.18, 0.85); // 85% opacity
     cairo_paint(cr);
+    cairo_restore(cr);
+
+    // 2. Titlebar (Slightly lighter, also glass)
+    cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
+    cairo_rectangle(cr, 0, 0, width_, 30); // 30px height
+    cairo_fill(cr);
+
+    // 3. Traffic Lights
+    // Red
+    cairo_set_source_rgba(cr, 1.0, 0.37, 0.35, 1.0); // #FF5F5A
+    cairo_arc(cr, 20, 15, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+    // Yellow
+    cairo_set_source_rgba(cr, 1.0, 0.73, 0.19, 1.0); // #FFBB30
+    cairo_arc(cr, 40, 15, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+    // Green
+    cairo_set_source_rgba(cr, 0.16, 0.78, 0.25, 1.0); // #28C840
+    cairo_arc(cr, 60, 15, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+
+    // 4. Title Text (White)
+    if (!title_.empty()) {
+      cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
+      cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+      cairo_set_font_size(cr, 13);
+      cairo_text_extents_t extents;
+      cairo_text_extents(cr, title_.c_str(), &extents);
+      cairo_move_to(cr, (width_ - extents.width) / 2, 20);
+      cairo_show_text(cr, title_.c_str());
+    }
+    
+    // Separator Line
+    cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
+    cairo_move_to(cr, 0, 30);
+    cairo_line_to(cr, width_, 30);
+    cairo_stroke(cr);
+
     if (drawCallback_)
       drawCallback_(cr, width_, height_);
     cairo_destroy(cr);

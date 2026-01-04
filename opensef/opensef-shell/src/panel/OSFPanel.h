@@ -22,9 +22,7 @@ private:
 
   // Widgets (using the widget library)
   std::shared_ptr<OSFButton> appNameButton_;
-  std::shared_ptr<OSFLabel> menuFile_;
-  std::shared_ptr<OSFLabel> menuSettings_;
-  std::shared_ptr<OSFLabel> menuHelp_;
+  std::vector<std::shared_ptr<OSFButton>> menuButtons_;
   std::shared_ptr<OSFLabel> clockLabel_;
 
   // List of all widgets for hit testing

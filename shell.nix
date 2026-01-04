@@ -1,11 +1,6 @@
-# shell.nix - Simple development shell for VitusOS Ares
-# Usage: nix-shell (no flakes needed!)
-
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
-  name = "opensef-dev";
-  
   nativeBuildInputs = with pkgs; [
     cmake
     ninja
@@ -14,6 +9,7 @@ pkgs.mkShell {
     whitesur-icon-theme
     imagemagick
     clang
+    llvmPackages.libcxxClang
     gdb
     gnumake
     git
@@ -32,7 +28,7 @@ pkgs.mkShell {
     mesa
     libffi
     libcap
-    systemd  # for libudev
+    udev
     libxcb
     xwayland
     cairo
@@ -44,22 +40,13 @@ pkgs.mkShell {
     vulkan-headers
     vulkan-loader
     vulkan-tools
+    vulkan-validation-layers
     glm
   ];
 
   shellHook = ''
-    echo ""
-    echo "=== VitusOS Ares Dev Shell ==="
-    echo ""
-    echo "wlroots: $(pkg-config --modversion wlroots 2>/dev/null || echo 'NOT FOUND')"
-    echo "cairo:   $(pkg-config --modversion cairo 2>/dev/null || echo 'NOT FOUND')"
-    echo ""
-    
+    export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.cairo.dev}/lib/pkgconfig:${pkgs.pango.dev}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig:${pkgs.mesa}/lib/pkgconfig:$PKG_CONFIG_PATH"
     export CC=clang
     export CXX=clang++
-    echo "Using Clang compiler (required for Objective-C support)"
-    echo ""
-    echo "Build: cmake -B build -G Ninja && cmake --build build"
-    echo ""
   '';
 }
