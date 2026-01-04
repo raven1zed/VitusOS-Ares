@@ -5,21 +5,36 @@
 export XDG_RUNTIME_DIR=/tmp/xdg_runtime_dir_$$
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
-# 2. Check for X Server with multiple addresses
+# 2. Check for X Server (Robust Diagnostic)
 export DISPLAY=:0
-if ! xset q &>/dev/null; then
-  export DISPLAY=localhost:0
-  if ! xset q &>/dev/null; then
-    export DISPLAY=127.0.0.1:0
-  fi
-fi
+echo "🔍 Checking X Server connection..."
 
-if ! xset q &>/dev/null; then
-  echo "❌ No X Server detected at $DISPLAY"
-  echo "👉 Please ensure VcXsrv is running (check system tray)!"
-  echo "👉 If running, allows it through Windows Firewall (Public & Private)."
+# Function to test socket access
+check_display() {
+  local HOST=$1
+  local PORT=$2
+  if nc -z -w 1 "$HOST" "$PORT" &>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+# Try standard localhost first
+if check_display localhost 6000; then
+  export DISPLAY=localhost:0
+# Try IP explicitly
+elif check_display 127.0.0.1 6000; then
+  export DISPLAY=127.0.0.1:0
+# Last resort generic default
+elif xset q &>/dev/null; then
+   export DISPLAY=:0
+else
+  echo "❌ CONNECTION FAILED: VcXsrv is not reachable."
+  echo "   (Diagnostic: 'nc' failed to connect to localhost:6000)"
+  echo "👉 RE-CHECK FIREWALL: Start > 'Allow an app...' > VcXsrv > ☑️ Private & ☑️ Public"
   exit 1
 fi
+echo "✅ Connected to X Server at $DISPLAY"
 
 echo "✅ X Server detected!"
 
