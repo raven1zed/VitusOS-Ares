@@ -14,6 +14,7 @@ public:
   ~OSFPanel() = default;
 
   void run();
+  OSFSurface *surface() const { return surface_.get(); }
 
 private:
   std::unique_ptr<OSFSurface> surface_;

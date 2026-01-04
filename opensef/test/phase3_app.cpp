@@ -4,12 +4,13 @@
  * This sample app proves that Phase 3 works:
  * - OSFApplication::run() is the SINGLE entry point
  * - Windows register with the app and are polled together
- * - Responder chain is active
+ * - Responder chain is active (Clicking button works!)
  */
 
 #include <cairo/cairo.h>
 #include <iostream>
 #include <opensef/OSFWindow.h>
+#include <opensef/OpenSEFAppKit.h> // Triggers dependency on OSFView/Geometry
 #include <opensef/OpenSEFBase.h>
 
 
@@ -25,48 +26,77 @@ int main() {
 
   auto &app = OSFApplication::shared();
 
-  // === Setup Callbacks ===
-  std::cout << "[1] Setting up application callbacks...\n";
+  app.setOnLaunch(
+      []() { std::cout << "    [App] OSFApplication::onLaunch() called\n"; });
 
-  app.setOnLaunch([]() {
-    std::cout << "    ✓ OSFApplication::onLaunch() called\n";
-    std::cout << "    ✓ Entering unified event loop...\n\n";
+  app.setOnTerminate([]() {
+    std::cout << "    [App] OSFApplication::onTerminate() called\n";
   });
 
-  app.setOnTerminate(
-      []() { std::cout << "\n    ✓ OSFApplication::onTerminate() called\n"; });
-
   // === Create Window ===
-  std::cout << "[2] Creating OSFWindow...\n";
-  auto window = OSFWindow::create(700, 500, "Phase 3 - Unified Event Loop");
-  std::cout << "    ✓ Window auto-registered with app (windows: "
-            << app.windows().size() << ")\n\n";
+  auto window = OSFWindow::create(800, 600, "Phase 3 - Unified Event Loop");
 
   // === Connect to Display ===
-  std::cout << "[3] Connecting to Wayland display...\n";
   if (!window->connect()) {
-    std::cerr << "    ✗ Failed to connect to Wayland display.\n";
-    std::cerr << "    (Run this inside the openSEF compositor)\n";
+    std::cerr << "    [Error] Failed to connect to Wayland display.\n";
     return 1;
   }
-  std::cout << "    ✓ Connected to display\n\n";
 
-  // === Draw Callback ===
-  std::cout << "[4] Setting up draw callback...\n";
-  window->onDraw([](cairo_t *cr, int width, int height) {
-    // Mars-inspired gradient background
+  // === Setup UI (AppKit) ===
+  // Root View (Background)
+  auto rootView = std::make_shared<OSFView>();
+  rootView->setFrame(OSFRect(0, 0, 800, 600));
+
+  // Custom draw for root view (Background Gradient)
+  /* NOTE: In a real app we would subclass OSFView, but here we can rely on
+     the window draw callback for the backend, or we can't easily override
+     virtuals on a raw instance. Instead, let's use the Window's draw callback
+     for the background, and AppKit views for the interactive elements. */
+
+  // Button 1
+  auto button = OSFButton::create("Click Me!", []() {
+    std::cout << "\n    >>> BUTTON CLICKED! Responder Chain Works! <<<\n\n";
+  });
+  button->setFrame(OSFRect(50, 450, 200, 50));
+  rootView->addSubview(button);
+
+  // Button 2 (Exit)
+  auto exitButton = OSFButton::create("Exit App", [&]() {
+    std::cout << "    [App] Exit requested via button.\n";
+    app.stop();
+  });
+  exitButton->setFrame(OSFRect(300, 450, 200, 50));
+  rootView->addSubview(exitButton);
+
+  // Set Content View
+  window->setContentView(rootView);
+  std::cout << "    [Setup] View hierarchy created and attached to window.\n";
+
+  // === Draw Callback (Integration) ===
+  // AppKit views render themselves, but we clear the window first.
+  window->onDraw([rootView](cairo_t *cr, int width, int height) {
+    // 1. Draw Background (Mars Gradient)
     cairo_pattern_t *gradient =
         cairo_pattern_create_linear(0, 0, width, height);
-    cairo_pattern_add_color_stop_rgb(gradient, 0.0, 0.91, 0.36,
-                                     0.02); // Space Orange
-    cairo_pattern_add_color_stop_rgb(gradient, 0.5, 0.83, 0.50, 0.10); // Mid
-    cairo_pattern_add_color_stop_rgb(gradient, 1.0, 0.20, 0.12,
-                                     0.08); // Deep Mars
+    cairo_pattern_add_color_stop_rgb(gradient, 0.0, 0.91, 0.36, 0.02);
+    cairo_pattern_add_color_stop_rgb(gradient, 0.5, 0.83, 0.50, 0.10);
+    cairo_pattern_add_color_stop_rgb(gradient, 1.0, 0.20, 0.12, 0.08);
     cairo_set_source(cr, gradient);
     cairo_paint(cr);
     cairo_pattern_destroy(gradient);
 
-    // Header
+    // 2. Render AppKit View Hierarchy
+    // The window's content view (rootView) should be rendered here.
+    // Ideally OSFWindow handles this automatically if contentView is set,
+    // but our current OSFWindow.cpp implementation of createBuffer/Drawing
+    // clears screen and calls drawCallback. It doesn't auto-render contentView
+    // yet. So we do it manually here for Phase 3 validation.
+
+    if (rootView) {
+      rootView->render(cr);
+    }
+
+    // 3. Draw Overlay Text
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_BOLD);
@@ -74,104 +104,18 @@ int main() {
     cairo_move_to(cr, 50, 70);
     cairo_show_text(cr, "Phase 3 Complete!");
 
-    // Subtitle
     cairo_set_font_size(cr, 18);
-    cairo_move_to(cr, 50, 100);
-    cairo_show_text(cr, "REAL Unified Event Loop via OSFApplication::run()");
-
-    // Feature box
-    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.3);
-    cairo_rectangle(cr, 40, 130, width - 80, 320);
-    cairo_fill(cr);
-
-    // Feature list
-    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-    cairo_set_font_size(cr, 16);
-
-    const char *features[] = {
-        "✓ OSFApplication::run() polls ALL windows with poll()",
-        "✓ Windows auto-register/unregister with app",
-        "✓ 60fps unified event loop",
-        "",
-        "✓ OSFResponder base class for event handling",
-        "✓ OSFView inherits from OSFResponder",
-        "✓ nextResponder() chain: View → SuperView → Window",
-        "✓ mouseDown(), keyDown() virtual methods",
-        "",
-        "✓ OSFView::setNeedsLayout() / layoutSubviews()",
-        "✓ OSFView::layoutIfNeeded() recursive layout",
-        "✓ OSFView::hitTest() for event targeting",
-        "",
-        "✓ OSFButton/OSFTextField responder events",
-        "✓ First responder focus management",
-    };
-
-    int y = 165;
-    for (const char *feature : features) {
-      if (feature[0] == '\0') {
-        y += 10; // Spacing
-      } else {
-        cairo_move_to(cr, 60, y);
-        cairo_show_text(cr, feature);
-        y += 24;
-      }
-    }
-
-    // Footer
-    cairo_set_font_size(cr, 14);
-    cairo_move_to(cr, 50, height - 30);
-    cairo_show_text(cr, "Close this window to exit the application...");
+    cairo_move_to(cr, 50, 110);
+    cairo_show_text(cr, "Interactive Controls: Click the buttons below.");
   });
-  std::cout << "    ✓ Draw callback set\n\n";
-
-  // === Close Handler ===
-  std::cout << "[5] Setting up close handler...\n";
-  window->onClose([&]() {
-    std::cout << "\n    → Window close requested\n";
-    app.stop(); // This stops OSFApplication::run()
-  });
-  std::cout << "    ✓ Close handler set (will call app.stop())\n\n";
 
   // === Show Window ===
-  std::cout << "[6] Showing window...\n";
   window->show();
-  std::cout << "    ✓ Window visible\n\n";
 
   // === RUN THE APPLICATION ===
-  std::cout << "[7] Calling OSFApplication::run()...\n";
-  std::cout
-      << "    (This is the SINGLE entry point for all event handling)\n\n";
+  std::cout << "    [Run] Starting Unified Event Loop...\n";
+  app.run();
 
-  app.run(); // <-- THIS IS THE KEY: Single unified event loop!
-
-  // === Cleanup ===
-  std::cout << "\n[8] Application exited, cleaning up...\n";
   window->disconnect();
-  std::cout << "    ✓ Disconnected\n\n";
-
-  // === Success ===
-  std::cout
-      << "╔════════════════════════════════════════════════════════════╗\n";
-  std::cout
-      << "║              PHASE 3 VALIDATION: PASSED                    ║\n";
-  std::cout
-      << "╠════════════════════════════════════════════════════════════╣\n";
-  std::cout
-      << "║  ✓ OSFApplication::run() - REAL unified event loop         ║\n";
-  std::cout
-      << "║  ✓ OSFResponder chain    - Event bubbling works            ║\n";
-  std::cout
-      << "║  ✓ OSFView layout system - setNeedsLayout/layoutSubviews   ║\n";
-  std::cout
-      << "║  ✓ Hit testing           - OSFView::hitTest()              ║\n";
-  std::cout
-      << "║  ✓ First responder       - Focus management                ║\n";
-  std::cout
-      << "╠════════════════════════════════════════════════════════════╣\n";
-  std::cout
-      << "║  Phase 3: Layout + Input + Responder Chain is COMPLETE!    ║\n";
-  std::cout
-      << "╚════════════════════════════════════════════════════════════╝\n";
-
   return 0;
 }

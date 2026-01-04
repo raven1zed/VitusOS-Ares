@@ -582,4 +582,32 @@ const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
     .configure = OSFSurface::layerSurfaceConfigure,
     .closed = OSFSurface::layerSurfaceClosed};
 
+// Unified Event Loop Support
+int OSFSurface::displayFd() const {
+  if (!display_)
+    return -1;
+  return wl_display_get_fd(display_);
+}
+
+bool OSFSurface::processEvents() {
+  if (!display_)
+    return false;
+
+  if (wl_display_dispatch_pending(display_) == -1) {
+    return false;
+  }
+
+  wl_display_flush(display_);
+  return true;
+}
+
+void OSFSurface::dispatchTimers() {
+  // For Unified Loop, we can just trigger tick callback manually
+  // or properly check the timerFd.
+  // For simplicity in Phase 3, we assume the app loop calls this frequently.
+  if (tickCallback_) {
+    tickCallback_();
+  }
+}
+
 } // namespace opensef

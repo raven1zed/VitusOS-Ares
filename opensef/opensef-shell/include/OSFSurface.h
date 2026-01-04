@@ -152,6 +152,9 @@ public:
   int width() const { return width_; }
   int height() const { return height_; }
   struct wl_display *display() const { return display_; }
+  int displayFd() const;
+  bool processEvents();
+  void dispatchTimers();
 
 private:
   // Wayland objects

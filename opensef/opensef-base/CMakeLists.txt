@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(WAYLAND REQUIRED wayland-client)
 pkg_check_modules(CAIRO REQUIRED cairo)
+pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 
 # === XDG Shell Protocol Generation ===
 # Required for OSFWindow (XDG surface support)
@@ -41,7 +42,9 @@ add_library(opensef-base SHARED
     src/OSFBundle.cpp
     src/OSFNotificationCenter.cpp
     src/OSFObject.cpp
+    src/OSFObject.cpp
     src/OSFRunLoop.cpp
+    src/OSFView.cpp
     # Windowing (Wayland dependency)
     src/OSFWindow.cpp
     ${XDG_SHELL_C}
@@ -53,11 +56,13 @@ target_include_directories(opensef-base PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${WAYLAND_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
+    ${XKBCOMMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-base PUBLIC
     ${WAYLAND_LIBRARIES}
     ${CAIRO_LIBRARIES}
+    ${XKBCOMMON_LIBRARIES}
 )
 
 target_compile_options(opensef-base PRIVATE

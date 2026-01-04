@@ -9,16 +9,18 @@ namespace opensef {
 
 class OSFWallpaper {
 public:
-  OSFWallpaper(const std::string& imagePath);
+  OSFWallpaper(const std::string &imagePath);
   ~OSFWallpaper();
   void run();
+  bool connect() { return surface_->connect(); }
+  OSFSurface *surface() const { return surface_.get(); }
 
 private:
-  void draw(cairo_t* cr, int width, int height);
+  void draw(cairo_t *cr, int width, int height);
 
   std::unique_ptr<OSFSurface> surface_;
   std::string imagePath_;
-  cairo_surface_t* cachedImage_ = nullptr;
+  cairo_surface_t *cachedImage_ = nullptr;
 };
 
 } // namespace opensef

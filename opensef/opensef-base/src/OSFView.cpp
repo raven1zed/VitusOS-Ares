@@ -1,12 +1,13 @@
 /**
- * OSFView.cpp - Base View Implementation (Phase 3 Update)
+ * OSFView.cpp - Base View Implementation
+ * Part of opensef-base foundation
  *
  * Implements responder chain, layout system, and hit testing.
  */
 
 #include <algorithm>
+#include <opensef/OSFView.h>
 #include <opensef/OSFWindow.h>
-#include <opensef/OpenSEFAppKit.h>
 
 
 namespace opensef {
@@ -159,73 +160,6 @@ void OSFView::render(cairo_t *cr) {
     subview->render(cr);
     cairo_restore(cr);
   }
-}
-
-// =============================================================================
-// OSFButton - Responder Events
-// =============================================================================
-
-bool OSFButton::mouseDown(OSFEvent &event) {
-  pressed_ = true;
-  event.setHandled(true);
-  return true;
-}
-
-bool OSFButton::mouseUp(OSFEvent &event) {
-  if (pressed_) {
-    pressed_ = false;
-    click(); // Trigger action
-    event.setHandled(true);
-    return true;
-  }
-  return OSFView::mouseUp(event);
-}
-
-// =============================================================================
-// OSFTextField - Responder Events
-// =============================================================================
-
-bool OSFTextField::keyDown(OSFEvent &event) {
-  if (!focused_) {
-    return OSFView::keyDown(event);
-  }
-
-  // Basic text input (would need proper key mapping)
-  uint32_t keyCode = event.keyCode();
-
-  // Handle backspace (key code varies by platform)
-  if (keyCode == 22 || keyCode == 0x08) { // XKB backspace
-    if (!text_.empty()) {
-      text_.pop_back();
-      if (onTextChanged_) {
-        onTextChanged_(text_);
-      }
-    }
-    event.setHandled(true);
-    return true;
-  }
-
-  // Handle enter
-  if (keyCode == 36 || keyCode == 0x0D) { // XKB enter
-    if (onSubmit_) {
-      onSubmit_(text_);
-    }
-    event.setHandled(true);
-    return true;
-  }
-
-  // Other keys would be handled by character input, not keycode
-  return OSFView::keyDown(event);
-}
-
-void OSFTextField::becomeFirstResponder() {
-  focused_ = true;
-  cursorVisible_ = true;
-}
-
-void OSFTextField::resignFirstResponder() {
-  focused_ = false;
-  cursorVisible_ = false;
 }
 
 } // namespace opensef

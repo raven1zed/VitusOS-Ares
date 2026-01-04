@@ -6,7 +6,6 @@
 #include <opensef/OpenSEFAppKit.h>
 #include <pango/pangocairo.h>
 
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -55,14 +54,72 @@ void OSFTextField::setSecure(bool secure) { isSecure_ = secure; }
 
 void OSFTextField::handleKeyPress(uint32_t key, const std::string &text) {
   if (key == 0xFF08) { // Backspace
-    if (!text_.empty())
-      text_.pop_back();
+    text_.pop_back();
   } else if (!text.empty()) {
     text_ += text;
   }
   if (onTextChanged_)
     onTextChanged_(text_);
 }
+
+// === OSFResponder Overrides ===
+
+bool OSFTextField::mouseDown(OSFEvent &event) {
+  // Claim focus on click
+  if (window()) {
+    window()->makeFirstResponder(this);
+  }
+  return OSFView::mouseDown(event);
+}
+
+bool OSFTextField::keyDown(OSFEvent &event) {
+  if (!focused_) {
+    return OSFView::keyDown(event);
+  }
+
+  // Basic text input mapping
+  uint32_t keyCode = event.keyCode();
+
+  // Handle backspace (XKB/Linux keycodes)
+  if (keyCode == 0xFF08 || keyCode == 22) {
+    handleKeyPress(0xFF08, "");
+    event.setHandled(true);
+    return true;
+  }
+
+  // Handle enter
+  if (keyCode == 0xFF0D || keyCode == 36) {
+    if (onSubmit_)
+      onSubmit_(text_);
+    event.setHandled(true);
+    return true;
+  }
+
+  // Simple ASCII mapping for validation demo (A-Z, 0-9)
+  // In a real app we'd use xkb_keysym_to_utf8
+  char ch = 0;
+  if (keyCode >= 'a' && keyCode <= 'z')
+    ch = (char)keyCode;
+  else if (keyCode >= 'A' && keyCode <= 'Z')
+    ch = (char)keyCode;
+  else if (keyCode >= '0' && keyCode <= '9')
+    ch = (char)keyCode;
+  else if (keyCode == ' ')
+    ch = ' ';
+
+  if (ch != 0) {
+    std::string s(1, ch);
+    handleKeyPress(0, s);
+    event.setHandled(true);
+    return true;
+  }
+
+  return OSFView::keyDown(event);
+}
+
+void OSFTextField::becomeFirstResponder() { handleFocus(true); }
+
+void OSFTextField::resignFirstResponder() { handleFocus(false); }
 
 void OSFTextField::handleFocus(bool focused) {
   focused_ = focused;

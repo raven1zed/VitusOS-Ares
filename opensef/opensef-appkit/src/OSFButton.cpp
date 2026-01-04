@@ -65,6 +65,24 @@ void OSFButton::handleMouseUp() {
     click();
 }
 
+// === OSFResponder Overrides ===
+
+bool OSFButton::mouseDown(OSFEvent &event) {
+  pressed_ = true;
+  event.setHandled(true);
+  return true;
+}
+
+bool OSFButton::mouseUp(OSFEvent &event) {
+  if (pressed_) {
+    pressed_ = false;
+    click(); // Trigger action
+    event.setHandled(true);
+    return true;
+  }
+  return OSFView::mouseUp(event);
+}
+
 void OSFButton::render(cairo_t *cr) {
   if (hidden_)
     return;

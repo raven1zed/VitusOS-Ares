@@ -64,9 +64,12 @@ add_custom_command(OUTPUT ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML})
 
 # Rendering library (uses opensef-core and opensef-appkit)
-add_library(osf-render STATIC
+add_library(osf-shell-lib STATIC
     src/render/OSFSurface.cpp
     src/core/OSFAresTheme.cpp
+    src/panel/OSFPanel.cpp
+    src/dock/OSFDock.cpp
+    src/wallpaper/OSFWallpaper.cpp
     ${LAYER_SHELL_C}
     ${LAYER_SHELL_H}
     ${XDG_OUTPUT_C}
@@ -75,8 +78,9 @@ add_library(osf-render STATIC
     ${XDG_SHELL_H}
 )
 
-target_include_directories(osf-render PUBLIC
+target_include_directories(osf-shell-lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}
     ${WAYLAND_CLIENT_INCLUDE_DIRS}
     ${CAIRO_INCLUDE_DIRS}
@@ -84,9 +88,10 @@ target_include_directories(osf-render PUBLIC
     ${RSVG_INCLUDE_DIRS}
 )
 
-target_link_libraries(osf-render PUBLIC
+target_link_libraries(osf-shell-lib PUBLIC
     opensef-core
     opensef-appkit
+    opensef-base
     ${WAYLAND_CLIENT_LIBRARIES}
     ${WAYLAND_CURSOR_LIBRARIES}
     ${CAIRO_LIBRARIES}
@@ -94,48 +99,12 @@ target_link_libraries(osf-render PUBLIC
     ${RSVG_LIBRARIES}
 )
 
-# Global Menu Panel
-add_executable(osf-panel
-    src/panel/main.cpp
-    src/panel/OSFPanel.cpp
+# Main Desktop Shell Executable
+add_executable(osf-shell
+    src/main.cpp
 )
 
-target_include_directories(osf-panel PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/panel
-    ${WAYLAND_CLIENT_INCLUDE_DIRS}
-    ${CAIRO_INCLUDE_DIRS}
-)
-
-target_link_libraries(osf-panel PRIVATE osf-render)
-
-# --- osf-dock Executable ---
-add_executable(osf-dock
-    src/dock/main.cpp
-    src/dock/OSFDock.cpp
-)
-
-target_include_directories(osf-dock PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/dock
-    ${WAYLAND_CLIENT_INCLUDE_DIRS}
-    ${CAIRO_INCLUDE_DIRS}
-    ${RSVG_INCLUDE_DIRS}
-)
-
-target_link_libraries(osf-dock PRIVATE osf-render ${RSVG_LIBRARIES})
-
-# --- osf-wallpaper Executable ---
-add_executable(osf-wallpaper
-    src/wallpaper/main.cpp
-    src/wallpaper/OSFWallpaper.cpp
-)
-
-target_include_directories(osf-wallpaper PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/wallpaper
-    ${WAYLAND_CLIENT_INCLUDE_DIRS}
-    ${CAIRO_INCLUDE_DIRS}
-)
-
-target_link_libraries(osf-wallpaper PRIVATE osf-render)
+target_link_libraries(osf-shell PRIVATE osf-shell-lib)
 
 # Install
-install(TARGETS osf-panel osf-dock osf-wallpaper DESTINATION bin)
+install(TARGETS osf-shell DESTINATION bin)

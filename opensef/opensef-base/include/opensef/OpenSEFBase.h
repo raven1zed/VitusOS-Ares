@@ -176,6 +176,12 @@ public:
    */
   const std::vector<OSFWindow *> &windows() const { return windows_; }
 
+  /**
+   * Add a custom file descriptor to poll.
+   * Useful for integrating external event loops (e.g. OSFSurface/LayerShell).
+   */
+  void addExternalEventSource(int fd, std::function<void()> callback);
+
   // === First Responder (Phase 3) ===
 
   /**
@@ -199,6 +205,12 @@ private:
   // Phase 3 additions
   std::vector<OSFWindow *> windows_;
   OSFResponder *firstResponder_ = nullptr;
+
+  struct ExternalSource {
+    int fd;
+    std::function<void()> callback;
+  };
+  std::vector<ExternalSource> externalSources_;
 };
 
 } // namespace opensef

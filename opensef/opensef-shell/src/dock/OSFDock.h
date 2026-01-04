@@ -2,11 +2,12 @@
 #define OSF_DOCK_H
 
 #include "OSFSurface.h"
+#include <librsvg/rsvg.h>
 #include <memory>
 #include <opensef/OpenSEFAppKit.h>
-#include <vector>
 #include <string>
-#include <librsvg/rsvg.h>
+#include <vector>
+
 
 namespace opensef {
 
@@ -23,6 +24,8 @@ public:
   OSFDock();
   ~OSFDock();
   void run();
+  bool connect() { return surface_->connect(); }
+  OSFSurface *surface() const { return surface_.get(); }
 
 private:
   void draw(cairo_t *cr, int width, int height);
@@ -36,7 +39,8 @@ private:
   int hoveredIndex_ = -1;
 
   // Dock items
-  // std::vector<std::shared_ptr<OSFButton>> dockItems_; // Using custom struct for now
+  // std::vector<std::shared_ptr<OSFButton>> dockItems_; // Using custom struct
+  // for now
 };
 
 } // namespace opensef

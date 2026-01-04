@@ -12,7 +12,9 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <opensef/OSFGeometry.h>
 #include <opensef/OSFResponder.h>
+#include <opensef/OSFView.h>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -39,169 +41,11 @@ void OSFAppKitInitializeVulkan(VkDevice device, VkPhysicalDevice physicalDevice,
                                VkRenderPass renderPass);
 
 // =============================================================================
-// Geometry Types
-// =============================================================================
-
-struct OSFRect {
-  double x = 0, y = 0, width = 0, height = 0;
-  OSFRect() = default;
-  OSFRect(double x_, double y_, double w, double h)
-      : x(x_), y(y_), width(w), height(h) {}
-
-  static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
-
-  bool contains(double px, double py) const {
-    return px >= x && px < x + width && py >= y && py < y + height;
-  }
-};
-
-struct OSFColor {
-  double r = 0, g = 0, b = 0, a = 1;
-  OSFColor() = default;
-  OSFColor(double r_, double g_, double b_, double a_ = 1.0)
-      : r(r_), g(g_), b(b_), a(a_) {}
-
-  static OSFColor fromHex(uint32_t hex, double alpha = 1.0) {
-    return OSFColor(((hex >> 16) & 0xFF) / 255.0, ((hex >> 8) & 0xFF) / 255.0,
-                    (hex & 0xFF) / 255.0, alpha);
-  }
-
-  static OSFColor fromARGB(uint32_t argb) {
-    return OSFColor(((argb >> 16) & 0xFF) / 255.0, ((argb >> 8) & 0xFF) / 255.0,
-                    (argb & 0xFF) / 255.0, ((argb >> 24) & 0xFF) / 255.0);
-  }
-
-  void setCairo(cairo_t *cr) const { cairo_set_source_rgba(cr, r, g, b, a); }
-};
-
-// =============================================================================
 // Font/Text Types
 // =============================================================================
 
 enum class FontWeight { Normal, Medium, Bold };
 enum class TextAlignment { Left, Center, Right };
-
-// =============================================================================
-// OSFView - Base class for all visual elements (Phase 3: Inherits OSFResponder)
-// =============================================================================
-
-class OSFView : public OSFResponder {
-public:
-  OSFView() = default;
-  virtual ~OSFView() = default;
-
-  // === Geometry ===
-
-  OSFRect frame() const { return frame_; }
-  void setFrame(const OSFRect &frame) {
-    frame_ = frame;
-    setNeedsLayout();
-  }
-
-  OSFRect bounds() const { return OSFRect(0, 0, frame_.width, frame_.height); }
-
-  // === Visibility ===
-
-  double alpha() const { return alpha_; }
-  void setAlpha(double alpha) { alpha_ = alpha; }
-  bool isHidden() const { return hidden_; }
-  void setHidden(bool hidden) { hidden_ = hidden; }
-
-  // === Hierarchy ===
-
-  OSFView *superview() const { return superview_; }
-  const std::vector<std::shared_ptr<OSFView>> &subviews() const {
-    return subviews_;
-  }
-  void addSubview(std::shared_ptr<OSFView> view);
-  void removeFromSuperview();
-
-  // Get the window this view belongs to
-  OSFWindow *window() const { return window_; }
-  void setWindow(OSFWindow *window);
-
-  // === Layout System (Phase 3) ===
-
-  /**
-   * Mark this view as needing layout.
-   * Layout will be performed before the next render.
-   */
-  void setNeedsLayout() { needsLayout_ = true; }
-
-  /**
-   * Returns true if this view needs layout.
-   */
-  bool needsLayout() const { return needsLayout_; }
-
-  /**
-   * Override to perform custom layout of subviews.
-   * Called when the view's frame changes or setNeedsLayout() was called.
-   */
-  virtual void layoutSubviews() {}
-
-  /**
-   * Performs layout if needed, then layouts subviews recursively.
-   */
-  void layoutIfNeeded();
-
-  // === Display ===
-
-  /**
-   * Mark this view as needing redraw.
-   */
-  void setNeedsDisplay() { needsDisplay_ = true; }
-  bool needsDisplay() const { return needsDisplay_; }
-
-  // === Hit Testing (Phase 3) ===
-
-  /**
-   * Returns the deepest view that contains the point.
-   * Point is in the view's local coordinate system.
-   */
-  virtual OSFView *hitTest(double x, double y);
-
-  /**
-   * Convert a point from this view's coordinate system to another view's.
-   */
-  void convertPoint(double &x, double &y, OSFView *toView);
-
-  // === Responder Chain (Phase 3) ===
-
-  /**
-   * Next responder is the superview, or the window if no superview.
-   */
-  OSFResponder *nextResponder() const override;
-
-  /**
-   * Views can become first responder if they're focusable.
-   */
-  bool acceptsFirstResponder() const override { return acceptsFirstResponder_; }
-  void setAcceptsFirstResponder(bool accepts) {
-    acceptsFirstResponder_ = accepts;
-  }
-
-  // Event handling overrides
-  bool mouseDown(OSFEvent &event) override;
-  bool mouseUp(OSFEvent &event) override;
-  bool keyDown(OSFEvent &event) override;
-
-  // === Rendering ===
-
-  virtual void draw() {}
-  virtual void render(cairo_t *cr);
-
-protected:
-  OSFRect frame_;
-  double alpha_ = 1.0;
-  bool hidden_ = false;
-  bool needsLayout_ = false;
-  bool needsDisplay_ = false;
-  bool acceptsFirstResponder_ = false;
-
-  OSFView *superview_ = nullptr;
-  OSFWindow *window_ = nullptr;
-  std::vector<std::shared_ptr<OSFView>> subviews_;
-};
 
 // =============================================================================
 // OSFButton - Clickable button with Cairo rendering
