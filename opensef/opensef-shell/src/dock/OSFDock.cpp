@@ -57,10 +57,10 @@ void OSFDock::initWidgets() {
     };
 
     std::vector<AppDef> apps = {
-        {"Filer", "resources/icons/file_manager.svg", "nautilus"},
-        {"Terminal", "resources/icons/terminal.svg", "gnome-terminal"},
+        {"Filer", "resources/icons/file_manager.svg", "./build/opensef/apps/osf-filer/osf-filer"},
+        {"Terminal", "resources/icons/terminal.svg", "./build/opensef/apps/osf-terminal/osf-terminal"},
         {"Browser", "resources/icons/browser.svg", "firefox"},
-        {"Settings", "resources/icons/settings.svg", "gnome-control-center"}
+        {"Settings", "resources/icons/settings.svg", "./build/opensef/apps/osf-settings/osf-settings"}
     };
 
     // Note: Icons paths are examples. In the Nix environment, we rely on XDG_DATA_DIRS or specific paths.

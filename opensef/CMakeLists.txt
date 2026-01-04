@@ -29,6 +29,10 @@ endif()
 # Shell (Desktop UI)
 add_subdirectory(opensef-shell)
 
+# Native Apps
+add_subdirectory(apps)
+
+
 # Test programs
 if(BUILD_TESTING)
     add_subdirectory(test)
