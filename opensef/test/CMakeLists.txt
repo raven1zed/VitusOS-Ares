@@ -23,6 +23,16 @@ target_link_libraries(phase2-window PRIVATE
     opensef-base
 )
 
+# Phase 3 validation (unified event loop, responder chain)
+add_executable(phase3-app
+    phase3_app.cpp
+)
+
+target_link_libraries(phase3-app PRIVATE
+    opensef-base
+)
+
 # Compile options
 target_compile_options(phase1-validation PRIVATE -Wall -Wextra)
 target_compile_options(phase2-window PRIVATE -Wall -Wextra)
+target_compile_options(phase3-app PRIVATE -Wall -Wextra)

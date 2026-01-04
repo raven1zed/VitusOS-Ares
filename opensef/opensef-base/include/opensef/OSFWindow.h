@@ -1,30 +1,36 @@
 /**
  * OSFWindow.h - Application Window Class
  *
- * Phase 2: Windowing Integration
+ * Phase 2+3: Windowing Integration + Responder Chain
  *
  * OSFWindow wraps an XDG surface for standard application windows.
- * This is separate from OSFSurface (which uses layer-shell for panel/dock).
+ * Inherits from OSFResponder to participate in the responder chain.
  */
 
 #pragma once
 
 #include <functional>
 #include <memory>
+#include <opensef/OSFResponder.h>
 #include <string>
+
 
 // Forward declaration for Cairo context
 typedef struct _cairo cairo_t;
 
 namespace opensef {
 
+// Forward declaration
+class OSFView;
+
 /**
  * OSFWindow - A top-level application window
  *
  * Represents a single window that can be shown on the compositor.
  * Uses XDG shell protocol for standard window decorations.
+ * Participates in the responder chain (forwards to OSFApplication).
  */
-class OSFWindow {
+class OSFWindow : public OSFResponder {
 public:
   using CloseCallback = std::function<void()>;
   using ResizeCallback = std::function<void(int width, int height)>;
@@ -33,6 +39,7 @@ public:
   /**
    * Create a new window with given dimensions.
    * Window is not shown until show() is called.
+   * Automatically registers with OSFApplication.
    */
   OSFWindow(int width, int height, const std::string &title = "");
   ~OSFWindow();
@@ -41,7 +48,8 @@ public:
   OSFWindow(const OSFWindow &) = delete;
   OSFWindow &operator=(const OSFWindow &) = delete;
 
-  // Lifecycle
+  // === Lifecycle ===
+
   bool connect(const char *displayName = nullptr);
   void disconnect();
   void show();
@@ -49,25 +57,69 @@ public:
   void close();
   bool isVisible() const { return visible_; }
 
-  // Properties
+  // === Properties ===
+
   void setTitle(const std::string &title);
   const std::string &title() const { return title_; }
   int width() const { return width_; }
   int height() const { return height_; }
   void setSize(int width, int height);
 
-  // Event loop (blocking)
+  // === Content View (Phase 3) ===
+
+  /**
+   * Set the root view for this window.
+   * The content view fills the window and is the root of the view hierarchy.
+   */
+  void setContentView(std::shared_ptr<OSFView> view);
+  std::shared_ptr<OSFView> contentView() const { return contentView_; }
+
+  // === Event Loop ===
+
+  /**
+   * Run the event loop for this window (blocks).
+   * In Phase 3+, prefer OSFApplication::run() for unified event loop.
+   */
   void runEventLoop();
   void stopEventLoop();
 
-  // Callbacks
+  /**
+   * Process pending events without blocking (for unified event loop).
+   * Returns true if there are more events to process.
+   */
+  bool processEvents();
+
+  // === Callbacks ===
+
   void onClose(CloseCallback callback) { closeCallback_ = callback; }
   void onResize(ResizeCallback callback) { resizeCallback_ = callback; }
   void onDraw(DrawCallback callback) { drawCallback_ = callback; }
 
-  // Factory
+  // === OSFResponder Overrides ===
+
+  OSFResponder *nextResponder() const override;
+  bool mouseDown(OSFEvent &event) override;
+  bool keyDown(OSFEvent &event) override;
+
+  // === First Responder ===
+
+  /**
+   * Make a view the first responder in this window.
+   */
+  bool makeFirstResponder(OSFResponder *responder);
+  OSFResponder *firstResponder() const { return firstResponder_; }
+
+  // === Factory ===
+
   static std::shared_ptr<OSFWindow> create(int width, int height,
                                            const std::string &title = "");
+
+  // === Internal ===
+
+  /**
+   * Get the Wayland display file descriptor for polling.
+   */
+  int displayFd() const;
 
 private:
   friend struct Impl;
@@ -78,6 +130,10 @@ private:
   int height_ = 0;
   bool visible_ = false;
   bool running_ = false;
+
+  // Content
+  std::shared_ptr<OSFView> contentView_;
+  OSFResponder *firstResponder_ = nullptr;
 
   // Callbacks
   CloseCallback closeCallback_;

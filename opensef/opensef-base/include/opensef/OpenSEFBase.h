@@ -128,8 +128,12 @@ private:
 };
 
 // ============================================================================
-// OSFApplication - Application lifecycle
+// OSFApplication - Application lifecycle and event coordination
 // ============================================================================
+
+// Forward declaration
+class OSFWindow;
+class OSFResponder;
 
 class OSFApplication {
 public:
@@ -140,10 +144,48 @@ public:
   void setOnLaunch(Callback callback) { onLaunch_ = std::move(callback); }
   void setOnTerminate(Callback callback) { onTerminate_ = std::move(callback); }
 
+  /**
+   * Main entry point. Runs the application event loop.
+   * Polls all registered windows for Wayland events.
+   */
   void run();
+
+  /**
+   * Stop the application event loop.
+   */
   void stop();
 
   OSFRunLoop &runLoop() { return runLoop_; }
+
+  // === Window Management (Phase 3) ===
+
+  /**
+   * Register a window with the application.
+   * The app will poll this window's display in the event loop.
+   */
+  void registerWindow(OSFWindow *window);
+
+  /**
+   * Unregister a window from the application.
+   */
+  void unregisterWindow(OSFWindow *window);
+
+  /**
+   * Get all registered windows.
+   */
+  const std::vector<OSFWindow *> &windows() const { return windows_; }
+
+  // === First Responder (Phase 3) ===
+
+  /**
+   * Get the current first responder (receives keyboard events).
+   */
+  OSFResponder *firstResponder() const { return firstResponder_; }
+
+  /**
+   * Make a responder the first responder.
+   */
+  bool makeFirstResponder(OSFResponder *responder);
 
 private:
   OSFApplication() = default;
@@ -151,6 +193,10 @@ private:
   OSFRunLoop runLoop_;
   Callback onLaunch_;
   Callback onTerminate_;
+
+  // Phase 3 additions
+  std::vector<OSFWindow *> windows_;
+  OSFResponder *firstResponder_ = nullptr;
 };
 
 } // namespace opensef

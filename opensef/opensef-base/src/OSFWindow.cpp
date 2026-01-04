@@ -1,13 +1,14 @@
 /**
  * OSFWindow.cpp - Application Window Implementation
  *
- * Phase 2: Windowing Integration
+ * Phase 2+3: Windowing Integration + Responder Chain
  *
  * Implements OSFWindow using XDG shell protocol for standard windows.
- * This is separate from OSFSurface which uses layer-shell.
+ * Integrates with OSFApplication for unified event loop.
  */
 
 #include <opensef/OSFWindow.h>
+#include <opensef/OpenSEFBase.h>
 
 #include <cairo/cairo.h>
 #include <cstring>
@@ -214,9 +215,15 @@ OSFWindow::OSFWindow(int width, int height, const std::string &title)
     : title_(title), width_(width), height_(height),
       impl_(std::make_unique<Impl>()) {
   impl_->window = this;
+  // Register with application
+  OSFApplication::shared().registerWindow(this);
 }
 
-OSFWindow::~OSFWindow() { disconnect(); }
+OSFWindow::~OSFWindow() {
+  // Unregister from application
+  OSFApplication::shared().unregisterWindow(this);
+  disconnect();
+}
 
 bool OSFWindow::connect(const char *displayName) {
   impl_->display = wl_display_connect(displayName);
@@ -417,6 +424,100 @@ void OSFWindow::runEventLoop() {
 }
 
 void OSFWindow::stopEventLoop() { running_ = false; }
+
+// === Phase 3: Responder Chain ===
+
+OSFResponder *OSFWindow::nextResponder() const {
+  // Windows forward to the application (end of responder chain)
+  return nullptr; // OSFApplication is not a responder, it handles events
+                  // differently
+}
+
+bool OSFWindow::mouseDown(OSFEvent &event) {
+  // TODO: Hit test content view and dispatch to appropriate responder
+  if (firstResponder_) {
+    return firstResponder_->mouseDown(event);
+  }
+  return OSFResponder::mouseDown(event);
+}
+
+bool OSFWindow::keyDown(OSFEvent &event) {
+  // Keyboard events go to first responder
+  if (firstResponder_) {
+    return firstResponder_->keyDown(event);
+  }
+  return OSFResponder::keyDown(event);
+}
+
+bool OSFWindow::makeFirstResponder(OSFResponder *responder) {
+  if (responder && !responder->acceptsFirstResponder()) {
+    return false;
+  }
+
+  if (firstResponder_) {
+    firstResponder_->resignFirstResponder();
+  }
+
+  firstResponder_ = responder;
+
+  if (firstResponder_) {
+    firstResponder_->becomeFirstResponder();
+  }
+
+  return true;
+}
+
+// === Phase 3: Content View ===
+
+void OSFWindow::setContentView(std::shared_ptr<OSFView> view) {
+  contentView_ = view;
+  // TODO: Set content view's next responder to this window
+}
+
+// === Phase 3: Unified Event Loop Support ===
+
+int OSFWindow::displayFd() const {
+  if (impl_->display) {
+    return wl_display_get_fd(impl_->display);
+  }
+  return -1;
+}
+
+bool OSFWindow::processEvents() {
+  if (!impl_->display || impl_->closed) {
+    return false;
+  }
+
+  wl_display_flush(impl_->display);
+
+  // Render frame
+  if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
+    cairo_t *cr = cairo_create(impl_->cairoSurface);
+
+    // Clear background (white)
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_paint(cr);
+
+    // Call draw callback if set
+    if (drawCallback_) {
+      drawCallback_(cr, width_, height_);
+    }
+
+    cairo_destroy(cr);
+
+    // Attach and commit
+    wl_surface_attach(impl_->surface, impl_->buffer, 0, 0);
+    wl_surface_damage_buffer(impl_->surface, 0, 0, width_, height_);
+    wl_surface_commit(impl_->surface);
+  }
+
+  // Process pending events (non-blocking)
+  if (wl_display_dispatch_pending(impl_->display) == -1) {
+    return false;
+  }
+
+  return !impl_->closed;
+}
 
 std::shared_ptr<OSFWindow> OSFWindow::create(int width, int height,
                                              const std::string &title) {
