@@ -11,8 +11,10 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <poll.h>
 #include <vector>
+
 
 namespace opensef {
 
@@ -25,9 +27,6 @@ void OSFApplication::run() {
   if (onLaunch_) {
     onLaunch_();
   }
-
-  // Phase 3: REAL Unified Event Loop
-  // Poll all registered windows for Wayland events
 
   running_ = true;
 
@@ -58,7 +57,6 @@ void OSFApplication::run() {
     }
 
     // 2. External Sources
-    // Note where external sources start in fds array
     size_t externalStart = fds.size();
     for (const auto &source : externalSources_) {
       struct pollfd pfd;
@@ -94,24 +92,11 @@ void OSFApplication::run() {
         }
       }
     } else if (result == 0) {
-      // Timeout - render windows (animation loop)
+      // Timeout - animation tick for windows
       for (OSFWindow *window : activeWindows) {
         window->processEvents();
       }
-      // Trigger external sources 'tick' if needed?
-      // For now, assume they rely on their own internal timers via
-      // dispatchTimers or we can manually invoke them.
-      for (const auto &source : externalSources_) {
-        // If we want to simulate a "frame tick" for them, we might need a
-        // separate callback. For now, let's assume they set up a timer FD if
-        // they need precise timing, OR we just rely on display updates. BUT
-        // OSFSurface has dispatchTimers() which checks internal timers. We
-        // should probably call the callback on timeout too if it's meant to
-        // drive the loop. Let's stick to FD readiness for now.
-      }
     }
-
-    // Process runloop tasks
   }
 
   if (onTerminate_) {
@@ -132,8 +117,6 @@ void OSFApplication::addExternalEventSource(int fd,
     return;
   externalSources_.push_back({fd, callback});
 }
-
-// === Window Management ===
 
 void OSFApplication::registerWindow(OSFWindow *window) {
   if (window &&
