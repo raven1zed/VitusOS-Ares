@@ -21,6 +21,9 @@ check_display() {
 # Try standard IP loopback first (most reliable on WSL1)
 if check_display 127.0.0.1:0; then
   export DISPLAY=127.0.0.1:0
+# Try LAN IP (sometimes bypasses loopback quirks)
+elif check_display 192.168.100.15:0; then
+  export DISPLAY=192.168.100.15:0
 # Try localhost
 elif check_display localhost:0; then
   export DISPLAY=localhost:0
