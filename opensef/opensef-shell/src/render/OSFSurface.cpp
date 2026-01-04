@@ -593,7 +593,7 @@ bool OSFSurface::processEvents() {
   if (!display_)
     return false;
 
-  if (wl_display_dispatch_pending(display_) == -1) {
+  if (wl_display_dispatch(display_) == -1) {
     return false;
   }
 
