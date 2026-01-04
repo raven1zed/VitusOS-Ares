@@ -1,19 +1,28 @@
 /**
- * OSFView.cpp - Base View Implementation
+ * OSFView.cpp - Base View Implementation (Phase 3 Update)
+ *
+ * Implements responder chain, layout system, and hit testing.
  */
 
 #include <algorithm>
+#include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFAppKit.h>
 
 
 namespace opensef {
+
+// =============================================================================
+// OSFView - Hierarchy
+// =============================================================================
 
 void OSFView::addSubview(std::shared_ptr<OSFView> view) {
   if (view->superview_) {
     view->removeFromSuperview();
   }
   view->superview_ = this;
+  view->setWindow(window_); // Propagate window reference
   subviews_.push_back(view);
+  setNeedsLayout();
 }
 
 void OSFView::removeFromSuperview() {
@@ -27,7 +36,117 @@ void OSFView::removeFromSuperview() {
                                 }),
                  siblings.end());
   superview_ = nullptr;
+  window_ = nullptr;
 }
+
+void OSFView::setWindow(OSFWindow *window) {
+  window_ = window;
+  // Propagate to subviews
+  for (auto &subview : subviews_) {
+    subview->setWindow(window);
+  }
+}
+
+// =============================================================================
+// OSFView - Layout System
+// =============================================================================
+
+void OSFView::layoutIfNeeded() {
+  if (needsLayout_) {
+    layoutSubviews();
+    needsLayout_ = false;
+  }
+
+  // Layout subviews recursively
+  for (auto &subview : subviews_) {
+    subview->layoutIfNeeded();
+  }
+}
+
+// =============================================================================
+// OSFView - Hit Testing
+// =============================================================================
+
+OSFView *OSFView::hitTest(double x, double y) {
+  if (hidden_ || alpha_ <= 0.01) {
+    return nullptr;
+  }
+
+  // Check if point is within bounds
+  if (!bounds().contains(x, y)) {
+    return nullptr;
+  }
+
+  // Check subviews in reverse order (front to back)
+  for (auto it = subviews_.rbegin(); it != subviews_.rend(); ++it) {
+    auto &subview = *it;
+    // Convert point to subview's coordinate system
+    double subX = x - subview->frame_.x;
+    double subY = y - subview->frame_.y;
+
+    OSFView *hit = subview->hitTest(subX, subY);
+    if (hit) {
+      return hit;
+    }
+  }
+
+  // No subview hit, return self
+  return this;
+}
+
+void OSFView::convertPoint(double &x, double &y, OSFView *toView) {
+  // Convert to window coordinates first
+  OSFView *current = this;
+  while (current) {
+    x += current->frame_.x;
+    y += current->frame_.y;
+    current = current->superview_;
+  }
+
+  // Then convert from window coordinates to target view
+  if (toView) {
+    std::vector<OSFView *> ancestors;
+    current = toView;
+    while (current) {
+      ancestors.push_back(current);
+      current = current->superview_;
+    }
+
+    for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it) {
+      x -= (*it)->frame_.x;
+      y -= (*it)->frame_.y;
+    }
+  }
+}
+
+// =============================================================================
+// OSFView - Responder Chain
+// =============================================================================
+
+OSFResponder *OSFView::nextResponder() const {
+  // Next responder is superview, or window if no superview
+  if (superview_) {
+    return superview_;
+  }
+  return window_;
+}
+
+bool OSFView::mouseDown(OSFEvent &event) {
+  // Default: try to become first responder if we accept it
+  if (acceptsFirstResponder_ && window_) {
+    window_->makeFirstResponder(this);
+  }
+  // Forward to next responder
+  return OSFResponder::mouseDown(event);
+}
+
+bool OSFView::mouseUp(OSFEvent &event) { return OSFResponder::mouseUp(event); }
+
+bool OSFView::keyDown(OSFEvent &event) { return OSFResponder::keyDown(event); }
+
+// =============================================================================
+// OSFView - Rendering
+// =============================================================================
 
 void OSFView::render(cairo_t *cr) {
   if (hidden_)
@@ -35,8 +154,78 @@ void OSFView::render(cairo_t *cr) {
 
   // Render subviews
   for (auto &subview : subviews_) {
+    cairo_save(cr);
+    cairo_translate(cr, subview->frame_.x, subview->frame_.y);
     subview->render(cr);
+    cairo_restore(cr);
   }
+}
+
+// =============================================================================
+// OSFButton - Responder Events
+// =============================================================================
+
+bool OSFButton::mouseDown(OSFEvent &event) {
+  pressed_ = true;
+  event.setHandled(true);
+  return true;
+}
+
+bool OSFButton::mouseUp(OSFEvent &event) {
+  if (pressed_) {
+    pressed_ = false;
+    click(); // Trigger action
+    event.setHandled(true);
+    return true;
+  }
+  return OSFView::mouseUp(event);
+}
+
+// =============================================================================
+// OSFTextField - Responder Events
+// =============================================================================
+
+bool OSFTextField::keyDown(OSFEvent &event) {
+  if (!focused_) {
+    return OSFView::keyDown(event);
+  }
+
+  // Basic text input (would need proper key mapping)
+  uint32_t keyCode = event.keyCode();
+
+  // Handle backspace (key code varies by platform)
+  if (keyCode == 22 || keyCode == 0x08) { // XKB backspace
+    if (!text_.empty()) {
+      text_.pop_back();
+      if (onTextChanged_) {
+        onTextChanged_(text_);
+      }
+    }
+    event.setHandled(true);
+    return true;
+  }
+
+  // Handle enter
+  if (keyCode == 36 || keyCode == 0x0D) { // XKB enter
+    if (onSubmit_) {
+      onSubmit_(text_);
+    }
+    event.setHandled(true);
+    return true;
+  }
+
+  // Other keys would be handled by character input, not keycode
+  return OSFView::keyDown(event);
+}
+
+void OSFTextField::becomeFirstResponder() {
+  focused_ = true;
+  cursorVisible_ = true;
+}
+
+void OSFTextField::resignFirstResponder() {
+  focused_ = false;
+  cursorVisible_ = false;
 }
 
 } // namespace opensef

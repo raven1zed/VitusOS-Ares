@@ -15,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -193,6 +194,7 @@ private:
   OSFRunLoop runLoop_;
   Callback onLaunch_;
   Callback onTerminate_;
+  bool running_ = false;
 
   // Phase 3 additions
   std::vector<OSFWindow *> windows_;

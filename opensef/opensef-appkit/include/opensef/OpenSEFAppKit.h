@@ -1,6 +1,7 @@
 /**
  * openSEF AppKit: Production GUI Widgets
  *
+ * Phase 3: Responder chain + Layout system integration
  * Cairo/Pango-based widgets for VitusOS Ares
  * Integrated with OSFLayer animation framework
  */
@@ -11,14 +12,19 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <opensef/OSFResponder.h>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+
 
 // Forward declare Pango types
 typedef struct _PangoLayout PangoLayout;
 
 namespace opensef {
+
+// Forward declarations
+class OSFWindow;
 
 // Global Vulkan state access for widgets (AppKit/Compositor integration)
 // The application must set this before calling draw() on widgets using Vulkan.
@@ -43,6 +49,10 @@ struct OSFRect {
       : x(x_), y(y_), width(w), height(h) {}
 
   static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
+
+  bool contains(double px, double py) const {
+    return px >= x && px < x + width && py >= y && py < y + height;
+  }
 };
 
 struct OSFColor {
@@ -72,25 +82,33 @@ enum class FontWeight { Normal, Medium, Bold };
 enum class TextAlignment { Left, Center, Right };
 
 // =============================================================================
-// OSFView - Base class for all visual elements
+// OSFView - Base class for all visual elements (Phase 3: Inherits OSFResponder)
 // =============================================================================
 
-class OSFView {
+class OSFView : public OSFResponder {
 public:
   OSFView() = default;
   virtual ~OSFView() = default;
 
-  // Geometry
-  OSFRect frame() const { return frame_; }
-  void setFrame(const OSFRect &frame) { frame_ = frame; }
+  // === Geometry ===
 
-  // Visibility
+  OSFRect frame() const { return frame_; }
+  void setFrame(const OSFRect &frame) {
+    frame_ = frame;
+    setNeedsLayout();
+  }
+
+  OSFRect bounds() const { return OSFRect(0, 0, frame_.width, frame_.height); }
+
+  // === Visibility ===
+
   double alpha() const { return alpha_; }
   void setAlpha(double alpha) { alpha_ = alpha; }
   bool isHidden() const { return hidden_; }
   void setHidden(bool hidden) { hidden_ = hidden; }
 
-  // Hierarchy
+  // === Hierarchy ===
+
   OSFView *superview() const { return superview_; }
   const std::vector<std::shared_ptr<OSFView>> &subviews() const {
     return subviews_;
@@ -98,7 +116,77 @@ public:
   void addSubview(std::shared_ptr<OSFView> view);
   void removeFromSuperview();
 
-  // Rendering
+  // Get the window this view belongs to
+  OSFWindow *window() const { return window_; }
+  void setWindow(OSFWindow *window);
+
+  // === Layout System (Phase 3) ===
+
+  /**
+   * Mark this view as needing layout.
+   * Layout will be performed before the next render.
+   */
+  void setNeedsLayout() { needsLayout_ = true; }
+
+  /**
+   * Returns true if this view needs layout.
+   */
+  bool needsLayout() const { return needsLayout_; }
+
+  /**
+   * Override to perform custom layout of subviews.
+   * Called when the view's frame changes or setNeedsLayout() was called.
+   */
+  virtual void layoutSubviews() {}
+
+  /**
+   * Performs layout if needed, then layouts subviews recursively.
+   */
+  void layoutIfNeeded();
+
+  // === Display ===
+
+  /**
+   * Mark this view as needing redraw.
+   */
+  void setNeedsDisplay() { needsDisplay_ = true; }
+  bool needsDisplay() const { return needsDisplay_; }
+
+  // === Hit Testing (Phase 3) ===
+
+  /**
+   * Returns the deepest view that contains the point.
+   * Point is in the view's local coordinate system.
+   */
+  virtual OSFView *hitTest(double x, double y);
+
+  /**
+   * Convert a point from this view's coordinate system to another view's.
+   */
+  void convertPoint(double &x, double &y, OSFView *toView);
+
+  // === Responder Chain (Phase 3) ===
+
+  /**
+   * Next responder is the superview, or the window if no superview.
+   */
+  OSFResponder *nextResponder() const override;
+
+  /**
+   * Views can become first responder if they're focusable.
+   */
+  bool acceptsFirstResponder() const override { return acceptsFirstResponder_; }
+  void setAcceptsFirstResponder(bool accepts) {
+    acceptsFirstResponder_ = accepts;
+  }
+
+  // Event handling overrides
+  bool mouseDown(OSFEvent &event) override;
+  bool mouseUp(OSFEvent &event) override;
+  bool keyDown(OSFEvent &event) override;
+
+  // === Rendering ===
+
   virtual void draw() {}
   virtual void render(cairo_t *cr);
 
@@ -106,7 +194,12 @@ protected:
   OSFRect frame_;
   double alpha_ = 1.0;
   bool hidden_ = false;
+  bool needsLayout_ = false;
+  bool needsDisplay_ = false;
+  bool acceptsFirstResponder_ = false;
+
   OSFView *superview_ = nullptr;
+  OSFWindow *window_ = nullptr;
   std::vector<std::shared_ptr<OSFView>> subviews_;
 };
 
@@ -138,6 +231,11 @@ public:
   void handleMouseLeave();
   void handleMouseDown();
   void handleMouseUp();
+
+  // OSFResponder events (Phase 3)
+  bool mouseDown(OSFEvent &event) override;
+  bool mouseUp(OSFEvent &event) override;
+  bool acceptsFirstResponder() const override { return true; }
 
   // Rendering
   void render(cairo_t *cr) override;
@@ -219,6 +317,12 @@ public:
   void setOnTextChanged(std::function<void(const std::string &)> callback);
   void setOnSubmit(std::function<void(const std::string &)> callback);
 
+  // OSFResponder overrides (Phase 3)
+  bool acceptsFirstResponder() const override { return true; }
+  bool keyDown(OSFEvent &event) override;
+  void becomeFirstResponder() override;
+  void resignFirstResponder() override;
+
   // Rendering
   void render(cairo_t *cr) override;
 
@@ -262,35 +366,5 @@ private:
   OSFColor tintColor_{0.1, 0.1, 0.1, 0.85};
   bool shadowEnabled_ = true;
 };
-
-// =============================================================================
-// OSFWindow - Window abstraction for AppKit (Phase 2 - Coming Soon)
-// =============================================================================
-
-/*
-class OSFWindow {
-public:
-  OSFWindow();
-  OSFWindow(const std::string &title, const OSFRect &frame);
-  virtual ~OSFWindow();
-
-  static std::shared_ptr<OSFWindow> create(const std::string &title,
-                                           const OSFRect &frame);
-
-  const std::string &title() const { return title_; }
-  OSFRect frame() const { return frame_; }
-  bool isVisible() const { return visible_; }
-
-  void show();
-  void close();
-  void setContentView(std::shared_ptr<OSFView> view);
-
-private:
-  std::string title_;
-  OSFRect frame_;
-  bool visible_ = false;
-  std::shared_ptr<OSFView> contentView_;
-};
-*/
 
 } // namespace opensef
