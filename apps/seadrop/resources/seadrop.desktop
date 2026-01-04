@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=SeaDrop
+Comment=Seamless clipboard and file sharing between VitusOS and Android
+Exec=seadrop
+Icon=seadrop
+Terminal=false
+Type=Application
+Categories=Utility;Network;
+Keywords=clipboard;sync;android;sharing;
+StartupNotify=true

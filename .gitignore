@@ -1,0 +1,30 @@
+# Build outputs
+build/
+cmake-build-*/
+.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Nix
+result
+result-*
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled
+*.o
+*.so
+*.dylib
+*.a
+*.lib
+
+# Generated
+compile_commands.json

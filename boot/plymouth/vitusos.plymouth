@@ -1,0 +1,11 @@
+# VitusOS Plymouth Boot Theme
+# macOS-style polished boot (no visible logs)
+
+[Plymouth Theme]
+Name=VitusOS
+Description=VitusOS Ares boot - text logo with loading animation
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/vitusos
+ScriptFile=/usr/share/plymouth/themes/vitusos/vitusos.script
