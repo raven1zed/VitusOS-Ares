@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="resources/vitusos-logo.png" alt="VitusOS Logo" width="120">
+
 ![VitusOS Ares](https://img.shields.io/badge/VitusOS-Ares-E85D04?style=for-the-badge)
 ![openSEF](https://img.shields.io/badge/Framework-openSEF-3D5A80?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Prototype-green?style=for-the-badge)
