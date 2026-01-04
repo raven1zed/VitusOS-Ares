@@ -5,12 +5,19 @@
 export XDG_RUNTIME_DIR=/tmp/xdg_runtime_dir_$$
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
+# 2. Check for X Server with multiple addresses
 export DISPLAY=:0
+if ! xset q &>/dev/null; then
+  export DISPLAY=localhost:0
+  if ! xset q &>/dev/null; then
+    export DISPLAY=127.0.0.1:0
+  fi
+fi
 
-# 2. Check for X Server
 if ! xset q &>/dev/null; then
   echo "❌ No X Server detected at $DISPLAY"
-  echo "👉 Please install VcXsrv on Windows and launch it with 'Disable Access Control'"
+  echo "👉 Please ensure VcXsrv is running (check system tray)!"
+  echo "👉 If running, allows it through Windows Firewall (Public & Private)."
   exit 1
 fi
 
