@@ -9,28 +9,27 @@ chmod 700 "$XDG_RUNTIME_DIR"
 export DISPLAY=:0
 echo "🔍 Checking X Server connection..."
 
-# Function to test socket access
+# Function to test X server connection
 check_display() {
-  local HOST=$1
-  local PORT=$2
-  if nc -z -w 1 "$HOST" "$PORT" &>/dev/null; then
+  local TARGET_DISPLAY=$1
+  if timeout 1s xset -display "$TARGET_DISPLAY" q &>/dev/null; then
     return 0
   fi
   return 1
 }
 
-# Try standard localhost first
-if check_display localhost 6000; then
-  export DISPLAY=localhost:0
-# Try IP explicitly
-elif check_display 127.0.0.1 6000; then
+# Try standard IP loopback first (most reliable on WSL1)
+if check_display 127.0.0.1:0; then
   export DISPLAY=127.0.0.1:0
-# Last resort generic default
-elif xset q &>/dev/null; then
+# Try localhost
+elif check_display localhost:0; then
+  export DISPLAY=localhost:0
+# Default fallback
+elif check_display :0; then
    export DISPLAY=:0
 else
   echo "❌ CONNECTION FAILED: VcXsrv is not reachable."
-  echo "   (Diagnostic: 'nc' failed to connect to localhost:6000)"
+  echo "   (Diagnostic: 'xset' failed to connect to 127.0.0.1:0)"
   echo "👉 RE-CHECK FIREWALL: Start > 'Allow an app...' > VcXsrv > ☑️ Private & ☑️ Public"
   exit 1
 fi
