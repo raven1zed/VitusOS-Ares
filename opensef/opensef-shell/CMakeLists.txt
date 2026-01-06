@@ -1,9 +1,8 @@
 # opensef-shell: C++ UI Layer for openSEF Compositor
 # Uses Cairo/Pango for rendering, wlr-layer-shell for integration
-# Now integrated with opensef-core (Animation) and opensef-appkit (Widgets)
 
 cmake_minimum_required(VERSION 3.16)
-project(opensef-shell VERSION 0.1.0 LANGUAGES CXX)
+project(opensef-shell VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,6 +18,7 @@ pkg_check_modules(WAYLAND_CURSOR REQUIRED wayland-cursor)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(PANGO REQUIRED pangocairo)
 pkg_check_modules(RSVG REQUIRED librsvg-2.0)
+pkg_check_modules(XKB REQUIRED xkbcommon)
 
 # Generate layer-shell protocol
 find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
@@ -50,7 +50,7 @@ add_custom_command(OUTPUT ${XDG_OUTPUT_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_OUTPUT_XML} ${XDG_OUTPUT_C}
     DEPENDS ${XDG_OUTPUT_XML})
 
-# XDG shell protocol (Required for xdg_popup_interface symbols)
+# XDG shell protocol
 set(XDG_SHELL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
 set(XDG_SHELL_H "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h")
 set(XDG_SHELL_C "${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-protocol.c")
@@ -63,13 +63,8 @@ add_custom_command(OUTPUT ${XDG_SHELL_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML})
 
-# Rendering library (uses opensef-core and opensef-appkit)
-add_library(osf-shell-lib STATIC
-    src/render/OSFSurface.cpp
-    src/core/OSFAresTheme.cpp
-    src/panel/OSFPanel.cpp
-    src/dock/OSFDock.cpp
-    src/wallpaper/OSFWallpaper.cpp
+# Protocols Library
+add_library(osf-protocols STATIC
     ${LAYER_SHELL_C}
     ${LAYER_SHELL_H}
     ${XDG_OUTPUT_C}
@@ -77,8 +72,42 @@ add_library(osf-shell-lib STATIC
     ${XDG_SHELL_C}
     ${XDG_SHELL_H}
 )
+target_include_directories(osf-protocols PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${WAYLAND_CLIENT_INCLUDE_DIRS}
+)
 
-target_include_directories(osf-shell-lib PUBLIC
+# Single Executable Target
+add_executable(osf-shell
+    src/main.cpp
+    src/render/OSFSurface.cpp
+    src/core/OSFAresTheme.cpp
+    src/panel/OSFPanel.cpp
+    src/dock/OSFDock.cpp
+    src/wallpaper/OSFWallpaper.cpp
+    # Core
+    ../opensef-core/src/OSFAnimation.cpp
+    ../opensef-core/src/OSFLayer.cpp
+    # Base
+    ../opensef-base/src/OSFApplication.cpp
+    ../opensef-base/src/OSFBundle.cpp
+    ../opensef-base/src/OSFNotificationCenter.cpp
+    ../opensef-base/src/OSFObject.cpp
+    ../opensef-base/src/OSFRunLoop.cpp
+    ../opensef-base/src/OSFView.cpp
+    ../opensef-base/src/OSFWindow.cpp
+    # AppKit
+    ../opensef-appkit/src/OSFButton.cpp
+    ../opensef-appkit/src/OSFGlassPanel.cpp
+    ../opensef-appkit/src/OSFLabel.cpp
+    ../opensef-appkit/src/OSFTextField.cpp
+    ../opensef-appkit/src/OSFTilingManager.cpp
+    ../opensef-appkit/src/OSFTitleBar.cpp
+    ../opensef-appkit/src/OSFWidgets.cpp
+    ../opensef-appkit/src/OSFWindowButton.cpp
+)
+
+target_include_directories(osf-shell PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -86,25 +115,23 @@ target_include_directories(osf-shell-lib PUBLIC
     ${CAIRO_INCLUDE_DIRS}
     ${PANGO_INCLUDE_DIRS}
     ${RSVG_INCLUDE_DIRS}
+    ${XKB_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-appkit/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-core/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-base/include
 )
 
-target_link_libraries(osf-shell-lib PUBLIC
-    opensef-core
-    opensef-appkit
-    opensef-base
+target_link_libraries(osf-shell PUBLIC
+    osf-protocols
     ${WAYLAND_CLIENT_LIBRARIES}
     ${WAYLAND_CURSOR_LIBRARIES}
     ${CAIRO_LIBRARIES}
     ${PANGO_LIBRARIES}
     ${RSVG_LIBRARIES}
+    ${XKB_LIBRARIES}
 )
 
-# Main Desktop Shell Executable
-add_executable(osf-shell
-    src/main.cpp
-)
-
-target_link_libraries(osf-shell PRIVATE osf-shell-lib)
+target_compile_options(osf-shell PRIVATE -Wno-error)
 
 # Install
 install(TARGETS osf-shell DESTINATION bin)

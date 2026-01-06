@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(VitusOS
     VERSION 0.1.0
     DESCRIPTION "VitusOS Ares - openSEF Framework"
-    LANGUAGES C CXX OBJC
+    LANGUAGES C CXX
 )
 
 # ============================================================================
@@ -20,15 +20,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build test programs" ON)
 option(BUILD_APPS "Build VitusOS applications" OFF)
 
-# Clang is required for Objective-C 2.0 features
-if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
-    message(FATAL_ERROR "Clang is required for openSEF. Found: ${CMAKE_C_COMPILER_ID}")
-endif()
-
-# Objective-C flags for GNUStep 2.0 runtime
-set(OBJC_FLAGS "-fobjc-runtime=gnustep-2.0 -fobjc-arc -fblocks -fobjc-nonfragile-abi")
-set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${OBJC_FLAGS}")
-set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} ${OBJC_FLAGS}")
+# Objective-C removed for WSL/Linux GCC compatibility
+# set(OBJC_FLAGS "-fobjc-runtime=gnustep-2.0 -fobjc-arc -fblocks -fobjc-nonfragile-abi")
+# set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${OBJC_FLAGS}")
+# set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} ${OBJC_FLAGS}")
 
 # ============================================================================
 # Dependencies

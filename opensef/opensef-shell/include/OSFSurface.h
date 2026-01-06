@@ -87,6 +87,8 @@ public:
   void setAnchor(Anchor anchor);
   void setSize(int width, int height);
   void setExclusiveZone(int zone);
+  void setInputRegion(const std::vector<cairo_rectangle_int_t> &rects);
+  void setOpaqueRegion(const std::vector<cairo_rectangle_int_t> &rects);
   void setMargin(int top, int right, int bottom, int left);
 
   // Wayland Listeners (Public for C-interop)

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-
 namespace opensef {
 
 struct DockItem {
@@ -16,7 +15,8 @@ struct DockItem {
   std::string iconPath;
   std::string command;
   std::shared_ptr<RsvgHandle> svgHandle;
-  double x = 0, y = 0, size = 48; // Hit detection logic
+  double x = 0, y = 0, size = 48;      // Hit detection logic
+  uint32_t fallbackColor = 0xFF555555; // Default grey
 };
 
 class OSFDock {

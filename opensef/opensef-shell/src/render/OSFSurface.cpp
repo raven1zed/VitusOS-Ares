@@ -202,6 +202,41 @@ void OSFSurface::setExclusiveZone(int zone) {
   }
 }
 
+void OSFSurface::setInputRegion(
+    const std::vector<cairo_rectangle_int_t> &rects) {
+  if (!surface_ || !compositor_)
+    return;
+
+  struct wl_region *region = wl_compositor_create_region(compositor_);
+  if (!region)
+    return;
+
+  for (const auto &r : rects) {
+    wl_region_add(region, r.x, r.y, r.width, r.height);
+  }
+
+  wl_surface_set_input_region(surface_, region);
+  wl_region_destroy(region);
+  // Do NOT commit here, we commit in endPaint or naturally after drawing
+}
+
+void OSFSurface::setOpaqueRegion(
+    const std::vector<cairo_rectangle_int_t> &rects) {
+  if (!surface_ || !compositor_)
+    return;
+
+  struct wl_region *region = wl_compositor_create_region(compositor_);
+  if (!region)
+    return;
+
+  for (const auto &r : rects) {
+    wl_region_add(region, r.x, r.y, r.width, r.height);
+  }
+
+  wl_surface_set_opaque_region(surface_, region);
+  wl_region_destroy(region);
+}
+
 void OSFSurface::setMargin(int top, int right, int bottom, int left) {
   marginTop_ = top;
   marginRight_ = right;
@@ -310,7 +345,6 @@ void OSFSurface::run() {
         if (tickCallback_) {
           tickCallback_();
         }
-        requestRedraw();
       }
     }
 
