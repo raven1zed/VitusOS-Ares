@@ -2,7 +2,7 @@
 
 **Document Version:** 2.0
 
-**Last Updated:** January 1, 2026
+**Last Updated:** January 6, 2026
 
 **Scope:** Full end-to-end roadmap for openSEF + VitusOS Ares, from Phase 1 foundation to final macOS‑level polish in the Ares design language.
 
@@ -61,7 +61,9 @@ VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a
 
 ---
 
-# Phase 1 — Framework Foundation (Current)
+# Phase 1 — Framework Foundation ✅ Complete
+
+**Status:** ✅ **Completed January 2026**
 
 **Objective:** Establish the minimal Foundation and AppKit surface that makes openSEF a real application framework.
 
@@ -74,11 +76,13 @@ VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a
 - Minimal sample app proves lifecycle + view rendering.
 
 **Definition of Done:**
-- A minimal openSEF app can launch via OSFApplication, create a window, and render a view hierarchy.
+- A minimal openSEF app can launch via OSFApplication, create a window, and render a view hierarchy. ✅
 
 ---
 
-# Phase 2 — Windowing + Surface Integration
+# Phase 2 — Windowing + Surface Integration ✅ Complete
+
+**Status:** ✅ **Completed January 2026**
 
 **Objective:** Replace offscreen rendering with real Wayland windows. Ensure window lifecycle and surface connection are stable.
 
@@ -89,7 +93,7 @@ VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a
 - Ensure the app can create multiple windows.
 
 **Definition of Done:**
-- A sample app opens a real Wayland window and renders a basic view tree to it.
+- A sample app opens a real Wayland window and renders a basic view tree to it. ✅
 
 ---
 
@@ -151,17 +155,29 @@ VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a
 
 ---
 
-# Phase 7 — Shell + First‑Party Apps
+# Phase 7 — Shell + First‑Party Apps ⚠️ Partial
+
+**Status:** ⚠️ **Partially Complete (Built Early)**
 
 **Objective:** Build the official system shell and apps on top of openSEF to validate framework maturity.
 
-**Key Tasks:**
-- Panel + dock (layer‑shell clients).
-- File manager, settings, terminal, text editor.
-- System launcher and app switcher.
+**Completed:**
+- ✅ Panel (global menu bar, clock, system tray stubs)
+- ✅ Dock (icon display, click handlers)
+- ✅ Wallpaper rendering
+- ✅ Layer-shell integration with compositor
+
+**Remaining:**
+- 📋 File manager (osf-filer - skeleton exists)
+- 📋 Settings app (osf-settings - skeleton exists)
+- 📋 Terminal (osf-terminal - skeleton exists)
+- 📋 Text editor
+- 📋 System launcher and app switcher
 
 **Definition of Done:**
 - A cohesive daily‑driver desktop experience exists for early adopters.
+
+> **Development Note:** We built shell components early (before Phases 3-6) to validate the desktop experience. Full shell functionality requires completing foundation phases for proper layout, theming, and system services.
 
 ---
 

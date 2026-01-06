@@ -48,6 +48,10 @@ public:
     void setExclusiveZone(int zone);
     void setMargin(int top, int right, int bottom, int left);
     
+    // Input and rendering regions (January 2026)
+    void setInputRegion(const std::vector<cairo_rectangle_int_t>& rects);
+    void setOpaqueRegion(const std::vector<cairo_rectangle_int_t>& rects);
+    
     // Rendering
     cairo_t* beginPaint();      // Returns Cairo context for drawing
     void endPaint();

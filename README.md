@@ -104,11 +104,23 @@ This is the same approach used by labwc, sway, and other production compositors.
 |-----------|--------|
 | **Framework Foundation** | ✅ Phase 1 Complete |
 | **Windowing Integration** | ✅ Phase 2 Complete |
-| **Compositor Core** | ✅ Working (windows, input, layer-shell) |
-| **Panel** | ✅ Working (global menu bar with clock) |
-| **Dock** | ✅ Working (placeholder icons) |
-| **Widget Library** | ✅ Button, Label, TextField |
+| **Compositor Core** | ✅ Working (wlroots 0.19, windows, input, layer-shell) |
+| **Panel** | ✅ Working (global menu bar, clock, system tray stubs) |
+| **Dock** | ✅ Working (icon display, click handlers) |
+| **Wallpaper** | ✅ Working (image rendering) |
+| **Widget Library** | ⚠️ Basic (Button, Label, TextField - Phase 5 incomplete) |
 | **Layout + Responder** | 📋 Phase 3 Planned |
+| **Theming System** | 📋 Phase 4 Planned |
+
+### Recent Improvements (January 6, 2026)
+
+- **Performance**: Eliminated flickering by switching to event-driven rendering (redraws only on actual changes)
+- **Input Transparency**: Fixed click pass-through for transparent Panel/Dock regions
+- **Rendering Optimization**: Added `setOpaqueRegion()` API for compositor-side optimizations
+- **Assets**: Integrated WhiteSur icon theme for premium Aqua-inspired visuals
+- **Stability**: Clock updates once per minute instead of constant redraws
+
+> **Development Note**: We built the Shell (Phase 7) before completing foundation phases (3-6) to validate the desktop experience early. Core layout, theming, and services work is planned for upcoming phases.
 
 ---
 
@@ -240,15 +252,15 @@ VitusOS Ares/
 |-------|-------|--------|
 | **1** | Framework Foundation | ✅ **Complete** |
 | **2** | Windowing Integration | ✅ **Complete** |
-| **3** | Layout & Input | 📋 **Next Up** |
-| **4** | Theming & Appearance | 📋 Planned |
-| **5** | Controls & Text | 📋 Planned |
-| **6** | System Services | 📋 Planned |
-| **7** | Shell & System Apps | ⚠️ Partial (Built Early) |
-| **8** | Performance | 📋 Planned |
-| **9** | Final Polish | 📋 Planned |
+| **3** | Layout & Input | 📋 **Planned** |
+| **4** | Theming & Appearance | 📋 **Planned** |
+| **5** | Controls & Text | 📋 **Planned** |
+| **6** | System Services | 📋 **Planned** |
+| **7** | Shell & System Apps | ⚠️ **Partial** (Built Early) |
+| **8** | Performance | 📋 **Planned** |
+| **9** | Final Polish | 📋 **Planned** |
 
-> **Note:** We previously built the Shell (Phase 7) before completing the foundation phases. Phases 1-2 are now complete.
+> **Note:** We built the Shell (Phase 7) components early to validate the desktop experience. The underlying framework phases (3-6) will be completed to provide proper foundation for the shell and third-party apps.
 
 ---
 

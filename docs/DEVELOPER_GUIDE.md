@@ -2,7 +2,7 @@
 
 **A comprehensive guide to understanding and contributing to VitusOS Ares**
 
-*Last Updated: January 1, 2026*
+*Last Updated: January 6, 2026*
 
 ---
 
