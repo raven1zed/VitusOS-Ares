@@ -107,18 +107,7 @@ int main() {
     cairo_paint(cr);
     cairo_pattern_destroy(gradient);
 
-    // 2. Render AppKit View Hierarchy
-    // The window's content view (rootView) should be rendered here.
-    // Ideally OSFWindow handles this automatically if contentView is set,
-    // but our current OSFWindow.cpp implementation of createBuffer/Drawing
-    // clears screen and calls drawCallback. It doesn't auto-render contentView
-    // yet. So we do it manually here for Phase 3 validation.
-
-    if (rootView) {
-      rootView->render(cr);
-    }
-
-    // 3. Draw Overlay Text
+    // 2. Render Overlay Text
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_BOLD);

@@ -25,7 +25,6 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 
-
 #include <stdbool.h>
 
 /* ============================================================================
@@ -199,7 +198,7 @@ struct osf_keyboard {
  */
 
 /* Server lifecycle */
-bool osf_server_init(struct osf_server *server);
+bool osf_server_init(struct osf_server *server, const char *socket_name);
 void osf_server_run(struct osf_server *server);
 void osf_server_finish(struct osf_server *server);
 

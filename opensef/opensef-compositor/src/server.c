@@ -44,7 +44,7 @@ extern void osf_seat_request_set_selection(struct wl_listener *listener,
                                            void *data);
 extern void osf_new_xdg_decoration(struct wl_listener *listener, void *data);
 
-bool osf_server_init(struct osf_server *server) {
+bool osf_server_init(struct osf_server *server, const char *socket_name) {
   wlr_log(WLR_INFO, "Initializing openSEF compositor...");
 
   /* Create Wayland display */
@@ -56,6 +56,7 @@ bool osf_server_init(struct osf_server *server) {
   server->wl_event_loop = wl_display_get_event_loop(server->wl_display);
 
   /* Create backend (auto-detects DRM, Wayland, X11, headless) */
+
   server->backend = wlr_backend_autocreate(server->wl_event_loop, NULL);
   if (!server->backend) {
     wlr_log(WLR_ERROR, "Failed to create wlroots backend");
@@ -162,11 +163,21 @@ bool osf_server_init(struct osf_server *server) {
   wlr_server_decoration_manager_set_default_mode(
       server->server_decoration_mgr, WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
 
-  /* Add socket */
-  server->socket = wl_display_add_socket_auto(server->wl_display);
-  if (!server->socket) {
-    wlr_log(WLR_ERROR, "Failed to create Wayland socket");
-    goto error_backend;
+  /* Add socket - use explicit name if provided, otherwise auto */
+  if (socket_name && socket_name[0] != '\0') {
+    if (wl_display_add_socket(server->wl_display, socket_name) != 0) {
+      wlr_log(WLR_ERROR, "Failed to create Wayland socket: %s", socket_name);
+      goto error_backend;
+    }
+    server->socket = socket_name;
+    wlr_log(WLR_INFO, "Using explicit socket name: %s", socket_name);
+  } else {
+    server->socket = wl_display_add_socket_auto(server->wl_display);
+    if (!server->socket) {
+      wlr_log(WLR_ERROR, "Failed to create Wayland socket (auto)");
+      goto error_backend;
+    }
+    wlr_log(WLR_INFO, "Using auto socket name: %s", server->socket);
   }
 
   /* Start backend */

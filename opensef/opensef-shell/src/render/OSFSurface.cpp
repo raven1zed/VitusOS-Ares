@@ -276,11 +276,21 @@ void OSFSurface::damage(int x, int y, int width, int height) {
 
 void OSFSurface::commit() {
   wl_surface_attach(surface_, buffer_, 0, 0);
+
+  if (frameCallback_) {
+    wl_callback_destroy(frameCallback_);
+  }
+  frameCallback_ = wl_surface_frame(surface_);
+  static const struct wl_callback_listener frame_listener = {
+      .done = OSFSurface::frameCallbackHandler};
+  wl_callback_add_listener(frameCallback_, &frame_listener, this);
+  framePending_ = true;
+
   wl_surface_commit(surface_);
 }
 
 void OSFSurface::requestRedraw() {
-  if (!configured_ || !drawCallback_)
+  if (!configured_ || !drawCallback_ || framePending_)
     return;
 
   auto cr = beginPaint();
@@ -604,6 +614,14 @@ void OSFSurface::layerSurfaceClosed(void *data,
   if (self->closeCallback_) {
     self->closeCallback_();
   }
+}
+
+void OSFSurface::frameCallbackHandler(void *data, struct wl_callback *callback,
+                                      uint32_t /*time*/) {
+  auto self = static_cast<OSFSurface *>(data);
+  self->framePending_ = false;
+  self->frameCallback_ = nullptr;
+  wl_callback_destroy(callback);
 }
 
 // Logic definitions

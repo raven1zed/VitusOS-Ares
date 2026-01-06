@@ -29,7 +29,7 @@ pkgs.mkShell {
     libffi
     libcap
     udev
-    libxcb
+    xorg.libxcb
     xwayland
     cairo
     pango

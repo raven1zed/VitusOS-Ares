@@ -106,6 +106,8 @@ public:
                             uint32_t state);
   static void pointerAxis(void *data, struct wl_pointer *pointer, uint32_t time,
                           uint32_t axis, wl_fixed_t value);
+  static void frameCallbackHandler(void *data, struct wl_callback *callback,
+                                   uint32_t time);
 
   // Rendering
   CairoContextPtr beginPaint();
@@ -183,6 +185,8 @@ private:
   int shmFd_ = -1;
   int timerFd_ = -1;
   int timerIntervalMs_ = 0;
+  bool framePending_ = false;
+  struct wl_callback *frameCallback_ = nullptr;
 
   // State
   std::string namespace_;

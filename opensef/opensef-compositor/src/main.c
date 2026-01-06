@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 #include <wlr/util/log.h>
 
 #include "server.h"
@@ -22,7 +21,11 @@ static void print_usage(const char *name) {
   fprintf(stderr, "Usage: %s [options]\n", name);
   fprintf(stderr, "\n");
   fprintf(stderr, "Options:\n");
-  fprintf(stderr, "  -s, --startup CMD    Run startup command\n");
+  fprintf(stderr,
+          "  -s, --socket NAME    Set Wayland socket name (default: auto)\n");
+  fprintf(
+      stderr,
+      "  -c, --command CMD    Run startup command after compositor starts\n");
   fprintf(stderr, "  -d, --debug          Enable debug logging\n");
   fprintf(stderr, "  -h, --help           Show this help\n");
   fprintf(stderr, "\n");
@@ -38,18 +41,23 @@ static void handle_signal(int sig) {
 
 int main(int argc, char *argv[]) {
   char *startup_cmd = NULL;
+  char *socket_name = NULL;
   enum wlr_log_importance log_level = WLR_INFO;
 
   static struct option long_options[] = {
-      {"startup", required_argument, NULL, 's'},
+      {"socket", required_argument, NULL, 's'},
+      {"command", required_argument, NULL, 'c'},
       {"debug", no_argument, NULL, 'd'},
       {"help", no_argument, NULL, 'h'},
       {NULL, 0, NULL, 0}};
 
   int opt;
-  while ((opt = getopt_long(argc, argv, "s:dh", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "s:c:dh", long_options, NULL)) != -1) {
     switch (opt) {
     case 's':
+      socket_name = optarg;
+      break;
+    case 'c':
       startup_cmd = optarg;
       break;
     case 'd':
@@ -71,8 +79,8 @@ int main(int argc, char *argv[]) {
   wlr_log(WLR_INFO, "║     VitusOS Ares Desktop               ║");
   wlr_log(WLR_INFO, "╚════════════════════════════════════════╝");
 
-  /* Initialize server */
-  if (!osf_server_init(&server)) {
+  /* Initialize server with explicit socket name */
+  if (!osf_server_init(&server, socket_name)) {
     wlr_log(WLR_ERROR, "Failed to initialize compositor");
     return 1;
   }

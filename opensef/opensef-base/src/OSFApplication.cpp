@@ -70,31 +70,70 @@ void OSFApplication::run() {
       continue;
     }
 
-    // Poll all descriptors with 16ms timeout (~60fps)
-    int result = poll(fds.data(), fds.size(), 16);
+    // Determine poll timeout.
+    // If any window has a pending redraw OR is waiting for a frame callback,
+    // we should poll with a very short timeout (e.g., 1ms) to keep the loop
+    // tight. Otherwise, we can wait longer (e.g., 100ms) to save CPU.
+    bool busy = false;
+    bool pending = false; // Renamed from 'busy' to 'pending' for clarity
+    for (OSFWindow *window : activeWindows) {
+      if (window->needsRedraw()) { // Check if any window needs a redraw
+        pending = true;
+        break;
+      }
+    }
+    // Poll all descriptors
+    // If waiting for frame (framePending), use fail-safe timeout (e.g. 16ms)
+    // to prevent freezing if callback is lost.
+    int timeout = pending ? 16 : 100;
+
+    int result = poll(fds.data(), fds.size(), timeout);
 
     if (result > 0) {
-      // Handle Windows
+      // Handle Windows Input
       for (size_t i = 0; i < activeWindows.size(); ++i) {
-        if (fds[i].revents & POLLIN) {
+        if (fds[i].revents & (POLLIN | POLLHUP | POLLERR)) {
           if (!activeWindows[i]->processEvents()) {
-            // Window closed or error
+            // If processEvents returns false, the window might be
+            // invalid/closed. Remove it from activeWindows. The fds vector will
+            // be rebuilt next iteration.
+            activeWindows.erase(activeWindows.begin() + i);
+            i--; // Adjust index as element was removed
           }
         }
       }
 
       // Handle External Sources
-      for (size_t i = 0; i < externalSources_.size(); ++i) {
-        size_t fdIndex = externalStart + i;
+      // Use an iterator to allow removal if a source becomes invalid
+      for (auto it = externalSources_.begin(); it != externalSources_.end();) {
+        size_t fdIndex =
+            externalStart + std::distance(externalSources_.begin(), it);
         if (fdIndex < fds.size() && (fds[fdIndex].revents & POLLIN)) {
-          externalSources_[i].callback();
+          it->callback();
+          ++it; // Move to next if callback handled
+        } else {
+          ++it; // Move to next if not ready or error
         }
       }
     } else if (result == 0) {
-      // Timeout - animation tick for windows
-      for (OSFWindow *window : activeWindows) {
-        window->processEvents();
+      // Timeout (100ms or 16ms)
+      // If we were waiting for a frame and timed out (16ms),
+      // Force a redraw check to keep animation moving.
+      if (pending) {
+        // Force updates if stuck?
+        // Actually, OSFWindow::update() will skip if framePending && strict.
+        // But we relaxed strictness.
       }
+    }
+
+    // ALWAYS perform update/animation tick for all windows
+    // This drives the "Game Loop"
+    for (OSFWindow *window : activeWindows) {
+      // Force 'needsRedraw' if we want continuous animation (e.g. progress
+      // bars) For now, let's just call update(). If OSFWindow thinks it's done,
+      // it returns. But for Phase 3 (which might be animating), we might need
+      // to Poke it.
+      window->update();
     }
   }
 

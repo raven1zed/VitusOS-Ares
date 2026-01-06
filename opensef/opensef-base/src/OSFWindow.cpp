@@ -73,6 +73,8 @@ struct WindowImpl {
   // State
   bool configured = false;
   bool closed = false;
+  wl_callback *frameCallback = nullptr; // Phase 3: v-sync (144Hz support)
+  bool framePending = false;            // Waiting for compositor callback
 
   // Parent reference
   OSFWindow *window = nullptr;
@@ -105,8 +107,41 @@ struct WindowImpl {
     if (!contentView)
       return;
 
-    // Perform hit test
-    OSFView *hitView = contentView->hitTest(mouseX, mouseY);
+    // Adjust mouse coordinates for titlebar offset (38px)
+    double hitX = mouseX;
+    double hitY = mouseY - 38.0;
+
+    // 1. Check Titlebar Interactions (y < 38)
+    if (mouseY < 38.0) {
+      if (type == OSFEvent::Type::MouseDown && button == BTN_LEFT) {
+        // Red Button (Close)
+        double dx = mouseX - 24;
+        double dy = mouseY - 19;
+        if (dx * dx + dy * dy < 64) { // radius 8 (6+margin)
+          window->close();
+          return;
+        }
+      }
+    }
+
+    // 2. Content View Hit Test
+    OSFView *hitView = (hitY >= 0) ? contentView->hitTest(hitX, hitY) : nullptr;
+
+    // === Hover Transition Handling ===
+    if (hitView != hoveredView) {
+      if (hoveredView) {
+        OSFEvent exitEvent(OSFEvent::Type::FocusOut);
+        exitEvent.setMousePosition(mouseX, mouseY);
+        hoveredView->mouseMoved(exitEvent);
+      }
+      hoveredView = hitView;
+      if (hoveredView) {
+        OSFEvent enterEvent(OSFEvent::Type::FocusIn);
+        enterEvent.setMousePosition(mouseX, mouseY);
+        hoveredView->mouseMoved(enterEvent);
+      }
+      window->setNeedsDisplay(); // Feedback for hover
+    }
 
     // === Mouse Down: Start capture ===
     if (type == OSFEvent::Type::MouseDown) {
@@ -231,6 +266,9 @@ static void keyboard_key(void *data, wl_keyboard *, uint32_t serial,
 
   OSFEvent event(type);
   event.setKeyCode(sym); // Use keysym as keycode for now
+
+  // Any key event might need a redraw (cursor blinking, highlighting)
+  impl->window->setNeedsDisplay();
 
   // Dispatch to window (which routes to First Responder)
   if (type == OSFEvent::Type::KeyDown)
@@ -376,13 +414,32 @@ static void xdgSurfaceConfigure(void *data, xdg_surface *surface,
   auto *impl = static_cast<WindowImpl *>(data);
   xdg_surface_ack_configure(surface, serial);
   impl->configured = true;
+  if (impl->window)
+    impl->window->setNeedsDisplay(); // Initial redraw after configuration
 }
 static const xdg_surface_listener xdgSurfaceListener = {xdgSurfaceConfigure};
 static void xdgToplevelConfigure(void *data, xdg_toplevel *, int32_t width,
                                  int32_t height, wl_array *) {
   auto *impl = static_cast<WindowImpl *>(data);
-  if (width > 0 && height > 0 && impl->window)
+  if (width > 0 && height > 0 && impl->window) {
+    // DEBUG:
+    std::cerr << "[OSFWindow] Configure request: " << width << "x" << height
+              << std::endl;
+
+    // Workaround for WSLg reporting bogus 131072x1 sizes
+    // Enforce reasonable Desktop limits.
+    if (width > 4096)
+      width = 800; // Reset to default on bogus width
+    if (height > 4096)
+      height = 600;
+
+    if (width < 200)
+      width = 200;
+    if (height < 200)
+      height = 200;
+
     impl->window->setSize(width, height);
+  }
 }
 static void xdgToplevelClose(void *data, xdg_toplevel *) {
   auto *impl = static_cast<WindowImpl *>(data);
@@ -394,6 +451,21 @@ static void xdgToplevelWmCapabilities(void *, xdg_toplevel *, wl_array *) {}
 static const xdg_toplevel_listener xdgToplevelListener = {
     xdgToplevelConfigure, xdgToplevelClose, xdgToplevelConfigureBounds,
     xdgToplevelWmCapabilities};
+
+// --- Frame Callback ---
+
+static void frame_callback_handler(void *data, wl_callback *callback,
+                                   uint32_t /*callback_data*/) {
+  auto *impl = static_cast<WindowImpl *>(data);
+  wl_callback_destroy(callback);
+  impl->frameCallback = nullptr;
+  impl->framePending = false;
+  if (impl->window)
+    impl->window->setNeedsDisplay(); // Ready for next frame
+}
+
+static const wl_callback_listener frameCallbackListener = {
+    frame_callback_handler};
 
 // ============================================================================
 // Buffer Creation (Unchanged)
@@ -595,7 +667,23 @@ void OSFWindow::show() {
   wl_surface_commit(impl_->surface);
   wl_display_roundtrip(impl_->display);
 
-  while (!impl_->configured && wl_display_dispatch(impl_->display) != -1) {
+  // Wait for configure event with timeout to prevent hanging
+  struct pollfd pfd = {wl_display_get_fd(impl_->display), POLLIN, 0};
+  int attempts = 0;
+  while (!impl_->configured && attempts < 20) { // Wait up to 2 seconds
+    if (poll(&pfd, 1, 100) > 0) {
+      if (wl_display_dispatch(impl_->display) == -1)
+        break;
+    } else {
+      // Timeout step
+    }
+    attempts++;
+  }
+
+  if (!impl_->configured) {
+    std::cerr
+        << "[OSFWindow] Warning: Connect timed out waiting for configure event."
+        << std::endl;
   }
   visible_ = true;
 }
@@ -743,74 +831,132 @@ void OSFWindow::setContentView(std::shared_ptr<OSFView> view) {
   contentView_ = view;
 }
 int OSFWindow::displayFd() const {
-  return impl_->display ? wl_display_get_fd(impl_->display) : -1;
+  if (!impl_->display || impl_->closed)
+    return -1;
+  return wl_display_get_fd(impl_->display);
 }
 
 bool OSFWindow::processEvents() {
   if (!impl_->display || impl_->closed)
     return false;
-  wl_display_flush(impl_->display);
 
-  if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
+  // Use wl_display_dispatch() to read events from the socket
+  if (wl_display_dispatch(impl_->display) == -1) {
+    std::cerr << "[OSFWindow] Dispatch failed. Closing window." << std::endl;
+    impl_->closed = true;
+    return false;
+  }
+
+  return !impl_->closed;
+}
+
+void OSFWindow::update() {
+  if (!impl_->configured || impl_->closed)
+    return;
+
+  // Phase 3 Optimization: Only redraw if requested AND compositor is ready
+  if (!needsRedraw_ || impl_->framePending)
+    return;
+
+  // 1. Create Buffer
+  if (createBuffer(impl_.get(), width_, height_)) {
+    needsRedraw_ = false;
+    impl_->framePending = true; // Mark as waiting for next frame callback
+
+    // Soft V-Sync: Request callback, but don't block
+    if (impl_->frameCallback)
+      wl_callback_destroy(impl_->frameCallback);
+    impl_->frameCallback = wl_surface_frame(impl_->surface);
+    wl_callback_add_listener(impl_->frameCallback, &frameCallbackListener,
+                             impl_.get());
+
     cairo_t *cr = cairo_create(impl_->cairoSurface);
+    if (!cr)
+      return;
 
-    // === VitusOS CSD (Client Side Decorations) ===
+    // --- PREMIUM VISUALS RESTORED ---
 
-    // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
+    // 2. Background: Glassmorphism (Dark Grey + Alpha)
     cairo_save(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgba(cr, 0.18, 0.18, 0.18, 0.85); // 85% opacity
+    cairo_set_source_rgba(cr, 0.16, 0.16, 0.16, 0.90); // Deep Dark Glass
     cairo_paint(cr);
     cairo_restore(cr);
 
-    // 2. Titlebar (Slightly lighter, also glass)
-    cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
-    cairo_rectangle(cr, 0, 0, width_, 30);             // 30px height
+    // 3. Titlebar: Slightly lighter glass
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.05); // White overlay
+    cairo_rectangle(cr, 0, 0, width_, 38);          // Taller titlebar (38px)
     cairo_fill(cr);
 
-    // 3. Traffic Lights
-    // Red
-    cairo_set_source_rgba(cr, 1.0, 0.37, 0.35, 1.0); // #FF5F5A
-    cairo_arc(cr, 20, 15, 6, 0, 2 * M_PI);
-    cairo_fill(cr);
-    // Yellow
-    cairo_set_source_rgba(cr, 1.0, 0.73, 0.19, 1.0); // #FFBB30
-    cairo_arc(cr, 40, 15, 6, 0, 2 * M_PI);
-    cairo_fill(cr);
-    // Green
-    cairo_set_source_rgba(cr, 0.16, 0.78, 0.25, 1.0); // #28C840
-    cairo_arc(cr, 60, 15, 6, 0, 2 * M_PI);
-    cairo_fill(cr);
-
-    // 4. Title Text (White)
-    if (!title_.empty()) {
-      cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
-      cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL,
-                             CAIRO_FONT_WEIGHT_BOLD);
-      cairo_set_font_size(cr, 13);
-      cairo_text_extents_t extents;
-      cairo_text_extents(cr, title_.c_str(), &extents);
-      cairo_move_to(cr, (width_ - extents.width) / 2, 20);
-      cairo_show_text(cr, title_.c_str());
-    }
-
-    // Separator Line
-    cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
-    cairo_move_to(cr, 0, 30);
-    cairo_line_to(cr, width_, 30);
+    // 4. Border: Subtle highlight
+    cairo_set_line_width(cr, 1.0);
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.15);
+    cairo_rectangle(cr, 0.5, 0.5, width_ - 1, height_ - 1);
     cairo_stroke(cr);
 
+    // 5. Traffic Lights (macOS style positioning)
+    // Red
+    cairo_set_source_rgba(cr, 1.0, 0.35, 0.35, 1.0);
+    cairo_arc(cr, 24, 19, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+    // Yellow
+    cairo_set_source_rgba(cr, 1.0, 0.75, 0.20, 1.0);
+    cairo_arc(cr, 44, 19, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+    // Green
+    cairo_set_source_rgba(cr, 0.20, 0.80, 0.35, 1.0);
+    cairo_arc(cr, 64, 19, 6, 0, 2 * M_PI);
+    cairo_fill(cr);
+
+    // 6. Title Text: Inter/Sans-Serif, Centered
+    // Shadow
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
+    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 14);
+    cairo_text_extents_t extents;
+    const char *titleStr = title_.empty() ? "VitusOS" : title_.c_str();
+    cairo_text_extents(cr, titleStr, &extents);
+    cairo_move_to(cr, (width_ - extents.width) / 2 + 1, 25); // y center ~19 + 5
+    cairo_show_text(cr, titleStr);
+
+    // Main text
+    cairo_set_source_rgba(cr, 0.95, 0.95, 0.95, 1.0);
+    cairo_move_to(cr, (width_ - extents.width) / 2, 24);
+    cairo_show_text(cr, titleStr);
+
+    // Separator line
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.3);
+    cairo_move_to(cr, 0, 38);
+    cairo_line_to(cr, width_, 38);
+    cairo_stroke(cr);
+
+    // 7. Content Area
+    // Clip content to below titlebar
+    cairo_save(cr);
+    cairo_rectangle(cr, 0, 38, width_, height_ - 38);
+    cairo_clip(cr);
+    cairo_translate(cr, 0, 38); // Offset by titlebar for content
+
+    // Draw custom content (if callback provided)
     if (drawCallback_)
-      drawCallback_(cr, width_, height_);
+      drawCallback_(cr, width_, height_ - 38); // Pass content dimensions
+
+    // Render view hierarchy
+    if (contentView_) {
+      contentView_->layoutIfNeeded();
+      contentView_->render(cr);
+    }
+    cairo_restore(cr); // Restore clip and transform
+
     cairo_destroy(cr);
+
+    // Commit
     wl_surface_attach(impl_->surface, impl_->buffer, 0, 0);
     wl_surface_damage_buffer(impl_->surface, 0, 0, width_, height_);
     wl_surface_commit(impl_->surface);
+    wl_display_flush(impl_->display);
   }
-
-  if (wl_display_dispatch_pending(impl_->display) == -1)
-    return false;
-  return !impl_->closed;
 }
 
 std::shared_ptr<OSFWindow> OSFWindow::create(int width, int height,

@@ -87,8 +87,9 @@ void OSFButton::render(cairo_t *cr) {
   if (hidden_)
     return;
 
-  double x = frame_.x;
-  double y = frame_.y;
+  // Views are already translated to their frame coordinates by the parent
+  double x = 0;
+  double y = 0;
   double w = frame_.width;
   double h = frame_.height;
 

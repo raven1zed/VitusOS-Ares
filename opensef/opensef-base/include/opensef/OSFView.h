@@ -77,9 +77,12 @@ public:
    */
   virtual OSFRect intrinsicContentSize() const { return OSFRect(0, 0, 0, 0); }
 
-  // === Display ===
+  /**
+   * Mark the view as needing a redraw.
+   */
+  void setNeedsDisplay();
 
-  void setNeedsDisplay() { needsDisplay_ = true; }
+  // === Display ===
   bool needsDisplay() const { return needsDisplay_; }
 
   // === Hit Testing ===

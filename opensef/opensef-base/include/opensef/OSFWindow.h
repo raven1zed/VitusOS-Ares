@@ -14,7 +14,6 @@
 #include <opensef/OSFResponder.h>
 #include <string>
 
-
 // Forward declaration for Cairo context
 typedef struct _cairo cairo_t;
 
@@ -89,11 +88,28 @@ public:
    */
   bool processEvents();
 
+  /**
+   * Update window state and render if needed.
+   * Called by OSFApplication every iteration.
+   */
+  void update();
+
+  /**
+   * Returns true if the window needs a redraw.
+   */
+  bool needsRedraw() const { return needsRedraw_; }
+
   // === Callbacks ===
 
   void onClose(CloseCallback callback) { closeCallback_ = callback; }
   void onResize(ResizeCallback callback) { resizeCallback_ = callback; }
   void onDraw(DrawCallback callback) { drawCallback_ = callback; }
+
+  /**
+   * Mark the window as needing a redraw.
+   * rendering will happen in the next event loop iteration.
+   */
+  void setNeedsDisplay() { needsRedraw_ = true; }
 
   // === OSFResponder Overrides ===
 
@@ -130,6 +146,7 @@ private:
   int height_ = 0;
   bool visible_ = false;
   bool running_ = false;
+  bool needsRedraw_ = true; // Phase 3 Performance Fix: Event-driven redraws
 
   // Content
   std::shared_ptr<OSFView> contentView_;

@@ -9,7 +9,6 @@
 #include <opensef/OSFView.h>
 #include <opensef/OSFWindow.h>
 
-
 namespace opensef {
 
 // =============================================================================
@@ -148,6 +147,13 @@ bool OSFView::keyDown(OSFEvent &event) { return OSFResponder::keyDown(event); }
 // =============================================================================
 // OSFView - Rendering
 // =============================================================================
+
+void OSFView::setNeedsDisplay() {
+  needsDisplay_ = true;
+  if (window_) {
+    window_->setNeedsDisplay();
+  }
+}
 
 void OSFView::render(cairo_t *cr) {
   if (hidden_)
