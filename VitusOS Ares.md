@@ -97,18 +97,22 @@ VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a
 
 ---
 
-# Phase 3 — Layout + Input + Responder Chain
+# Phase 3 — Layout + Input + Responder Chain ✅ Complete
+
+**Status:** ✅ **Completed January 2026**
 
 **Objective:** Make view trees interactive and layout‑aware.
 
-**Key Tasks:**
-- Introduce a layout system (stack/grid/flex) with intrinsic sizing.
-- Add OSFResponder base and event routing (mouse/keyboard).
-- Input focus and first‑responder management.
-- Basic hit‑testing.
+**Completed:**
+- ✅ Introduced `sizeThatFits()` and `intrinsicContentSize()` for intrinsic sizing
+- ✅ Implemented `OSFStackView` (stack/grid layout) with spacing, alignment, distribution
+- ✅ Added `OSFResponder` base and event routing (mouse/keyboard)
+- ✅ Input focus and first‑responder management via `OSFWindow`
+- ✅ Mouse capture (pressedView) and hover tracking (hoveredView)
+- ✅ Basic hit‑testing throughout view hierarchy
 
 **Definition of Done:**
-- A window supports buttons and text fields with keyboard/mouse interaction.
+- A window supports buttons and text fields with keyboard/mouse interaction. ✅
 
 ---
 

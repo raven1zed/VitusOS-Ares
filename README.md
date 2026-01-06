@@ -252,15 +252,15 @@ VitusOS Ares/
 |-------|-------|--------|
 | **1** | Framework Foundation | ✅ **Complete** |
 | **2** | Windowing Integration | ✅ **Complete** |
-| **3** | Layout & Input | 📋 **Planned** |
-| **4** | Theming & Appearance | 📋 **Planned** |
+| **3** | Layout & Input | ✅ **Complete** |
+| **4** | Theming & Appearance | 📋 **Next Up** |
 | **5** | Controls & Text | 📋 **Planned** |
 | **6** | System Services | 📋 **Planned** |
 | **7** | Shell & System Apps | ⚠️ **Partial** (Built Early) |
 | **8** | Performance | 📋 **Planned** |
 | **9** | Final Polish | 📋 **Planned** |
 
-> **Note:** We built the Shell (Phase 7) components early to validate the desktop experience. The underlying framework phases (3-6) will be completed to provide proper foundation for the shell and third-party apps.
+> **Note:** We built the Shell (Phase 7) components early to validate the desktop experience. The underlying framework phases (4-6) will be completed to provide proper foundation for the shell and third-party apps.
 
 ---
 

@@ -14,7 +14,6 @@
 #include <opensef/OSFResponder.h>
 #include <vector>
 
-
 namespace opensef {
 
 class OSFWindow;
@@ -61,6 +60,22 @@ public:
 
   virtual void layoutSubviews() {}
   void layoutIfNeeded();
+
+  /**
+   * Returns the size that best fits the proposed size.
+   * Override in subclasses to provide intrinsic sizing.
+   * Default returns the proposed size (flexible).
+   */
+  virtual OSFRect sizeThatFits(const OSFRect &proposedSize) {
+    return proposedSize;
+  }
+
+  /**
+   * Returns the natural size of this view's content.
+   * Override in widgets (buttons, labels) to return their preferred size.
+   * Default returns zero (no intrinsic size).
+   */
+  virtual OSFRect intrinsicContentSize() const { return OSFRect(0, 0, 0, 0); }
 
   // === Display ===
 

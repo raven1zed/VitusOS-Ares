@@ -9,10 +9,10 @@
 
 #include <cairo/cairo.h>
 #include <iostream>
+#include <opensef/OSFStackView.h>
 #include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFAppKit.h> // Triggers dependency on OSFView/Geometry
 #include <opensef/OpenSEFBase.h>
-
 
 using namespace opensef;
 
@@ -47,30 +47,52 @@ int main() {
   auto rootView = std::make_shared<OSFView>();
   rootView->setFrame(OSFRect(0, 0, 800, 600));
 
-  // Custom draw for root view (Background Gradient)
-  /* NOTE: In a real app we would subclass OSFView, but here we can rely on
-     the window draw callback for the backend, or we can't easily override
-     virtuals on a raw instance. Instead, let's use the Window's draw callback
-     for the background, and AppKit views for the interactive elements. */
+  // === Phase 3 NEW: OSFStackView Layout Demo ===
+  // Create a vertical stack for buttons
+  auto buttonStack = OSFStackView::create(OSFStackAxis::Vertical);
+  buttonStack->setFrame(OSFRect(50, 200, 300, 300));
+  buttonStack->setSpacing(16);
+  buttonStack->setAlignment(OSFStackAlignment::Fill);
+  buttonStack->setDistribution(OSFStackDistribution::EqualSpacing);
+  buttonStack->setPadding(20, 20, 20, 20);
 
   // Button 1
   auto button = OSFButton::create("Click Me!", []() {
-    std::cout << "\n    >>> BUTTON CLICKED! Responder Chain Works! <<<\n\n";
+    std::cout << "\n    >>> BUTTON 1 CLICKED! Responder Chain Works! <<<\n\n";
   });
-  button->setFrame(OSFRect(50, 450, 200, 50));
-  rootView->addSubview(button);
+  buttonStack->addSubview(button);
 
-  // Button 2 (Exit)
+  // Button 2
+  auto button2 = OSFButton::create(
+      "Button Two", []() { std::cout << "    >> Button Two clicked\n"; });
+  buttonStack->addSubview(button2);
+
+  // Button 3 (Exit)
   auto exitButton = OSFButton::create("Exit App", [&]() {
     std::cout << "    [App] Exit requested via button.\n";
     app.stop();
   });
-  exitButton->setFrame(OSFRect(300, 450, 200, 50));
-  rootView->addSubview(exitButton);
+  buttonStack->addSubview(exitButton);
+
+  // Add stack to root
+  rootView->addSubview(buttonStack);
+
+  // === Horizontal Stack Demo ===
+  auto hStack = OSFStackView::create(OSFStackAxis::Horizontal);
+  hStack->setFrame(OSFRect(400, 200, 350, 50));
+  hStack->setSpacing(8);
+
+  auto btn_a = OSFButton::create("A", []() { std::cout << "A\n"; });
+  auto btn_b = OSFButton::create("B", []() { std::cout << "B\n"; });
+  auto btn_c = OSFButton::create("C", []() { std::cout << "C\n"; });
+  hStack->addSubview(btn_a);
+  hStack->addSubview(btn_b);
+  hStack->addSubview(btn_c);
+  rootView->addSubview(hStack);
 
   // Set Content View
   window->setContentView(rootView);
-  std::cout << "    [Setup] View hierarchy created and attached to window.\n";
+  std::cout << "    [Setup] View hierarchy with OSFStackView created.\n";
 
   // === Draw Callback (Integration) ===
   // AppKit views render themselves, but we clear the window first.

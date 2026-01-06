@@ -42,9 +42,9 @@ add_library(opensef-base SHARED
     src/OSFBundle.cpp
     src/OSFNotificationCenter.cpp
     src/OSFObject.cpp
-    src/OSFObject.cpp
     src/OSFRunLoop.cpp
     src/OSFView.cpp
+    src/OSFStackView.cpp
     # Windowing (Wayland dependency)
     src/OSFWindow.cpp
     ${XDG_SHELL_C}

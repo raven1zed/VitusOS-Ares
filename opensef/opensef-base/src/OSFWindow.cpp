@@ -77,6 +77,11 @@ struct WindowImpl {
   // Parent reference
   OSFWindow *window = nullptr;
 
+  // === Phase 3: Mouse Capture and Hover ===
+  OSFView *pressedView =
+      nullptr; // View that received mouseDown (captures mouse)
+  OSFView *hoveredView = nullptr; // View currently under the cursor
+
   // Helper to dispatch event to view hierarchy
   void dispatchMouseEvent(OSFEvent::Type type, uint32_t button = 0) {
     if (!window)
@@ -85,8 +90,7 @@ struct WindowImpl {
     OSFEvent event(type);
     event.setMousePosition(mouseX, mouseY);
 
-    // Map Linux button codes to logical buttons if needed?
-    // For now pass through or map: BTN_LEFT -> simple ID
+    // Map Linux button codes to logical buttons
     if (button == BTN_LEFT)
       event.setKeyCode(1); // logical left
     else if (button == BTN_RIGHT)
@@ -97,27 +101,67 @@ struct WindowImpl {
       // Simplified modifier extraction could go here
     }
 
-    // Hit test
     auto contentView = window->contentView();
-    if (contentView) {
-      auto target = contentView->hitTest(mouseX, mouseY);
-      if (target) {
-        if (type == OSFEvent::Type::MouseDown)
-          target->mouseDown(event);
-        else if (type == OSFEvent::Type::MouseUp)
-          target->mouseUp(event);
-        else if (type == OSFEvent::Type::MouseMoved)
-          target->mouseMoved(event);
-        return;
+    if (!contentView)
+      return;
+
+    // Perform hit test
+    OSFView *hitView = contentView->hitTest(mouseX, mouseY);
+
+    // === Mouse Down: Start capture ===
+    if (type == OSFEvent::Type::MouseDown) {
+      pressedView = hitView;
+      if (hitView) {
+        hitView->mouseDown(event);
+      } else {
+        window->mouseDown(event);
       }
+      return;
     }
 
-    // Fallback to window
-    if (type == OSFEvent::Type::MouseDown)
-      window->mouseDown(event);
-    else if (type == OSFEvent::Type::MouseUp)
-      window->mouseUp(event);
-    // MouseMoved on window base class usually does nothing
+    // === Mouse Up: Deliver to captured view ===
+    if (type == OSFEvent::Type::MouseUp) {
+      if (pressedView) {
+        pressedView->mouseUp(event);
+        pressedView = nullptr;
+      } else if (hitView) {
+        hitView->mouseUp(event);
+      } else {
+        window->mouseUp(event);
+      }
+      return;
+    }
+
+    // === Mouse Moved: Handle hover transitions ===
+    if (type == OSFEvent::Type::MouseMoved) {
+      // If mouse is captured (pressed), send to pressed view
+      if (pressedView) {
+        pressedView->mouseMoved(event);
+        return;
+      }
+
+      // Handle hover enter/exit
+      if (hitView != hoveredView) {
+        // Exit old hovered view
+        if (hoveredView) {
+          OSFEvent exitEvent(OSFEvent::Type::FocusOut);
+          exitEvent.setMousePosition(mouseX, mouseY);
+          hoveredView->mouseMoved(exitEvent);
+        }
+        // Enter new hovered view
+        hoveredView = hitView;
+        if (hoveredView) {
+          OSFEvent enterEvent(OSFEvent::Type::FocusIn);
+          enterEvent.setMousePosition(mouseX, mouseY);
+          hoveredView->mouseMoved(enterEvent);
+        }
+      }
+
+      // Normal mouse move
+      if (hitView) {
+        hitView->mouseMoved(event);
+      }
+    }
   }
 };
 
@@ -601,7 +645,7 @@ void OSFWindow::runEventLoop() {
     wl_display_flush(impl_->display);
     if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
       cairo_t *cr = cairo_create(impl_->cairoSurface);
-      
+
       // === VitusOS CSD (Client Side Decorations) ===
 
       // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
@@ -613,7 +657,7 @@ void OSFWindow::runEventLoop() {
 
       // 2. Titlebar (Slightly lighter, also glass)
       cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
-      cairo_rectangle(cr, 0, 0, width_, 30); // 30px height
+      cairo_rectangle(cr, 0, 0, width_, 30);             // 30px height
       cairo_fill(cr);
 
       // 3. Traffic Lights
@@ -633,14 +677,15 @@ void OSFWindow::runEventLoop() {
       // 4. Title Text (White)
       if (!title_.empty()) {
         cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
-        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL,
+                               CAIRO_FONT_WEIGHT_BOLD);
         cairo_set_font_size(cr, 13);
         cairo_text_extents_t extents;
         cairo_text_extents(cr, title_.c_str(), &extents);
         cairo_move_to(cr, (width_ - extents.width) / 2, 20);
         cairo_show_text(cr, title_.c_str());
       }
-      
+
       // Separator Line
       cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
       cairo_move_to(cr, 0, 30);
@@ -708,7 +753,7 @@ bool OSFWindow::processEvents() {
 
   if (impl_->configured && createBuffer(impl_.get(), width_, height_)) {
     cairo_t *cr = cairo_create(impl_->cairoSurface);
-    
+
     // === VitusOS CSD (Client Side Decorations) ===
 
     // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
@@ -720,7 +765,7 @@ bool OSFWindow::processEvents() {
 
     // 2. Titlebar (Slightly lighter, also glass)
     cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
-    cairo_rectangle(cr, 0, 0, width_, 30); // 30px height
+    cairo_rectangle(cr, 0, 0, width_, 30);             // 30px height
     cairo_fill(cr);
 
     // 3. Traffic Lights
@@ -740,14 +785,15 @@ bool OSFWindow::processEvents() {
     // 4. Title Text (White)
     if (!title_.empty()) {
       cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
-      cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+      cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL,
+                             CAIRO_FONT_WEIGHT_BOLD);
       cairo_set_font_size(cr, 13);
       cairo_text_extents_t extents;
       cairo_text_extents(cr, title_.c_str(), &extents);
       cairo_move_to(cr, (width_ - extents.width) / 2, 20);
       cairo_show_text(cr, title_.c_str());
     }
-    
+
     // Separator Line
     cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
     cairo_move_to(cr, 0, 30);
