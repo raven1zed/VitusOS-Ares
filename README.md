@@ -197,7 +197,7 @@ WLR_BACKENDS=wayland ./opensef-compositor
 
 ---
 
-## File Structure
+### File Structure
 
 VitusOS Ares/
 ├── opensef/
