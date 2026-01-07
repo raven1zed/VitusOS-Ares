@@ -156,10 +156,13 @@ struct osf_view {
   struct wl_listener request_resize;
   struct wl_listener request_maximize;
   struct wl_listener request_fullscreen;
+  struct wl_listener request_minimize;
 
   /* State */
-  int x, y;
   bool mapped;
+
+  /* Framework integration */
+  void *framework_window; /* OSFWindowC* from framework */
 };
 
 /* ============================================================================

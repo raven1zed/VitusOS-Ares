@@ -6,11 +6,15 @@
 
 #include "server.h"
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
+
+#include "OSFFrameworkC.h" /* Unified framework integration */
 
 /* ============================================================================
  * View at position (for click handling)
@@ -105,8 +109,24 @@ static void view_map(struct wl_listener *listener, void *data) {
   wl_list_insert(&view->server->views, &view->link);
   osf_focus_view(view, view->xdg_toplevel->base->surface);
 
-  wlr_log(WLR_INFO, "View mapped: %s",
-          view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)");
+  const char *title =
+      view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)";
+  const char *app_id =
+      view->xdg_toplevel->app_id ? view->xdg_toplevel->app_id : "unknown";
+
+  wlr_log(WLR_INFO, "View mapped: %s (app_id: %s)", title, app_id);
+
+  /* Register window with openSEF Framework */
+  char window_id[64];
+  snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+
+  OSFWindowC *window = osf_window_create(window_id, title, app_id);
+  osf_window_register(window);
+
+  /* Store window pointer in view for later cleanup */
+  view->framework_window = window;
+
+  wlr_log(WLR_INFO, "Window registered with framework: %s", window_id);
 }
 
 static void view_unmap(struct wl_listener *listener, void *data) {
@@ -140,6 +160,13 @@ static void view_destroy(struct wl_listener *listener, void *data) {
   struct osf_view *view = wl_container_of(listener, view, destroy);
 
   (void)data;
+
+  /* Unregister from openSEF Framework */
+  if (view->framework_window) {
+    osf_window_destroy(view->framework_window);
+    view->framework_window = NULL;
+    wlr_log(WLR_INFO, "Window unregistered from framework");
+  }
 
   wl_list_remove(&view->map.link);
   wl_list_remove(&view->unmap.link);

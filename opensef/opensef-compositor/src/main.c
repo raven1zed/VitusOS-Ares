@@ -18,6 +18,7 @@
 
 #include <wlr/util/log.h>
 
+#include "OSFFrameworkC.h" /* Unified framework integration */
 #include "server.h"
 
 static void print_usage(const char *name) {
@@ -88,6 +89,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  /* Initialize openSEF Framework */
+  wlr_log(WLR_INFO, "Initializing openSEF Framework...");
+  osf_framework_init();
+  wlr_log(WLR_INFO, "Framework initialized");
+
   /* Set up signal handlers */
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);
@@ -110,6 +116,8 @@ int main(int argc, char *argv[]) {
   osf_server_run(&server);
 
   /* Cleanup */
+  wlr_log(WLR_INFO, "Terminating openSEF Framework...");
+  osf_framework_terminate();
   osf_server_finish(&server);
 
   wlr_log(WLR_INFO, "Compositor shut down cleanly");
