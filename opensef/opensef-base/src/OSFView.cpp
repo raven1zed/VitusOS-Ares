@@ -6,10 +6,29 @@
  */
 
 #include <algorithm>
+#include <opensef/OSFLayer.h>
 #include <opensef/OSFView.h>
 #include <opensef/OSFWindow.h>
 
 namespace opensef {
+
+OSFView::OSFView() { layer_ = OSFLayer::create(); }
+
+void OSFView::setFrame(const OSFRect &frame) {
+  frame_ = frame;
+  if (layer_) {
+    layer_->setPosition(frame.x, frame.y);
+    layer_->setBounds(OSFRect(0, 0, frame.width, frame.height));
+  }
+  setNeedsLayout();
+}
+
+void OSFView::setAlpha(double alpha) {
+  alpha_ = alpha;
+  if (layer_) {
+    layer_->setOpacity(alpha);
+  }
+}
 
 // =============================================================================
 // OSFView - Hierarchy
@@ -156,10 +175,17 @@ void OSFView::setNeedsDisplay() {
 }
 
 void OSFView::render(cairo_t *cr) {
-  if (hidden_)
+  if (hidden_ || alpha_ <= 0.0)
     return;
 
-  // Render subviews
+  // Render our layer
+  if (layer_) {
+    layer_->render(cr);
+  }
+
+  // Render subviews (Note: In a fully layer-backed system,
+  // subview rendering would be handled by layer hierarchy.
+  // For now we keep the dual system for compatibility).
   for (auto &subview : subviews_) {
     cairo_save(cr);
     cairo_translate(cr, subview->frame_.x, subview->frame_.y);

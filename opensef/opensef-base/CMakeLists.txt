@@ -45,6 +45,7 @@ add_library(opensef-base SHARED
     src/OSFRunLoop.cpp
     src/OSFView.cpp
     src/OSFStackView.cpp
+    src/OSFShortcutManager.cpp
     # Windowing (Wayland dependency)
     src/OSFWindow.cpp
     ${XDG_SHELL_C}
@@ -60,6 +61,7 @@ target_include_directories(opensef-base PUBLIC
 )
 
 target_link_libraries(opensef-base PUBLIC
+    opensef-core
     ${WAYLAND_LIBRARIES}
     ${CAIRO_LIBRARIES}
     ${XKBCOMMON_LIBRARIES}

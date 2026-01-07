@@ -19,11 +19,11 @@ add_library(opensef-core STATIC
 
 target_include_directories(opensef-core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/opensef/opensef-base/include
     ${CAIRO_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-core PUBLIC
-    opensef-base
     ${CAIRO_LIBRARIES}
 )
 

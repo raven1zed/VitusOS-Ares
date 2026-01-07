@@ -22,7 +22,17 @@ void osf_new_xdg_popup(struct wl_listener *listener, void *data) {
   }
 
   /* Get the parent's scene tree */
-  struct wlr_scene_tree *parent_tree = parent->data;
+  struct wlr_scene_tree *parent_tree = NULL;
+
+  // Try to see if it's an osf_view (toplevel) or a scene_tree (popup)
+  // We use the node data of the scene_tree to identify osf_view
+  struct osf_view *view = parent->data;
+  if (view && view->content_tree) {
+    parent_tree = view->content_tree;
+  } else {
+    parent_tree = parent->data;
+  }
+
   if (!parent_tree) {
     wlr_log(WLR_ERROR, "Popup parent has no scene tree, using overlay layer");
     parent_tree = server->layer_overlay;

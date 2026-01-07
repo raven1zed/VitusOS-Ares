@@ -216,5 +216,7 @@ private:
   };
   std::vector<ExternalSource> externalSources_;
 };
-
 } // namespace opensef
+
+#include <opensef/OSFAnimation.h>
+#include <opensef/OSFLayer.h>

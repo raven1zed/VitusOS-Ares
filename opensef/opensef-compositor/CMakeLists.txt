@@ -63,6 +63,8 @@ add_executable(opensef-compositor
     src/layer_shell.c
     src/decorations.c
     src/popup.c
+    src/multitask.c
+    src/tiling.c
     ${XDG_SHELL_C}
     ${XDG_SHELL_H}
     ${LAYER_SHELL_C}
@@ -87,6 +89,7 @@ target_link_libraries(opensef-compositor PRIVATE
     ${PIXMAN_LIBRARIES}
     ${DRM_LIBRARIES}
     ${INPUT_LIBRARIES}
+    m
 )
 
 target_compile_definitions(opensef-compositor PRIVATE

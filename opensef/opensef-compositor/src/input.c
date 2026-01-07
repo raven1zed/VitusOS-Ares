@@ -6,6 +6,8 @@
 
 #include "server.h"
 
+#include "multitask.h"
+#include "tiling.h"
 #include <stdlib.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_keyboard.h>
@@ -52,6 +54,27 @@ static bool handle_compositor_keybinding(struct osf_server *server,
         struct osf_view *next = wl_container_of(server->views.prev, next, link);
         osf_focus_view(next, next->xdg_toplevel->base->surface);
       }
+      return true;
+    }
+    break;
+
+  case XKB_KEY_Tab:
+    /* Super+Tab: Toggle Multitask View */
+    if (wlr_keyboard_get_modifiers(wlr_seat_get_keyboard(server->seat)) &
+        WLR_MODIFIER_LOGO) {
+      osf_multitask_toggle(server);
+      return true;
+    }
+    break;
+
+  case XKB_KEY_t:
+    /* Super+T: Toggle Tiling */
+    if (wlr_keyboard_get_modifiers(wlr_seat_get_keyboard(server->seat)) &
+        WLR_MODIFIER_LOGO) {
+      // Toggle tiling on the primary output
+      struct osf_output *output =
+          wl_container_of(server->outputs.next, output, link);
+      osf_tiling_arrange(server, output);
       return true;
     }
     break;

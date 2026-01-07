@@ -76,8 +76,8 @@ public:
   static constexpr const char *WINDOW_MAXIMIZED = "window.maximized";
 
   static constexpr const char *MENU_CLICKED = "menu.clicked";
-  static constexpr const char *APP_LAUNCHED = "app.launched";
-  static constexpr const char *APP_TERMINATED = "app.terminated";
+  static constexpr const char *APP_LAUNCHED = "application.launched";
+  static constexpr const char *APP_TERMINATED = "application.closed";
 
   static constexpr const char *THEME_CHANGED = "theme.changed";
   static constexpr const char *WORKSPACE_CHANGED = "workspace.changed";

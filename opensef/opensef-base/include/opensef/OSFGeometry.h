@@ -5,9 +5,30 @@
 #pragma once
 
 #include <cairo/cairo.h>
+#include <cmath>
 #include <cstdint>
 
 namespace opensef {
+
+struct OSFPoint {
+  double x = 0.0;
+  double y = 0.0;
+
+  OSFPoint() = default;
+  OSFPoint(double x_, double y_) : x(x_), y(y_) {}
+
+  static OSFPoint Zero() { return OSFPoint(0, 0); }
+};
+
+struct OSFSize {
+  double width = 0.0;
+  double height = 0.0;
+
+  OSFSize() = default;
+  OSFSize(double w, double h) : width(w), height(h) {}
+
+  static OSFSize Zero() { return OSFSize(0, 0); }
+};
 
 struct OSFRect {
   double x = 0, y = 0, width = 0, height = 0;
@@ -15,7 +36,13 @@ struct OSFRect {
   OSFRect(double x_, double y_, double w, double h)
       : x(x_), y(y_), width(w), height(h) {}
 
+  OSFRect(OSFPoint origin, OSFSize size)
+      : x(origin.x), y(origin.y), width(size.width), height(size.height) {}
+
   static OSFRect Zero() { return OSFRect(0, 0, 0, 0); }
+
+  OSFPoint origin() const { return {x, y}; }
+  OSFSize size() const { return {width, height}; }
 
   bool contains(double px, double py) const {
     return px >= x && px < x + width && py >= y && py < y + height;

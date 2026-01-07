@@ -85,26 +85,7 @@ add_executable(osf-shell
     src/panel/OSFPanel.cpp
     src/dock/OSFDock.cpp
     src/wallpaper/OSFWallpaper.cpp
-    # Core
-    ../opensef-core/src/OSFAnimation.cpp
-    ../opensef-core/src/OSFLayer.cpp
-    # Base
-    ../opensef-base/src/OSFApplication.cpp
-    ../opensef-base/src/OSFBundle.cpp
-    ../opensef-base/src/OSFNotificationCenter.cpp
-    ../opensef-base/src/OSFObject.cpp
-    ../opensef-base/src/OSFRunLoop.cpp
-    ../opensef-base/src/OSFView.cpp
-    ../opensef-base/src/OSFWindow.cpp
-    # AppKit
-    ../opensef-appkit/src/OSFButton.cpp
-    ../opensef-appkit/src/OSFGlassPanel.cpp
-    ../opensef-appkit/src/OSFLabel.cpp
-    ../opensef-appkit/src/OSFTextField.cpp
-    ../opensef-appkit/src/OSFTilingManager.cpp
-    ../opensef-appkit/src/OSFTitleBar.cpp
-    ../opensef-appkit/src/OSFWidgets.cpp
-    ../opensef-appkit/src/OSFWindowButton.cpp
+    # Base/Core/AppKit are linked as libraries
 )
 
 target_include_directories(osf-shell PUBLIC

@@ -5,6 +5,7 @@
  * This is the single entry point for openSEF applications.
  */
 
+#include <opensef/OSFAnimation.h>
 #include <opensef/OSFResponder.h>
 #include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFBase.h>
@@ -135,6 +136,9 @@ void OSFApplication::run() {
       // to Poke it.
       window->update();
     }
+
+    // Drive animations
+    OSFAnimationManager::shared().tick();
   }
 
   if (onTerminate_) {

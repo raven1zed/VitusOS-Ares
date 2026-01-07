@@ -26,7 +26,7 @@ class OSFWaylandSurface;
 
 enum class OSFWindowButtonType { Close, Minimize, Maximize };
 
-class OSFWindowButton {
+class OSFWindowButton : public OSFView {
 public:
   OSFWindowButton(OSFWindowButtonType type);
   virtual ~OSFWindowButton();
@@ -35,26 +35,23 @@ public:
 
   OSFWindowButtonType type() const { return type_; }
 
-  // Frame
-  OSFRect frame() const { return frame_; }
-  void setFrame(const OSFRect &frame) { frame_ = frame; }
-
-  // Colors
+  // Colors (AresTheme inspired)
   OSFColor normalColor() const;
   OSFColor hoverColor() const;
   OSFColor pressedColor() const;
 
   // State
-  bool isHovered() const { return hovered_; }
-  bool isPressed() const { return pressed_; }
-  void setHovered(bool hovered) { hovered_ = hovered; }
-  void setPressed(bool pressed) { pressed_ = pressed; }
+  void setHovered(bool hovered);
+  void setPressed(bool pressed);
 
   // Action
   void setAction(std::function<void()> action) { action_ = action; }
   void click();
 
-  virtual void render(cairo_t *cr);
+  // OSFView overrides
+  void render(cairo_t *cr) override;
+  bool mouseDown(OSFEvent &event) override;
+  bool mouseUp(OSFEvent &event) override;
 
   // Button radius (macOS standard is 6px radius = 12px diameter)
   static constexpr float kButtonRadius = 6.0f;
@@ -62,9 +59,9 @@ public:
 
 private:
   OSFWindowButtonType type_;
-  OSFRect frame_;
   bool hovered_ = false;
   bool pressed_ = false;
+  double symbolAlpha_ = 0.0; // Animates on hover
   std::function<void()> action_;
 };
 
@@ -72,16 +69,12 @@ private:
 // OSFTitleBar - Window title bar with traffic lights
 // ============================================================================
 
-class OSFTitleBar {
+class OSFTitleBar : public OSFView {
 public:
   OSFTitleBar();
   virtual ~OSFTitleBar();
 
   static std::shared_ptr<OSFTitleBar> create(const std::string &title);
-
-  // Frame
-  OSFRect frame() const { return frame_; }
-  void setFrame(const OSFRect &frame) { frame_ = frame; }
 
   // Title
   const std::string &title() const { return title_; }
@@ -101,8 +94,9 @@ public:
   void setOnMinimize(std::function<void()> action);
   void setOnMaximize(std::function<void()> action);
 
-  // Drawing
-  virtual void render(cairo_t *cr);
+  // OSFView overrides
+  void render(cairo_t *cr) override;
+  void layoutSubviews() override;
 
   // Standard height
   static constexpr float kTitleBarHeight = 28.0f;
@@ -110,12 +104,9 @@ public:
 
 private:
   std::string title_;
-  OSFRect frame_;
   std::shared_ptr<OSFWindowButton> closeButton_;
   std::shared_ptr<OSFWindowButton> minimizeButton_;
   std::shared_ptr<OSFWindowButton> maximizeButton_;
-
-  void layoutButtons();
 };
 
 // ============================================================================

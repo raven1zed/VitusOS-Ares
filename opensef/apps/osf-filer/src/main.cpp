@@ -5,7 +5,6 @@
 #include <opensef/OpenSEFAppKit.h>
 #include <opensef/OpenSEFBase.h>
 
-
 using namespace opensef;
 
 int main(int argc, char **argv) {
@@ -21,7 +20,7 @@ int main(int argc, char **argv) {
     OpenSEF::OSFEvent event;
     event.set("app_id", app.appID());
     event.set("name", "Filer");
-    desktop->eventBus()->publish("application.launched", event);
+    desktop->eventBus()->publish(OpenSEF::OSFEventBus::APP_LAUNCHED, event);
   });
 
   app.setOnTerminate([&]() {
@@ -30,8 +29,7 @@ int main(int argc, char **argv) {
     auto *desktop = OpenSEF::OSFDesktop::shared();
     OpenSEF::OSFEvent event;
     event.set("app_id", app.appID());
-    desktop->eventBus()->publish(
-        "application.closed", event); // Note: topic matches Dock subscription
+    desktop->eventBus()->publish(OpenSEF::OSFEventBus::APP_TERMINATED, event);
   });
 
   // Create Main Window

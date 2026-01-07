@@ -7,6 +7,8 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include "server.h"
+#include "multitask.h"
+#include "tiling.h"
 
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -236,6 +238,12 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
   server->frame_timer =
       wl_event_loop_add_timer(loop, frame_timer_callback, server);
   wl_event_source_timer_update(server->frame_timer, 16);
+
+  /* Multitask View */
+  osf_multitask_init(server);
+
+  /* Tiling Engine */
+  osf_tiling_init(server);
 
   return true;
 

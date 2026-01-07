@@ -8,6 +8,7 @@
 #ifndef OSF_SERVER_H
 #define OSF_SERVER_H
 
+#include "multitask.h"
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -118,6 +119,9 @@ struct osf_server {
 
   /* Forced frame timer for hosts that don't send events (WSLg) */
   struct wl_event_source *frame_timer;
+
+  /* Multitask / Overview */
+  struct osf_multitask *multitask;
 };
 
 /* ============================================================================
@@ -145,7 +149,8 @@ struct osf_view {
   struct wl_list link;
   struct osf_server *server;
   struct wlr_xdg_toplevel *xdg_toplevel;
-  struct wlr_scene_tree *scene_tree;
+  struct wlr_scene_tree *scene_tree;   /* Container tree */
+  struct wlr_scene_tree *content_tree; /* XDG surface tree */
 
   /* Listeners */
   struct wl_listener map;
@@ -160,6 +165,15 @@ struct osf_view {
 
   /* State */
   bool mapped;
+  bool is_tiled;
+  float saved_x, saved_y;
+  float saved_w, saved_h;
+
+  /* Borders */
+  struct wlr_scene_rect *border_top;
+  struct wlr_scene_rect *border_bottom;
+  struct wlr_scene_rect *border_left;
+  struct wlr_scene_rect *border_right;
 
   /* Framework integration */
   void *framework_window; /* OSFWindowC* from framework */

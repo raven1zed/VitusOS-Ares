@@ -6,6 +6,7 @@
 
 #include "server.h"
 
+#include "tiling.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,6 +76,10 @@ void osf_focus_view(struct osf_view *view, struct wlr_surface *surface) {
         wlr_xdg_toplevel_try_from_wlr_surface(prev_surface);
     if (prev_toplevel) {
       wlr_xdg_toplevel_set_activated(prev_toplevel, false);
+      struct osf_view *prev_view = prev_toplevel->base->data;
+      if (prev_view) {
+        osf_view_update_borders(prev_view, false);
+      }
     }
   }
 
@@ -85,6 +90,7 @@ void osf_focus_view(struct osf_view *view, struct wlr_surface *surface) {
 
   /* Activate view */
   wlr_xdg_toplevel_set_activated(view->xdg_toplevel, true);
+  osf_view_update_borders(view, true);
 
   /* Send keyboard focus */
   struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
@@ -108,6 +114,7 @@ static void view_map(struct wl_listener *listener, void *data) {
   view->mapped = true;
   wl_list_insert(&view->server->views, &view->link);
   osf_focus_view(view, view->xdg_toplevel->base->surface);
+  osf_view_update_borders(view, true);
 
   const char *title =
       view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)";
@@ -277,10 +284,11 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
   view->xdg_toplevel = xdg_toplevel;
 
   /* Create scene tree in views layer */
-  view->scene_tree =
-      wlr_scene_xdg_surface_create(server->layer_views, xdg_toplevel->base);
+  view->scene_tree = wlr_scene_tree_create(server->layer_views);
+  view->content_tree =
+      wlr_scene_xdg_surface_create(view->scene_tree, xdg_toplevel->base);
   view->scene_tree->node.data = view;
-  xdg_toplevel->base->data = view->scene_tree;
+  xdg_toplevel->base->data = view;
 
   /* Set up listeners */
   view->map.notify = view_map;

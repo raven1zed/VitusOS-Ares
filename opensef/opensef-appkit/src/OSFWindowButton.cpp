@@ -5,7 +5,6 @@
 #include <cmath> // For M_PI
 #include <opensef/OSFWindowDecorations.h>
 
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -15,7 +14,13 @@ namespace opensef {
 OSFWindowButton::OSFWindowButton(OSFWindowButtonType type) : type_(type) {
   // Set button size
   float diameter = kButtonRadius * 2;
-  frame_ = OSFRect(0, 0, diameter, diameter);
+  setFrame(OSFRect(0, 0, diameter, diameter));
+
+  // Initialize layer
+  if (layer_) {
+    layer_->setCornerRadius(kButtonRadius);
+    layer_->setBackgroundColor(normalColor());
+  }
 }
 
 OSFWindowButton::~OSFWindowButton() = default;
@@ -28,11 +33,11 @@ OSFWindowButton::create(OSFWindowButtonType type) {
 OSFColor OSFWindowButton::normalColor() const {
   switch (type_) {
   case OSFWindowButtonType::Close:
-    return OSFColor::fromHex(0xFF5F57); // Red
+    return OSFColor::fromHex(0xFF4D00); // Mars Orange
   case OSFWindowButtonType::Minimize:
-    return OSFColor::fromHex(0xFFBD2E); // Yellow
+    return OSFColor::fromHex(0xFFD700); // Mars Gold
   case OSFWindowButtonType::Maximize:
-    return OSFColor::fromHex(0x28CA41); // Green
+    return OSFColor::fromHex(0x007AFF); // Ares Blue
   }
   return OSFColor::fromHex(0x808080);
 }
@@ -40,11 +45,11 @@ OSFColor OSFWindowButton::normalColor() const {
 OSFColor OSFWindowButton::hoverColor() const {
   switch (type_) {
   case OSFWindowButtonType::Close:
-    return OSFColor::fromHex(0xFF3B30);
+    return OSFColor::fromHex(0xFF6347); // Tomato (lighter orange)
   case OSFWindowButtonType::Minimize:
-    return OSFColor::fromHex(0xFFB800);
+    return OSFColor::fromHex(0xFFE066); // Lighter Gold
   case OSFWindowButtonType::Maximize:
-    return OSFColor::fromHex(0x00D400);
+    return OSFColor::fromHex(0x3395FF); // Lighter Blue
   }
   return OSFColor::fromHex(0x909090);
 }
@@ -52,13 +57,52 @@ OSFColor OSFWindowButton::hoverColor() const {
 OSFColor OSFWindowButton::pressedColor() const {
   switch (type_) {
   case OSFWindowButtonType::Close:
-    return OSFColor::fromHex(0xCC4840);
+    return OSFColor::fromHex(0xCC3D00);
   case OSFWindowButtonType::Minimize:
-    return OSFColor::fromHex(0xCCA020);
+    return OSFColor::fromHex(0xCCAC00);
   case OSFWindowButtonType::Maximize:
-    return OSFColor::fromHex(0x20A030);
+    return OSFColor::fromHex(0x0062CC);
   }
   return OSFColor::fromHex(0x707070);
+}
+
+void OSFWindowButton::setHovered(bool hovered) {
+  if (hovered_ == hovered)
+    return;
+  hovered_ = hovered;
+
+  // Animate color change
+  if (layer_) {
+    layer_->setBackgroundColor(hovered_ ? hoverColor() : normalColor());
+  }
+}
+
+void OSFWindowButton::setPressed(bool pressed) {
+  if (pressed_ == pressed)
+    return;
+  pressed_ = pressed;
+
+  if (layer_) {
+    layer_->setBackgroundColor(
+        pressed_ ? pressedColor() : (hovered_ ? hoverColor() : normalColor()));
+    // Slight scale on press
+    layer_->setScale(pressed_ ? 0.92 : 1.0);
+  }
+}
+
+bool OSFWindowButton::mouseDown(OSFEvent &event) {
+  (void)event;
+  setPressed(true);
+  return true;
+}
+
+bool OSFWindowButton::mouseUp(OSFEvent &event) {
+  (void)event;
+  if (pressed_) {
+    setPressed(false);
+    click();
+  }
+  return true;
 }
 
 void OSFWindowButton::click() {
@@ -68,29 +112,10 @@ void OSFWindowButton::click() {
 }
 
 void OSFWindowButton::render(cairo_t *cr) {
-  // Determine color based on state
-  OSFColor color;
-  if (pressed_) {
-    color = pressedColor();
-  } else if (hovered_) {
-    color = hoverColor();
-  } else {
-    color = normalColor();
-  }
+  // OSFView::render will handle the layer drawing
+  OSFView::render(cr);
 
-  // Calculate geometry
-  float centerX = frame_.x + frame_.width / 2.0f;
-  float centerY = frame_.y + frame_.height / 2.0f;
-  // Use constant radius for consistency, ignoring frame stretching for now
-  float radius = kButtonRadius;
-
-  cairo_save(cr);
-  color.setCairo(cr);
-  cairo_arc(cr, centerX, centerY, radius, 0, 2 * M_PI);
-  cairo_fill(cr);
-  cairo_restore(cr);
-
-  // Symbol drawing (X, -, +) could go here for hover states
+  // TODO: Add symbol drawing on top if alpha > 0
 }
 
 } // namespace opensef

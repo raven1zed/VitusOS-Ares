@@ -14,22 +14,22 @@ pkg_check_modules(WAYLAND REQUIRED wayland-client)
 # Source files
 set(SOURCES
     main.cpp
+    ../../opensef-shell/src/render/OSFSurface.cpp
 )
 
 # Create executable
 add_executable(osf-lockscreen ${SOURCES})
 
 target_include_directories(osf-lockscreen PRIVATE
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-shell/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-auth/include
-    ${CMAKE_SOURCE_DIR}/opensef/opensef-base/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-shell/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-auth/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/include
     ${CAIRO_INCLUDE_DIRS}
     ${WAYLAND_INCLUDE_DIRS}
 )
 
 target_link_libraries(osf-lockscreen PRIVATE
     opensef-auth
-    ${CMAKE_BINARY_DIR}/opensef/opensef-shell/CMakeFiles/osf-shell.dir/src/render/OSFSurface.cpp.o
     osf-protocols
     ${CAIRO_LIBRARIES}
     ${WAYLAND_LIBRARIES}

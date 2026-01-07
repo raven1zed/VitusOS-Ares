@@ -17,26 +17,28 @@
 namespace opensef {
 
 class OSFWindow;
+class OSFLayer;
+using OSFLayerPtr = std::shared_ptr<OSFLayer>;
 
 class OSFView : public OSFResponder {
 public:
-  OSFView() = default;
+  OSFView();
   virtual ~OSFView() = default;
+
+  // === Layer Support ===
+  OSFLayerPtr layer() const { return layer_; }
 
   // === Geometry ===
 
   OSFRect frame() const { return frame_; }
-  void setFrame(const OSFRect &frame) {
-    frame_ = frame;
-    setNeedsLayout();
-  }
+  void setFrame(const OSFRect &frame);
 
   OSFRect bounds() const { return OSFRect(0, 0, frame_.width, frame_.height); }
 
   // === Visibility ===
 
   double alpha() const { return alpha_; }
-  void setAlpha(double alpha) { alpha_ = alpha; }
+  void setAlpha(double alpha);
   bool isHidden() const { return hidden_; }
   void setHidden(bool hidden) { hidden_ = hidden; }
 
@@ -109,6 +111,7 @@ public:
   virtual void render(cairo_t *cr);
 
 protected:
+  OSFLayerPtr layer_;
   OSFRect frame_;
   double alpha_ = 1.0;
   bool hidden_ = false;
