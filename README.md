@@ -199,6 +199,7 @@ WLR_BACKENDS=wayland ./opensef-compositor
 
 ### File Structure
 
+```
 VitusOS Ares/
 ├── opensef/
 │   ├── opensef-framework/      # Unified Event & Service Bus (The Core)
