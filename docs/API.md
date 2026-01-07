@@ -1,349 +1,502 @@
-# openSEF API Reference
+# openSEF Framework API Reference
 
-**Version:** 0.2.0  
-**Language:** C++ (Shell) / C (Compositor)  
-**Theme:** Ares (The Martian)
+## Core Singleton
 
----
+### OSFDesktop
 
-## Table of Contents
-
-- [Layer Surface API (OSFSurface)](#layer-surface-api-osfsurface)
-- [UI Widgets (opensef-appkit)](#ui-widgets-opensef-appkit)
-- [Design System (AresTheme)](#design-system-arestheme)
-- [Compositor Structures](#compositor-structures)
-
----
-
-## Layer Surface API (OSFSurface)
-
-The core class for creating Cairo-rendered Wayland surfaces.
-
-### Header
+**Purpose**: Central access point for all desktop functionality.
 
 ```cpp
-#include "OSFSurface.h"
+#include <OSFDesktop.h>
 
-namespace opensef {
+// Get singleton instance
+auto* desktop = OSFDesktop::shared();
 
-// Layer positioning (matches wlr-layer-shell)
-enum class Layer { Background = 0, Bottom = 1, Top = 2, Overlay = 3 };
+// Initialize framework
+desktop->initialize();
 
-// Anchor edges
-enum class Anchor { None = 0, Top = 1, Bottom = 2, Left = 4, Right = 8 };
+// Access services
+auto* eventBus = desktop->eventBus();
+auto* stateManager = desktop->stateManager();
+auto* windowManager = desktop->windowManager();
+auto* serviceRegistry = desktop->serviceRegistry();
+auto* resourceCache = desktop->resourceCache();
+auto* themeManager = desktop->themeManager();
 
-class OSFSurface {
-public:
-    explicit OSFSurface(const std::string& namespace_name);
-    ~OSFSurface();
-    
-    // Connection
-    bool connect(const char* display = nullptr);
-    void disconnect();
-    
-    // Configuration (call before connect)
-    void setLayer(Layer layer);
-    void setAnchor(Anchor anchor);
-    void setSize(int width, int height);
-    void setExclusiveZone(int zone);
-    void setMargin(int top, int right, int bottom, int left);
-    
-    // Input and rendering regions (January 2026)
-    void setInputRegion(const std::vector<cairo_rectangle_int_t>& rects);
-    void setOpaqueRegion(const std::vector<cairo_rectangle_int_t>& rects);
-    
-    // Rendering
-    cairo_t* beginPaint();      // Returns Cairo context for drawing
-    void endPaint();
-    void damage(int x, int y, int width, int height);
-    void commit();
-    
-    // Event loop
-    void run();                 // Blocking event dispatch
-    void stop();
-    bool isRunning() const;
-    
-    // Callbacks
-    using ConfigureCallback = std::function<void(int width, int height)>;
-    using DrawCallback = std::function<void(cairo_t* cr, int width, int height)>;
-    using CloseCallback = std::function<void()>;
-    
-    void onConfigure(ConfigureCallback cb);
-    void onDraw(DrawCallback cb);     // Called automatically on configure
-    void onClose(CloseCallback cb);
-    
-    // Getters
-    int width() const;
-    int height() const;
-    struct wl_display* display() const;
-};
+// Run main loop (optional, handled by compositor)
+desktop->run();
 
-}
+// Cleanup
+desktop->terminate();
 ```
 
-### Usage Example
+---
+
+## Event System
+
+### OSFEventBus
+
+**Purpose**: Unified event communication across all components.
+
+#### Subscribe to Events
 
 ```cpp
-#include "OSFSurface.h"
-#include "OSFAresTheme.h"
+desktop->eventBus()->subscribe("window.created", [](const OSFEvent& e) {
+  auto windowId = e.get<std::string>("window_id");
+  auto title = e.get<std::string>("title");
+  std::cout << "Window created: " << title << std::endl;
+});
+```
 
-using namespace opensef;
+#### Publish Events
 
-int main() {
-    OSFSurface surface("my-app");
+```cpp
+OSFEvent event;
+event.set("window_id", "window-123");
+event.set("title", "My Window");
+desktop->eventBus()->publish("window.created", event);
+```
+
+#### Standard Events
+
+```cpp
+// Window events
+OSFEventBus::WINDOW_CREATED      // "window.created"
+OSFEventBus::WINDOW_DESTROYED    // "window.destroyed"
+OSFEventBus::WINDOW_FOCUSED      // "window.focused"
+OSFEventBus::WINDOW_MINIMIZED    // "window.minimized"
+OSFEventBus::WINDOW_MAXIMIZED    // "window.maximized"
+
+// Application events
+OSFEventBus::APP_LAUNCHED        // "app.launched"
+OSFEventBus::APP_TERMINATED      // "app.terminated"
+
+// Menu events
+OSFEventBus::MENU_CLICKED        // "menu.clicked"
+
+// System events
+OSFEventBus::THEME_CHANGED       // "theme.changed"
+OSFEventBus::WORKSPACE_CHANGED   // "workspace.changed"
+```
+
+---
+
+## State Management
+
+### OSFStateManager
+
+**Purpose**: Single source of truth for desktop state.
+
+#### Query Windows
+
+```cpp
+// Get all windows
+auto windows = desktop->stateManager()->allWindows();
+for (auto* window : windows) {
+  std::cout << window->title() << std::endl;
+}
+
+// Get active window
+auto* activeWin = desktop->stateManager()->activeWindow();
+if (activeWin) {
+  std::cout << "Active: " << activeWin->title() << std::endl;
+}
+
+// Get window by ID
+auto* window = desktop->stateManager()->windowById("window-123");
+```
+
+#### Query Applications
+
+```cpp
+// Get running apps
+auto apps = desktop->stateManager()->runningApps();
+
+// Get app by ID
+auto* app = desktop->stateManager()->appById("com.vitus.settings");
+```
+
+#### Query Workspaces
+
+```cpp
+// Get current workspace
+int current = desktop->stateManager()->currentWorkspace();
+
+// Get all workspaces
+auto workspaces = desktop->stateManager()->allWorkspaces();
+```
+
+---
+
+## Window Management
+
+### OSFWindowManager
+
+**Purpose**: High-level window operations and lifecycle management.
+
+#### Window Queries
+
+```cpp
+// Same as stateManager (delegates to it)
+auto windows = desktop->windowManager()->allWindows();
+auto* activeWin = desktop->windowManager()->activeWindow();
+auto* window = desktop->windowManager()->windowById("window-123");
+```
+
+#### Window Actions
+
+```cpp
+// Focus window
+desktop->windowManager()->focusWindow("window-123");
+
+// Minimize window
+desktop->windowManager()->minimizeWindow("window-123");
+
+// Maximize/restore window
+desktop->windowManager()->maximizeWindow("window-123");
+
+// Close window
+desktop->windowManager()->closeWindow("window-123");
+
+// Move window
+desktop->windowManager()->moveWindow("window-123", 100, 100);
+
+// Resize window
+desktop->windowManager()->resizeWindow("window-123", 800, 600);
+```
+
+#### Window Callbacks
+
+```cpp
+// Called when window is created
+desktop->windowManager()->onWindowCreated([](OSFWindow* window) {
+  std::cout << "Created: " << window->title() << std::endl;
+});
+
+// Called when window is destroyed
+desktop->windowManager()->onWindowDestroyed([](const std::string& id) {
+  std::cout << "Destroyed: " << id << std::endl;
+});
+
+// Called when window is focused
+desktop->windowManager()->onWindowFocused([](OSFWindow* window) {
+  std::cout << "Focused: " << window->title() << std::endl;
+});
+```
+
+#### Window Registration (Compositor Only)
+
+```cpp
+// Create window object
+auto* window = new OSFWindow("window-123", "My Window", "com.app.id");
+
+// Register with framework
+desktop->windowManager()->registerWindow(window);
+// Automatically publishes "window.created" event
+
+// Update window title
+desktop->windowManager()->updateWindowTitle("window-123", "New Title");
+
+// Unregister window
+desktop->windowManager()->unregisterWindow("window-123");
+// Automatically publishes "window.destroyed" event
+```
+
+---
+
+## Service Discovery
+
+### OSFServiceRegistry
+
+**Purpose**: Component registration and discovery.
+
+#### Define a Service
+
+```cpp
+class PanelService : public OSFService {
+public:
+  std::string name() const override { return "panel"; }
+  
+  void start() override {
+    // Initialize panel
+  }
+  
+  void stop() override {
+    // Cleanup panel
+  }
+  
+  // Custom methods
+  void showMenu(const std::string& menuId) {
+    // Show menu
+  }
+};
+```
+
+#### Register Service
+
+```cpp
+auto* panel = new PanelService();
+desktop->serviceRegistry()->registerService("panel", panel);
+```
+
+#### Discover Service
+
+```cpp
+auto* panel = desktop->serviceRegistry()->getService("panel");
+if (panel) {
+  auto* panelService = static_cast<PanelService*>(panel);
+  panelService->showMenu("applications");
+}
+
+// Check if service exists
+if (desktop->serviceRegistry()->hasService("panel")) {
+  // Service is available
+}
+
+// Get all services
+auto services = desktop->serviceRegistry()->allServices();
+```
+
+---
+
+## Resource Management
+
+### OSFResourceCache
+
+**Purpose**: Shared cache for icons, images, and fonts.
+
+#### Icons
+
+```cpp
+// Get icon (cached automatically)
+auto* icon = desktop->resourceCache()->getIcon("application-menu", 24);
+
+// Preload icon in background
+desktop->resourceCache()->preloadIcon("application-menu");
+
+// Clear icon cache
+desktop->resourceCache()->clearIconCache();
+```
+
+#### Images
+
+```cpp
+// Get image (cached automatically)
+auto* image = desktop->resourceCache()->getImage("/path/to/wallpaper.png");
+
+// Clear image cache
+desktop->resourceCache()->clearImageCache();
+```
+
+#### Cache Management
+
+```cpp
+// Clear all caches
+desktop->resourceCache()->clearAllCaches();
+
+// Get cache size
+size_t size = desktop->resourceCache()->cacheSize();
+```
+
+---
+
+## Theme Management
+
+### OSFThemeManager
+
+**Purpose**: Unified theme system for all components.
+
+#### Colors
+
+```cpp
+auto primary = desktop->themeManager()->primaryColor();
+auto background = desktop->themeManager()->backgroundColor();
+auto text = desktop->themeManager()->textColor();
+auto accent = desktop->themeManager()->accentColor();
+auto border = desktop->themeManager()->borderColor();
+auto highlight = desktop->themeManager()->highlightColor();
+
+// Use with Cairo
+cairo_set_source_rgba(cr, primary.r, primary.g, primary.b, primary.a);
+```
+
+#### Dimensions
+
+```cpp
+int panelHeight = desktop->themeManager()->panelHeight();
+int dockIconSize = desktop->themeManager()->dockIconSize();
+int borderWidth = desktop->themeManager()->windowBorderWidth();
+int radius = desktop->themeManager()->cornerRadius();
+```
+
+#### Fonts
+
+```cpp
+std::string fontFamily = desktop->themeManager()->systemFontFamily();
+int fontSize = desktop->themeManager()->systemFontSize();
+
+std::string titleFont = desktop->themeManager()->titleFontFamily();
+int titleSize = desktop->themeManager()->titleFontSize();
+```
+
+#### Theme Switching
+
+```cpp
+// Load theme
+desktop->themeManager()->loadTheme("Ares");
+
+// Get current theme
+std::string current = desktop->themeManager()->currentTheme();
+```
+
+---
+
+## Complete Example
+
+### Creating a Panel Application
+
+```cpp
+#include <OSFDesktop.h>
+#include <OSFServiceRegistry.h>
+
+class MyPanel : public OSFService {
+public:
+  MyPanel() {
+    auto* desktop = OSFDesktop::shared();
     
-    // Configure as bottom dock
-    surface.setLayer(Layer::Top);
-    surface.setAnchor(Anchor::Bottom);
-    surface.setSize(400, 64);
-    surface.setExclusiveZone(64);
-    
-    // Set draw callback
-    surface.onDraw([](cairo_t* cr, int w, int h) {
-        // Background
-        AresTheme::setCairoColor(cr, AresTheme::DockBackground);
-        AresTheme::roundedRect(cr, 0, 0, w, h, 16);
-        cairo_fill(cr);
+    // Subscribe to window events
+    desktop->eventBus()->subscribe("window.created", [this](auto& e) {
+      updateWindowList();
     });
     
-    if (surface.connect()) {
-        surface.run();
+    desktop->eventBus()->subscribe("window.destroyed", [this](auto& e) {
+      updateWindowList();
+    });
+  }
+  
+  std::string name() const override { return "my-panel"; }
+  
+  void start() override {
+    render();
+  }
+  
+  void stop() override {
+    // Cleanup
+  }
+  
+private:
+  void updateWindowList() {
+    auto* desktop = OSFDesktop::shared();
+    auto windows = desktop->windowManager()->allWindows();
+    
+    // Update UI with window list
+    for (auto* window : windows) {
+      std::cout << "Window: " << window->title() << std::endl;
     }
-    return 0;
-}
-```
-
----
-
-## UI Widgets (opensef-appkit)
-
-Reusable Cairo-rendered widgets for shell applications.
-
-### Base Widget (OSFView)
-
-```cpp
-#include <opensef/OSFView.h>
-
-class OSFView {
-public:
-    void setFrame(const OSFRect& frame);
-    OSFRect frame() const;
     
-    virtual void render(cairo_t* cr);
-    virtual void layout();
+    render();
+  }
+  
+  void render() {
+    auto* desktop = OSFDesktop::shared();
+    auto theme = desktop->themeManager();
+    
+    // Use theme colors
+    auto bgColor = theme->backgroundColor();
+    auto textColor = theme->textColor();
+    int height = theme->panelHeight();
+    
+    // Render panel...
+  }
 };
-```
 
-### OSFButton
-
-Interactive button with hover/press states.
-
-```cpp
-#include <opensef/OpenSEFAppKit.h>
-
-auto button = OSFButton::create("Click Me");
-button->setFrame(OSFRect(10, 10, 120, 32));
-button->setCallback([]() {
-    std::cout << "Button clicked!" << std::endl;
-});
-button->render(cairoContext);
-```
-
-### OSFLabel
-
-Text display with alignment options.
-
-```cpp
-auto label = OSFLabel::create("Status: Connected");
-label->setFrame(OSFRect(10, 10, 200, 20));
-label->setAlignment(TextAlignment::Right);
-label->setFont(AresTheme::FontFamily, AresTheme::FontSizeNormal);
-label->setText("Updated text");
-label->render(cairoContext);
-```
-
-### OSFTextField
-
-Text input field (requires input event integration).
-
-```cpp
-auto field = OSFTextField::create();
-field->setFrame(OSFRect(10, 50, 200, 28));
-field->setPlaceholder("Enter name...");
-field->onTextChanged([](const std::string& text) {
-    std::cout << "Text: " << text << std::endl;
-});
-```
-
-### OSFGlassPanel
-
-Frosted glass effect container.
-
-```cpp
-auto panel = OSFGlassPanel::create();
-panel->setFrame(OSFRect(0, 0, width, height));
-panel->setBlurRadius(16);  // Future: requires compositor support
-panel->render(cairoContext);
+int main() {
+  auto* desktop = OSFDesktop::shared();
+  desktop->initialize();
+  
+  auto* panel = new MyPanel();
+  desktop->serviceRegistry()->registerService("my-panel", panel);
+  panel->start();
+  
+  desktop->run();
+  
+  return 0;
+}
 ```
 
 ---
 
-## Design System (AresTheme)
+## Best Practices
 
-All visual constants in `OSFAresTheme.h`.
+### 1. Always Use the Framework
 
-### Colors (ARGB Format)
+❌ **Don't**: Create your own state management  
+✅ **Do**: Query state from `OSFStateManager`
+
+❌ **Don't**: Implement manual IPC  
+✅ **Do**: Use `OSFEventBus` for communication
+
+❌ **Don't**: Load your own theme  
+✅ **Do**: Use `OSFThemeManager` for colors/fonts
+
+### 2. Subscribe to Events
+
+Components should react to events, not poll for changes.
 
 ```cpp
-namespace opensef::AresTheme {
-    // Mars-inspired primaries
-    constexpr uint32_t MarsOrange = 0xFFE57C3A;   // Primary accent
-    constexpr uint32_t MarsGold   = 0xFFD4A93E;   // Secondary accent
-    constexpr uint32_t MarsSand   = 0xFFB5651D;   // Desert sand
-    constexpr uint32_t MarsRed    = 0xFFC44536;   // Rust red
-    
-    // Neutral (Light Mode)
-    constexpr uint32_t LunarGray  = 0xFFF5F5F5;   // Panel backgrounds
-    constexpr uint32_t DeepSpace  = 0xFFFFFFFF;   // Window backgrounds
-    constexpr uint32_t StarWhite  = 0xFF1A1A1A;   // Primary text
-    constexpr uint32_t MoonGray   = 0xFF555555;   // Secondary text
-    
-    // Traffic light buttons
-    constexpr uint32_t ButtonClose    = 0xFFE57C3A;   // Orange
-    constexpr uint32_t ButtonMinimize = 0xFFD4A93E;   // Gold
-    constexpr uint32_t ButtonMaximize = 0xFF4A9FD4;   // Blue
-    
-    // Semi-transparent
-    constexpr uint32_t GlassBackground = 0xD9FFFFFF;  // 85% white
-    constexpr uint32_t PanelBackground = 0xF2F5F5F5;  // 95% gray
-    constexpr uint32_t DockBackground  = 0xB3FFFFFF;  // 70% white
+// Good
+desktop->eventBus()->subscribe("window.created", handler);
+
+// Bad
+while (true) {
+  checkForNewWindows();
+  sleep(1);
 }
 ```
 
-### Dimensions
+### 3. Register as a Service
+
+If your component provides functionality others might use, register it.
 
 ```cpp
-namespace opensef::AresTheme {
-    constexpr int PanelHeight = 28;
-    constexpr int DockHeight = 64;
-    constexpr int DockItemSpacing = 8;
-    constexpr int DockPadding = 8;
-    constexpr int DockCornerRadius = 16;
-    
-    constexpr int WindowCornerRadius = 8;
-    constexpr int TitleBarHeight = 30;
-    constexpr int TrafficLightSize = 12;
-    constexpr int TrafficLightSpacing = 8;
-    constexpr int TrafficLightMargin = 10;
-}
+desktop->serviceRegistry()->registerService("my-service", this);
 ```
 
-### Typography
+### 4. Use Shared Resources
+
+Don't load duplicate icons/images.
 
 ```cpp
-namespace opensef::AresTheme {
-    constexpr const char* FontFamily = "Inter";
-    constexpr const char* FallbackFont = "sans-serif";
-    
-    constexpr int FontSizeSmall  = 11;
-    constexpr int FontSizeNormal = 13;
-    constexpr int FontSizeLarge  = 16;
-    constexpr int FontSizeTitle  = 20;
-    constexpr int FontSizeHero   = 32;
-}
-```
+// Good
+auto* icon = desktop->resourceCache()->getIcon("app-icon", 48);
 
-### Helper Functions
-
-```cpp
-// Set Cairo source color from ARGB
-void setCairoColor(cairo_t* cr, uint32_t color);
-
-// Draw a rounded rectangle path
-void roundedRect(cairo_t* cr, double x, double y, double w, double h, double r);
-
-// Draw a circle
-void circle(cairo_t* cr, double cx, double cy, double r);
-
-// Animation easing (t: 0.0 to 1.0)
-double easeOut(double t);
-double easeInOut(double t);
-double lerp(double a, double b, double t);
+// Bad
+auto* icon = loadIconFromFile("/usr/share/icons/app-icon.png");
 ```
 
 ---
 
-## Compositor Structures
+## Thread Safety
 
-For contributors working on `opensef-compositor` (Pure C).
+All framework components are thread-safe:
+- `OSFEventBus` - Thread-safe event publishing
+- `OSFStateManager` - Thread-safe state queries
+- `OSFServiceRegistry` - Thread-safe service access
+- `OSFResourceCache` - Thread-safe resource loading
 
-### osf_server
-
-```c
-struct osf_server {
-    struct wl_display *wl_display;
-    struct wlr_backend *backend;
-    struct wlr_renderer *renderer;
-    struct wlr_allocator *allocator;
-    struct wlr_compositor *compositor;
-    
-    // Scene graph layers (z-order)
-    struct wlr_scene *scene;
-    struct wlr_scene_tree *layer_background;  // Wallpaper
-    struct wlr_scene_tree *layer_bottom;      // Desktop widgets
-    struct wlr_scene_tree *layer_views;       // Normal windows
-    struct wlr_scene_tree *layer_top;         // Panel, dock
-    struct wlr_scene_tree *layer_overlay;     // Notifications
-    
-    // Shell protocols
-    struct wlr_xdg_shell *xdg_shell;
-    struct wlr_layer_shell_v1 *layer_shell;
-    
-    // Lists
-    struct wl_list outputs;         // osf_output
-    struct wl_list views;           // osf_view
-    struct wl_list layer_surfaces;  // osf_layer_surface
-    struct wl_list keyboards;       // osf_keyboard
-};
-```
-
-### osf_view (Window)
-
-```c
-struct osf_view {
-    struct wl_list link;
-    struct osf_server *server;
-    struct wlr_xdg_toplevel *xdg_toplevel;
-    struct wlr_scene_tree *scene_tree;
-    
-    bool mapped;
-    int x, y;
-    
-    // Event listeners
-    struct wl_listener map, unmap, commit, destroy;
-    struct wl_listener request_move, request_resize;
-    struct wl_listener request_maximize, request_fullscreen;
-};
-```
-
-### Key Functions
-
-```c
-// View management
-struct osf_view* osf_view_at(struct osf_server *server, 
-                              double lx, double ly,
-                              struct wlr_surface **surface, 
-                              double *sx, double *sy);
-
-void osf_focus_view(struct osf_view *view, struct wlr_surface *surface);
-void osf_reset_cursor_mode(struct osf_server *server);
-
-// Server lifecycle
-bool osf_server_init(struct osf_server *server);
-void osf_server_run(struct osf_server *server);
-void osf_server_finish(struct osf_server *server);
-```
+You can safely call framework methods from any thread.
 
 ---
 
-*API Reference - VitusOS Ares v0.2.0*
+## Performance Tips
+
+1. **Cache event handlers**: Don't create lambdas in hot paths
+2. **Batch state queries**: Get all windows once, not per-window
+3. **Preload resources**: Use `preloadIcon()` for frequently used icons
+4. **Use async events**: `publishAsync()` for non-critical events
+
+---
+
+**This is the complete openSEF Framework API.**
+
+**One API. One system. One experience.**

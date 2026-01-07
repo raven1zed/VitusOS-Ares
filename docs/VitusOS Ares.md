@@ -1,235 +1,400 @@
-# VitusOS Ares — Full Roadmap (Phase 1 → Final Vision)
+# VitusOS Ares - The Complete Desktop Experience
 
-**Document Version:** 2.0
+## What is VitusOS Ares?
 
-**Last Updated:** January 6, 2026
+**VitusOS Ares is NOT a Linux distribution with a desktop environment.**
 
-**Scope:** Full end-to-end roadmap for openSEF + VitusOS Ares, from Phase 1 foundation to final macOS‑level polish in the Ares design language.
-
----
-
-## Executive Summary
-
-VitusOS Ares is a complete Linux desktop environment built around **openSEF**, a Cocoa‑inspired application framework and UI toolkit. The goal is to deliver a **cohesive, polished desktop** that feels purpose‑built—not a collection of glued‑together components. This roadmap lays out the **entire project path** from today’s Phase 1 foundation to a finished system with Ares‑level UI/UX polish.
-
-**Core goals:**
-- A stable, C/C++ hybrid architecture (wlroots compositor in C, framework/shell in C++).
-- A mature application framework (Foundation + AppKit analogs).
-- A consistent Ares design system across system apps and third‑party apps.
-- End‑to‑end system experience: boot → lock → desktop → shutdown with no terminal exposure.
+**VitusOS Ares is a complete Desktop Experience** - from the moment you press the power button until the machine shuts down.
 
 ---
 
-## Big Picture Overview (All Phases)
+## The Desktop Experience
 
-**Phase 1: Framework Foundation**
-- Foundation primitives (application lifecycle, run loop, notifications, bundles).
-- Basic window/view scaffolding.
-- Minimal app can run and render a view hierarchy.
+### Boot Sequence
 
-**Phase 2: Windowing + Surface Integration**
-- Real window surfaces with Wayland backend connection.
-- Stable window lifecycle, focus, and event routing.
+**What Users See**:
+1. Press power button
+2. Beautiful VitusOS boot animation
+   - Mars-themed colors (red/orange)
+   - Smooth progress indicator
+   - No text, no logs, no "Starting service..."
+3. Fade to lockscreen
 
-**Phase 3: Layout, Input, and Responder Chain**
-- View tree layout system.
-- Input routing, focus, responder chain.
+**What's Happening** (invisible to users):
+- Bootloader loads kernel
+- Kernel initializes hardware
+- openSEF compositor starts
+- Boot animation service displays graphics
+- System services start in background
+- Lockscreen appears when ready
 
-**Phase 4: Theming + Appearance System**
-- Ares design tokens (color, typography, spacing).
-- Dynamic appearance hooks and component styling consistency.
+**NO systemd logs. NO terminal output. Just smooth, beautiful graphics.**
 
-**Phase 5: Controls + Text System**
-- Full widget suite (buttons, sliders, lists, text fields).
-- Text shaping, editing, and accessibility‑ready semantics.
+### Login
 
-**Phase 6: System Services + Integration**
-- Notifications, clipboard, drag/drop, settings, launch services.
-- App bundle conventions and metadata.
+**What Users See**:
+1. Premium lockscreen
+   - Blurred wallpaper background
+   - Password field with smooth focus animation
+   - Time and date display
+2. Enter password
+3. Smooth fade transition to desktop
 
-**Phase 7: Shell + System Apps**
-- Panel, dock, settings, file manager, launcher.
-- First‑party apps showing framework maturity.
+**What's Happening**:
+- PAM authentication via opensef-auth
+- User session initialization
+- Desktop services start
+- Shell components load
+- Fade animation to desktop
 
-**Phase 8: Performance + Stability**
-- Profiling, GPU optimizations, lower latency input.
-- Robust window management and crash recovery.
+**NO loading screens. NO "Starting Desktop Environment..." Just instant, smooth transition.**
 
-**Phase 9: Ares Polished Release**
-- Final UI/UX polish at macOS‑level quality.
-- Cohesive system branding, animation tuning, and accessibility.
+### Desktop
 
----
+**What Users See**:
+- **Global Menu Bar** (top)
+  - Application menus (Filer, Menu, Settings, Help)
+  - System tray (right side)
+  - Clock (far right)
+- **Wallpaper** (center)
+  - Beautiful Mars landscape
+  - Smooth, no tearing
+- **Dock** (bottom)
+  - Running applications
+  - Favorites
+  - Smooth hover animations
 
-# Phase 1 — Framework Foundation ✅ Complete
+**What's Happening**:
+- opensef-compositor rendering all windows
+- opensef-shell providing panel and dock
+- opensef-framework coordinating everything
+- All components sharing state via unified API
 
-**Status:** ✅ **Completed January 2026**
+**NO separate "window manager". NO "panel applets". ONE integrated system.**
 
-**Objective:** Establish the minimal Foundation and AppKit surface that makes openSEF a real application framework.
+### Running Applications
 
-**Deliverables:**
-- OSFApplication lifecycle (`run`, `stop`, launch/terminate callbacks).
-- OSFRunLoop task scheduling.
-- OSFNotificationCenter pub/sub.
-- OSFBundle metadata loader.
-- OSFWindow + OSFView hierarchy (minimal).
-- Minimal sample app proves lifecycle + view rendering.
+**What Users See**:
+1. Click app in dock or menu
+2. Window appears smoothly
+3. Window has consistent theme
+4. Window appears in dock
+5. Global menu updates
 
-**Definition of Done:**
-- A minimal openSEF app can launch via OSFApplication, create a window, and render a view hierarchy. ✅
+**What's Happening**:
+- Application launches
+- Registers with opensef-framework
+- Creates window via compositor
+- Framework publishes "window.created" event
+- Panel subscribes to event, updates UI
+- Dock subscribes to event, shows app icon
+- Theme manager provides consistent colors
 
----
+**NO manual window management. NO separate taskbar. Everything automatic.**
 
-# Phase 2 — Windowing + Surface Integration ✅ Complete
+### Shutdown
 
-**Status:** ✅ **Completed January 2026**
+**What Users See**:
+1. Click shutdown in menu
+2. Smooth fade-out animation
+3. Screen goes black
+4. Machine powers off
 
-**Objective:** Replace offscreen rendering with real Wayland windows. Ensure window lifecycle and surface connection are stable.
+**What's Happening**:
+- Shutdown signal sent to framework
+- Applications notified to save state
+- Windows close gracefully
+- Services stop in order
+- Compositor shuts down
+- System powers off
 
-**Key Tasks:**
-- Implement OSFWindow → Wayland surface creation.
-- Bind OSFWindow to OSFBackend/OSFWaylandSurface.
-- Handle window close, focus, visibility.
-- Ensure the app can create multiple windows.
-
-**Definition of Done:**
-- A sample app opens a real Wayland window and renders a basic view tree to it. ✅
-
----
-
-# Phase 3 — Layout + Input + Responder Chain ✅ Complete
-
-**Status:** ✅ **Completed January 2026**
-
-**Objective:** Make view trees interactive and layout‑aware.
-
-**Completed:**
-- ✅ Introduced `sizeThatFits()` and `intrinsicContentSize()` for intrinsic sizing
-- ✅ Implemented `OSFStackView` (stack/grid layout) with spacing, alignment, distribution
-- ✅ Added `OSFResponder` base and event routing (mouse/keyboard)
-- ✅ Input focus and first‑responder management via `OSFWindow`
-- ✅ Mouse capture (pressedView) and hover tracking (hoveredView)
-- ✅ Basic hit‑testing throughout view hierarchy
-
-**Definition of Done:**
-- A window supports buttons and text fields with keyboard/mouse interaction. ✅
-
----
-
-# Phase 4 — Theming + Appearance System
-
-**Objective:** Make Ares design consistent, configurable, and shared across all UI components.
-
-**Key Tasks:**
-- Create OSFAppearance + OSFThemeManager.
-- Centralize Ares tokens (color, typography, spacing, radii).
-- Theming hooks for widgets (hover/pressed/disabled states).
-
-**Definition of Done:**
-- Components derive visuals from the theme system; switching themes updates UI.
+**NO "Stopping service..." messages. NO systemd output. Just smooth fade to black.**
 
 ---
 
-# Phase 5 — Controls + Text System
+## The Technology
 
-**Objective:** Expand AppKit‑level widget coverage and mature text rendering/editing.
+### openSEF Framework
 
-**Key Tasks:**
-- Expand widget set: sliders, toggles, lists, progress, menus.
-- Text system: attributed strings, editable text fields, selection.
-- Accessibility‑ready view metadata.
+**The Core** - Unified Desktop Environment API
 
-**Definition of Done:**
-- Standard UI screens can be built without custom rendering.
+```
+┌─────────────────────────────────────────┐
+│         OSFDesktop (Singleton)          │
+├─────────────────────────────────────────┤
+│  Event Bus      │  State Manager        │
+│  Window Manager │  Service Registry     │
+│  Resource Cache │  Theme Manager        │
+└─────────────────────────────────────────┘
+```
 
----
+**What It Does**:
+- Provides ONE API for everything
+- Manages all desktop state
+- Coordinates all components
+- Ensures consistent experience
 
-# Phase 6 — System Services + App Integration
+**Why It Matters**:
+- No fragmentation
+- No manual IPC
+- No duplicate state
+- Everything works together
 
-**Objective:** Provide system‑level APIs expected by modern apps.
+### Components
 
-**Key Tasks:**
-- Clipboard, drag‑and‑drop, notifications.
-- App bundle spec (metadata, icons, resources).
-- Launch services and file association system.
-- Settings APIs (appearance, input, audio, power).
+#### opensef-compositor
+**Display Server** - Renders everything you see
 
-**Definition of Done:**
-- A third‑party app can ship as a bundle and integrate with system services.
+- Based on wlroots (Wayland)
+- Handles windows, input, outputs
+- Registers windows with framework
+- Publishes window events
 
----
+#### opensef-shell
+**Desktop UI** - Panel, dock, wallpaper
 
-# Phase 7 — Shell + First‑Party Apps ⚠️ Partial
+- Global menu bar
+- Application dock
+- System tray
+- Wallpaper manager
 
-**Status:** ⚠️ **Partially Complete (Built Early)**
+Uses framework to:
+- Query window state
+- Subscribe to events
+- Share theme
 
-**Objective:** Build the official system shell and apps on top of openSEF to validate framework maturity.
+#### opensef-appkit
+**Application Framework** - Build apps easily
 
-**Completed:**
-- ✅ Panel (global menu bar, clock, system tray stubs)
-- ✅ Dock (icon display, click handlers)
-- ✅ Wallpaper rendering
-- ✅ Layer-shell integration with compositor
+- Widgets (buttons, labels, etc.)
+- Window management
+- Event handling
+- Theme integration
 
-**Remaining:**
-- 📋 File manager (osf-filer - skeleton exists)
-- 📋 Settings app (osf-settings - skeleton exists)
-- 📋 Terminal (osf-terminal - skeleton exists)
-- 📋 Text editor
-- 📋 System launcher and app switcher
+#### Applications
+**Built-in Apps** - Everything you need
 
-**Definition of Done:**
-- A cohesive daily‑driver desktop experience exists for early adopters.
+- Lockscreen - Login interface
+- Settings - System configuration
+- Filer - File manager
+- Terminal - Command line (when needed)
 
-> **Development Note:** We built shell components early (before Phases 3-6) to validate the desktop experience. Full shell functionality requires completing foundation phases for proper layout, theming, and system services.
-
----
-
-# Phase 8 — Performance + Stability
-
-**Objective:** Make it robust, smooth, and fast across devices.
-
-**Key Tasks:**
-- Optimize render loops and animation scheduling.
-- Profiling and memory leak fixes.
-- Window management stability (multi‑monitor, resizing, focus).
-
-**Definition of Done:**
-- Desktop is stable under normal use and performs consistently.
-
----
-
-# Phase 9 — Final Ares Polish (End Goal)
-
-**Objective:** Deliver the final Ares UX: warm, polished, and cohesive at macOS‑level quality—while remaining distinctly VitusOS.
-
-**Key Tasks:**
-- Full animation and motion curve tuning.
-- Micro‑interaction polish (hover, press, focus, window transitions).
-- Accessibility, internationalization, and localization support.
-- Design review pass for all system apps.
-
-**Definition of Done:**
-- Users can boot into VitusOS Ares and experience a fully cohesive, native‑feeling desktop.
+All apps:
+- Use opensef-framework
+- Share resources
+- Follow unified theme
+- Communicate via events
 
 ---
 
-## Final Deliverable Vision
+## Why This Matters
 
-At completion, VitusOS Ares provides:
-- A full Cocoa‑like openSEF framework for native apps.
-- A stable, visually polished Wayland desktop.
-- Ares design language applied consistently across system UI and apps.
-- A platform that feels intentional and product‑grade, not “just another Linux theme.”
+### The Linux DE Problem
+
+**Traditional Linux Desktop Environments**:
+```
+Compositor (Wayland/X11)
+    ↓ (protocols)
+Window Manager
+    ↓ (D-Bus)
+Panel
+    ↓ (???)
+Applications
+```
+
+**Problems**:
+- Each component maintains own state
+- Manual IPC via D-Bus/protocols
+- Each loads own theme
+- Fragmented experience
+- Visible systemd logs
+- No boot animation
+- Collection of separate apps
+
+### The openSEF Solution
+
+**VitusOS Ares**:
+```
+┌─────────────────────────────────┐
+│     openSEF Framework           │
+│  (Unified API + State)          │
+└────────┬────────┬───────┬───────┘
+         │        │       │
+    Compositor  Shell  Apps
+```
+
+**Benefits**:
+- Single source of truth
+- Event-driven communication
+- Shared resources
+- Unified theme
+- Smooth boot animation
+- No systemd logs visible
+- Integrated system
 
 ---
 
-## Notes for Implementation AIs and Developers
+## The Vision in Action
 
-- **Stick to the phase sequence.** Framework stability must lead the roadmap.
-- **Avoid breaking earlier phases.** Each phase is additive and testable.
-- **Always align with Ares design tokens** so UI is consistent.
+### Scenario: Opening a Window
+
+**Linux DE Way**:
+1. User clicks app
+2. App starts (separate process)
+3. App creates window via Wayland
+4. Compositor renders window
+5. Panel polls D-Bus to find new window
+6. Panel updates taskbar manually
+7. Each component has different state
+
+**openSEF Way**:
+1. User clicks app
+2. App starts and registers with framework
+3. App creates window via compositor
+4. Compositor registers window with framework
+5. Framework publishes "window.created" event
+6. Panel subscribes to event, updates automatically
+7. Dock subscribes to event, shows icon automatically
+8. All components share same state
+
+**Result**: Instant, automatic, integrated.
+
+### Scenario: Changing Theme
+
+**Linux DE Way**:
+1. User changes theme in settings
+2. Settings writes config file
+3. Each app reads own config
+4. Each app reloads own theme
+5. Inconsistent timing
+6. Possible theme mismatches
+
+**openSEF Way**:
+1. User changes theme in settings
+2. Settings calls `themeManager->loadTheme("NewTheme")`
+3. Framework publishes "theme.changed" event
+4. All components subscribe to event
+5. All components update simultaneously
+6. Perfectly synchronized
+
+**Result**: Instant, consistent, synchronized.
 
 ---
 
-**End of Roadmap**
+## Development Philosophy
+
+### What We Believe
+
+**1. Users Should Never See Technical Details**
+- No systemd logs
+- No "Starting service..." messages
+- No configuration files
+- Just smooth, beautiful graphics
+
+**2. Developers Should Have One API**
+- Not "compositor API + D-Bus + Wayland protocols"
+- Just `OSFDesktop::shared()`
+- One way to do things
+- Clear, documented, consistent
+
+**3. Components Should Work Together**
+- Not separate apps that happen to run together
+- Integrated system with shared state
+- Event-driven communication
+- Automatic coordination
+
+**4. The Experience Should Be Seamless**
+- Boot to shutdown
+- No visible seams
+- Smooth animations
+- Consistent theme
+- Feels like ONE system
+
+### What We Reject
+
+❌ **Linux DE Paradigms**
+- Fragmented components
+- Manual IPC
+- Per-app configuration
+- Visible system internals
+
+❌ **"Good Enough" Mentality**
+- "Users can configure it"
+- "It works if you know how"
+- "Just edit the config file"
+
+❌ **Technical Exposure**
+- Systemd logs on boot
+- Terminal for basic tasks
+- Manual service management
+
+✅ **We Build macOS-Style Experiences**
+- Integrated from boot to shutdown
+- Beautiful by default
+- Just works
+- No configuration needed
+
+---
+
+## The Result
+
+**When you use VitusOS Ares, you get:**
+
+✅ **Smooth boot animation** - Not systemd logs  
+✅ **Beautiful lockscreen** - Not login prompt  
+✅ **Integrated desktop** - Not collection of apps  
+✅ **Consistent theme** - Not per-app styling  
+✅ **Automatic coordination** - Not manual configuration  
+✅ **Smooth shutdown** - Not service stop messages  
+
+**It's a complete Desktop Experience, not a Linux Desktop Environment.**
+
+---
+
+## For Users
+
+**You don't need to know any of this.**
+
+Just:
+1. Turn on computer
+2. See beautiful boot animation
+3. Login at lockscreen
+4. Use integrated desktop
+5. Shutdown smoothly
+
+**It just works.**
+
+---
+
+## For Developers
+
+**You get a unified API:**
+
+```cpp
+#include <OSFDesktop.h>
+
+auto* desktop = OSFDesktop::shared();
+desktop->eventBus()->subscribe("window.created", handler);
+auto windows = desktop->windowManager()->allWindows();
+auto color = desktop->themeManager()->primaryColor();
+```
+
+**One framework. One API. One system.**
+
+---
+
+## The Bottom Line
+
+**VitusOS Ares is not trying to be "another Linux desktop".**
+
+**VitusOS Ares is building the Desktop Experience that Linux deserves.**
+
+**From boot to shutdown. Seamless. Beautiful. Integrated.**
+
+**No Linux DE paradigms. Just a complete experience.**
+
+---
+
+**Welcome to VitusOS Ares.**
+
+**The future of Linux desktop computing.**

@@ -18,6 +18,7 @@ add_subdirectory(opensef-base)      # Foundation classes
 add_subdirectory(opensef-core)      # Animation & Layer framework
 add_subdirectory(opensef-appkit)    # Widget library (Buttons, Windows)
 add_subdirectory(opensef-auth)      # Authentication (PAM)
+add_subdirectory(opensef-framework) # Unified Desktop Environment Framework
 
 # Compositor (only if wlroots found)
 if(WLROOTS_FOUND)
