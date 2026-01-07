@@ -8,7 +8,7 @@
 
 ## 1. High-Level Overview
 
-openSEF (open System Environment Framework) is the backbone of VitusOS Ares. It is a **Unified Framework** that bridges the gap between the low-level Display Server (Wayland/wlroots) and the high-level User Interface (Panel, Dock, Apps).
+openSEF (open SeagrEnv (Seamless Integration Environment) Framework) is the backbone of VitusOS Ares. It is a **Unified Framework** that bridges the gap between the low-level Display Server (Wayland/wlroots) and the high-level User Interface (Panel, Dock, Apps).
 
 Unlike traditional Linux desktops that glue together disparate components (compositor, panel, notification daemon) via ad-hoc protocols, openSEF connects them all through a single, coherent **Event Bus** and **State Manager**.
 

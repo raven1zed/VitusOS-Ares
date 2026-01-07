@@ -27,7 +27,7 @@ VitusOS Ares is a custom Linux desktop environment designed to be:
 - **Responsive**: Event-driven architecture (no polling).
 
 ### What is openSEF?
-openSEF (open System Environment Framework) is the core library that powers everything. It provides the **Event Bus**, **State Management**, and **UI Widgets**.
+openSEF (open SeagrEnv(Seamless Integration Environment) Framework) is the core library that powers everything. It provides the **Event Bus**, **State Management**, and **UI Widgets**.
 
 > **Think of openSEF as the "Cocoa" of VitusOS.**
 

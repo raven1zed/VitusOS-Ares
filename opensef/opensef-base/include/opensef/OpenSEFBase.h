@@ -142,6 +142,9 @@ public:
 
   static OSFApplication &shared();
 
+  void setAppID(const std::string &appID) { appID_ = appID; }
+  const std::string &appID() const { return appID_; }
+
   void setOnLaunch(Callback callback) { onLaunch_ = std::move(callback); }
   void setOnTerminate(Callback callback) { onTerminate_ = std::move(callback); }
 
@@ -198,6 +201,7 @@ private:
   OSFApplication() = default;
 
   OSFRunLoop runLoop_;
+  std::string appID_;
   Callback onLaunch_;
   Callback onTerminate_;
   bool running_ = false;
