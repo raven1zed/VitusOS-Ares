@@ -41,7 +41,7 @@ openSEF (open System Environment Framework) is the core library that powers ever
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                    Unified Framework (opensef-framework)             │   │
+│   │                    Unified Framework (opensef-framework)            │   │
 │   │   [ OSFEventBus ] ──────┬────── [ OSFStateManager ] ──── [ Cache ]  │   │
 │   │           ▲             │               ▲                           │   │
 │   └───────────┼─────────────┼───────────────┼───────────────────────────┘   │
