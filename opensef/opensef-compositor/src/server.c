@@ -8,8 +8,16 @@
 
 #include "server.h"
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include <assert.h>
+#include <getopt.h>
+#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <wayland-server-core.h>
 
 #include <wlr/backend.h>
 #include <wlr/render/allocator.h>
@@ -31,6 +39,7 @@
 /* Forward declarations for handlers defined in other files */
 extern void osf_new_output(struct wl_listener *listener, void *data);
 extern void osf_new_xdg_toplevel(struct wl_listener *listener, void *data);
+extern void osf_new_xdg_popup(struct wl_listener *listener, void *data);
 extern void osf_new_layer_surface(struct wl_listener *listener, void *data);
 extern void osf_new_input(struct wl_listener *listener, void *data);
 extern void osf_cursor_motion(struct wl_listener *listener, void *data);
@@ -44,6 +53,20 @@ extern void osf_seat_request_set_selection(struct wl_listener *listener,
                                            void *data);
 extern void osf_new_xdg_decoration(struct wl_listener *listener, void *data);
 
+/* Forced frame timer callback for WSLg/Nested environments */
+static int frame_timer_callback(void *data) {
+  struct osf_server *server = data;
+  struct osf_output *output;
+
+  wl_list_for_each(output, &server->outputs, link) {
+    wlr_output_schedule_frame(output->wlr_output);
+  }
+
+  /* Re-arm timer for ~60fps (16ms) */
+  wl_event_source_timer_update(server->frame_timer, 16);
+  return 0;
+}
+
 bool osf_server_init(struct osf_server *server, const char *socket_name) {
   wlr_log(WLR_INFO, "Initializing openSEF compositor...");
 
@@ -56,7 +79,19 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
   server->wl_event_loop = wl_display_get_event_loop(server->wl_display);
 
   /* Create backend (auto-detects DRM, Wayland, X11, headless) */
+  const char *backend_type = getenv("VITUS_BACKEND");
 
+  if (backend_type && strcmp(backend_type, "wayland") == 0) {
+    /* Nested mode: Create Wayland backend (connects to WSLg) */
+    wlr_log(WLR_INFO, "Using Wayland backend (nested mode)");
+    setenv("WLR_BACKENDS", "wayland", 1);
+  } else if (backend_type && strcmp(backend_type, "x11") == 0) {
+    /* X11 window mode */
+    wlr_log(WLR_INFO, "Using X11 backend (nested mode)");
+    setenv("WLR_BACKENDS", "x11", 1);
+  }
+
+  /* wlroots 0.18 signature (Confirmed by build error) */
   server->backend = wlr_backend_autocreate(server->wl_event_loop, NULL);
   if (!server->backend) {
     wlr_log(WLR_ERROR, "Failed to create wlroots backend");
@@ -64,12 +99,17 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
   }
 
   /* Create renderer */
+  if (backend_type) {
+    wlr_log(WLR_INFO, "Nested mode detected, disabling hardware cursors");
+    setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+  }
   server->renderer = wlr_renderer_autocreate(server->backend);
   if (!server->renderer) {
     wlr_log(WLR_ERROR, "Failed to create renderer");
     goto error_backend;
   }
   wlr_renderer_init_wl_display(server->renderer, server->wl_display);
+  wlr_log(WLR_INFO, "  Renderer created successfully");
 
   /* Create allocator */
   server->allocator =
@@ -78,6 +118,7 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
     wlr_log(WLR_ERROR, "Failed to create allocator");
     goto error_backend;
   }
+  wlr_log(WLR_INFO, "  Allocator created successfully");
 
   /* Create compositor */
   server->compositor =
@@ -115,6 +156,8 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
   server->new_xdg_toplevel.notify = osf_new_xdg_toplevel;
   wl_signal_add(&server->xdg_shell->events.new_toplevel,
                 &server->new_xdg_toplevel);
+  server->new_xdg_popup.notify = osf_new_xdg_popup;
+  wl_signal_add(&server->xdg_shell->events.new_popup, &server->new_xdg_popup);
 
   /* Layer shell for dock/panel */
   server->layer_shell = wlr_layer_shell_v1_create(server->wl_display, 4);
@@ -187,6 +230,13 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
   }
 
   wlr_log(WLR_INFO, "Compositor initialized successfully");
+
+  /* Initialize forced frame timer (WSLg workaround) */
+  struct wl_event_loop *loop = wl_display_get_event_loop(server->wl_display);
+  server->frame_timer =
+      wl_event_loop_add_timer(loop, frame_timer_callback, server);
+  wl_event_source_timer_update(server->frame_timer, 16);
+
   return true;
 
 error_backend:

@@ -62,6 +62,7 @@ add_executable(opensef-compositor
     src/input.c
     src/layer_shell.c
     src/decorations.c
+    src/popup.c
     ${XDG_SHELL_C}
     ${XDG_SHELL_H}
     ${LAYER_SHELL_C}

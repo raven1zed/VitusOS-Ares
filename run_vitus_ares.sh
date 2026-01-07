@@ -11,8 +11,28 @@ pkill -9 -f phase3-app || true
 sleep 0.5
 
 # Set library paths
-export LD_LIBRARY_PATH=$PWD/build/opensef/opensef-base:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$PWD/build/opensef/opensef-base:$LD_LIBRARY_PATH
+if [ -d "/mnt/wslg/runtime-dir" ]; then
+    export XDG_RUNTIME_DIR="/mnt/wslg/runtime-dir"
+fi
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+
+# Detect if running in WSL
+if [ -n "$WSL_DISTRO_NAME" ]; then
+    echo "WSL detected - launching Wayland-Pixman path"
+    export VITUS_BACKEND=wayland
+    export WAYLAND_DISPLAY=wayland-0
+    export WLR_WL_OUTPUTS=1
+    export WLR_WL_FULLSCREEN=0
+    
+    # Stability and Software stack
+    export WLR_RENDERER=pixman
+    export WLR_NO_HARDWARE_CURSORS=1
+    export WLR_RENDERER_ALLOW_SOFTWARE=1
+    export WLR_LOG_LEVEL=info
+else
+    echo "Native Linux - using auto-detect backend"
+fi
 
 # Socket name for our compositor
 SOCKET_NAME="wayland-1"

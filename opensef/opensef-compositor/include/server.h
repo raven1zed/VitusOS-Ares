@@ -78,6 +78,7 @@ struct osf_server {
   struct wlr_xdg_shell *xdg_shell;
   struct wl_list views; /* osf_view::link */
   struct wl_listener new_xdg_toplevel;
+  struct wl_listener new_xdg_popup;
 
   /* Layer shell (dock, panel) */
   struct wlr_layer_shell_v1 *layer_shell;
@@ -114,6 +115,9 @@ struct osf_server {
 
   /* Socket name for clients */
   const char *socket;
+
+  /* Forced frame timer for hosts that don't send events (WSLg) */
+  struct wl_event_source *frame_timer;
 };
 
 /* ============================================================================

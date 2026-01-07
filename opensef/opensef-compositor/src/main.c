@@ -5,13 +5,16 @@
  * VitusOS Ares Desktop Environment
  */
 
-#define _POSIX_C_SOURCE 200112L
-
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <wayland-server-core.h>
+#include <wlr/util/log.h>
 
 #include <wlr/util/log.h>
 
@@ -42,7 +45,7 @@ static void handle_signal(int sig) {
 int main(int argc, char *argv[]) {
   char *startup_cmd = NULL;
   char *socket_name = NULL;
-  enum wlr_log_importance log_level = WLR_INFO;
+  enum wlr_log_importance log_level = WLR_DEBUG;
 
   static struct option long_options[] = {
       {"socket", required_argument, NULL, 's'},

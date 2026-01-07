@@ -22,6 +22,7 @@ pkgs.mkShell {
     libxkbcommon
     libdrm
     libinput
+    libgbm
     pixman
     seatd
     libGL
@@ -42,6 +43,9 @@ pkgs.mkShell {
     vulkan-tools
     vulkan-validation-layers
     glm
+    pam  # Authentication library
+    xorg.xclock
+    weston
   ];
 
   shellHook = ''

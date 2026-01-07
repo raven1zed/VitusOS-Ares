@@ -7,6 +7,11 @@
 #include "server.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <wayland-server-core.h>
+#include <wlr/backend/wayland.h>
+#include <wlr/backend/x11.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/util/log.h>
@@ -18,7 +23,9 @@ static void output_frame(struct wl_listener *listener, void *data) {
   (void)data;
 
   /* Render the scene */
-  wlr_scene_output_commit(scene_output, NULL);
+  if (!wlr_scene_output_commit(scene_output, NULL)) {
+    wlr_log(WLR_ERROR, "Failed to commit scene output frame");
+  }
 
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &now);
@@ -54,22 +61,87 @@ void osf_new_output(struct wl_listener *listener, void *data) {
           wlr_output->make ? wlr_output->make : "unknown",
           wlr_output->model ? wlr_output->model : "unknown");
 
+  struct wlr_output_mode *preferred = wlr_output_preferred_mode(wlr_output);
+  if (preferred) {
+    wlr_log(WLR_INFO, "  Preferred mode detected: %dx%d@%dmHz",
+            preferred->width, preferred->height, preferred->refresh);
+  } else {
+    wlr_log(WLR_INFO, "  No preferred mode reported by backend");
+  }
+
   /* Initialize output with allocator (required for wlroots 0.16+) */
   wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
-  /* Set preferred mode */
+  /* Force sane dimensions for nested backends (Wayland/X11) */
+  int width = 1280;
+  int height = 720;
+
+  bool is_nested = (getenv("VITUS_BACKEND") != NULL);
+  if (!is_nested && wlr_output->make) {
+    if (strcmp(wlr_output->make, "wayland") == 0 ||
+        strcmp(wlr_output->make, "x11") == 0) {
+      is_nested = true;
+    }
+  }
+
   struct wlr_output_state state;
   wlr_output_state_init(&state);
   wlr_output_state_set_enabled(&state, true);
 
-  struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
-  if (mode) {
-    wlr_output_state_set_mode(&state, mode);
-    wlr_log(WLR_INFO, "  Mode: %dx%d @ %.3f Hz", mode->width, mode->height,
-            mode->refresh / 1000.0f);
-  }
+  bool committed = false;
+  if (is_nested) {
+    wlr_log(WLR_INFO, "  Attempting nested mode negotiation...");
 
-  wlr_output_commit_state(wlr_output, &state);
+    /* Strategy 1: Preferred mode (if not bogus) */
+    if (preferred && preferred->width < 10000) {
+      wlr_output_state_set_mode(&state, preferred);
+      if (wlr_output_commit_state(wlr_output, &state)) {
+        wlr_log(WLR_INFO, "  SUCCESS: Committed backend preferred mode");
+        committed = true;
+      }
+    }
+
+    /* Strategy 2: 720p @ 60Hz */
+    if (!committed) {
+      wlr_output_state_set_custom_mode(&state, 1280, 720, 60000);
+      if (wlr_output_commit_state(wlr_output, &state)) {
+        wlr_log(WLR_INFO, "  SUCCESS: Committed 1280x720 @ 60Hz");
+        committed = true;
+      }
+    }
+
+    /* Strategy 3: 720p @ 0Hz (WSLg special) */
+    if (!committed) {
+      wlr_output_state_set_custom_mode(&state, 1280, 720, 0);
+      if (wlr_output_commit_state(wlr_output, &state)) {
+        wlr_log(WLR_INFO, "  SUCCESS: Committed 1280x720 @ 0Hz");
+        committed = true;
+      }
+    }
+
+    /* Strategy 4: 800x600 @ 60Hz (Ultra-safe) */
+    if (!committed) {
+      wlr_output_state_set_custom_mode(&state, 800, 600, 60000);
+      if (wlr_output_commit_state(wlr_output, &state)) {
+        wlr_log(WLR_INFO, "  SUCCESS: Committed 800x600 @ 60Hz");
+        width = 800;
+        height = 600;
+        committed = true;
+      }
+    }
+  } else {
+    /* Native mode */
+    if (preferred) {
+      wlr_output_state_set_mode(&state, preferred);
+      width = preferred->width;
+      height = preferred->height;
+    } else {
+      wlr_output_state_set_custom_mode(&state, width, height, 60000);
+    }
+    if (wlr_output_commit_state(wlr_output, &state)) {
+      committed = true;
+    }
+  }
   wlr_output_state_finish(&state);
 
   /* Create output structure */
@@ -106,14 +178,22 @@ void osf_new_output(struct wl_listener *listener, void *data) {
 
   wlr_log(WLR_INFO, "Output '%s' configured successfully", wlr_output->name);
 
-  /* Set background color (VitusOS Space Grey) */
-  float color[4] = {0.1f, 0.1f, 0.1f, 1.0f}; // #1a1a1a
-  int width = wlr_output->width;
-  int height = wlr_output->height;
-  if (width == 0)
-    width = 1920; // Fallback
-  if (height == 0)
-    height = 1080;
+  /* Set backend-specific window title before first commit to help host mapping
+   */
+  if (wlr_output_is_wl(wlr_output)) {
+    wlr_wl_output_set_title(wlr_output, "VitusOS Ares");
+  } else if (wlr_output_is_x11(wlr_output)) {
+    wlr_x11_output_set_title(wlr_output, "VitusOS Ares");
+  }
 
-  wlr_scene_rect_create(server->layer_background, width, height, color);
+  /* CRITICAL: Force an initial frame to host to map the window */
+  wlr_log(WLR_INFO, "  Forcing initial scene commit to map window...");
+  if (wlr_scene_output_commit(output->scene_output, NULL)) {
+    wlr_log(WLR_INFO, "  Initial frame delivered successfully");
+  } else {
+    wlr_log(WLR_ERROR, "  Failed to deliver initial frame");
+  }
+
+  /* Schedule the next frame */
+  wlr_output_schedule_frame(wlr_output);
 }
