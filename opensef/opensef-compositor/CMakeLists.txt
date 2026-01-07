@@ -72,6 +72,7 @@ add_executable(opensef-compositor
 target_include_directories(opensef-compositor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-framework/include
     ${WLROOTS_INCLUDE_DIRS}
     ${WAYLAND_SERVER_INCLUDE_DIRS}
     ${XKB_INCLUDE_DIRS}
@@ -79,6 +80,7 @@ target_include_directories(opensef-compositor PRIVATE
 )
 
 target_link_libraries(opensef-compositor PRIVATE
+    opensef-framework
     ${WLROOTS_LIBRARIES}
     ${WAYLAND_SERVER_LIBRARIES}
     ${XKB_LIBRARIES}

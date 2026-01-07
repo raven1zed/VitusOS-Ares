@@ -18,6 +18,7 @@ add_library(opensef-framework SHARED
     src/OSFServiceRegistry.cpp
     src/OSFResourceCache.cpp
     src/OSFThemeManager.cpp
+    src/OSFFrameworkC.cpp
 )
 
 target_include_directories(opensef-framework PUBLIC
