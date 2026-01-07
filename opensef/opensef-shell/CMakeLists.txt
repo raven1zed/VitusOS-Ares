@@ -119,10 +119,13 @@ target_include_directories(osf-shell PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-appkit/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-core/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-base/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-framework/include
 )
 
 target_link_libraries(osf-shell PUBLIC
     osf-protocols
+    opensef-base
+    opensef-framework
     ${WAYLAND_CLIENT_LIBRARIES}
     ${WAYLAND_CURSOR_LIBRARIES}
     ${CAIRO_LIBRARIES}

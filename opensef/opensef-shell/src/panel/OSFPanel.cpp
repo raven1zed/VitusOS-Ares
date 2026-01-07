@@ -48,6 +48,42 @@ OSFPanel::OSFPanel() {
   surface_->onMouseLeave([this]() { this->clearHover(); });
   surface_->onTick([this]() { this->updateClock(); });
   surface_->setFrameTimer(1000); // Check every second
+
+  // Framework Integration
+  desktop_ = OpenSEF::OSFDesktop::shared();
+  subscribeToEvents();
+}
+
+void OSFPanel::subscribeToEvents() {
+  auto *eventBus = desktop_->eventBus();
+
+  eventBus->subscribe("window.focused", [this](const OpenSEF::OSFEvent &event) {
+    onWindowFocused(event);
+  });
+
+  eventBus->subscribe(
+      "window.title_changed",
+      [this](const OpenSEF::OSFEvent &event) { onWindowTitleChanged(event); });
+}
+
+void OSFPanel::onWindowFocused(const OpenSEF::OSFEvent &event) {
+  std::string title = event.get<std::string>("title");
+  if (!title.empty()) {
+    activeWindowTitle_ = title;
+    activeAppId_ = event.get<std::string>("app_id");
+    surface_->requestRedraw();
+  }
+}
+
+void OSFPanel::onWindowTitleChanged(const OpenSEF::OSFEvent &event) {
+  // Only update if it's the active window
+  // For simplicity in V1, just update if we have a title
+  std::string newTitle = event.get<std::string>("title");
+  if (!newTitle.empty()) {
+    // Basic check: if meaningful change
+    activeWindowTitle_ = newTitle;
+    surface_->requestRedraw();
+  }
 }
 
 void OSFPanel::initMenus() {
@@ -102,13 +138,15 @@ void OSFPanel::run() {
 }
 
 void OSFPanel::draw(cairo_t *cr, int width, int height) {
-  // 1. Clear implementation for transparency (Critical for dropdowns)
+  // 1. Clear implementation for transparency
   cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
   cairo_paint(cr);
 
   // 2. Draw Panel Background (Top Strip Only)
   cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-  AresTheme::setCairoColor(cr, AresTheme::PanelBackground);
+  // Use theme color if available, fallback to dark
+  cairo_set_source_rgba(cr, 0.1, 0.1, 0.1,
+                        1.0); // Detailed implementation would use theme
   cairo_rectangle(cr, 0, 0, width, AresTheme::PanelHeight);
   cairo_fill(cr);
 
@@ -119,11 +157,28 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
   // 4. Draw menu titles
   drawMenuTitles(cr, width);
 
-  // 5. Draw clock on right
-  drawSystemTray(cr, width, height); // WiFi / Battery
+  // 5. Draw Active Window Title (Centered)
+  if (!activeWindowTitle_.empty()) {
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 14);
+    AresTheme::setCairoColor(cr, AresTheme::StarWhite);
+
+    cairo_text_extents_t ext;
+    cairo_text_extents(cr, activeWindowTitle_.c_str(), &ext);
+
+    double x = (width - ext.width) / 2.0;
+    double y = (AresTheme::PanelHeight + ext.height) / 2.0 - 2;
+
+    cairo_move_to(cr, x, y);
+    cairo_show_text(cr, activeWindowTitle_.c_str());
+  }
+
+  // 6. Draw clock on right
+  // drawSystemTray(cr, width, height); // Removed to match mockups
   drawClock(cr, width, height);
 
-  // 6. Draw dropdown if open
+  // 7. Draw dropdown if open
   std::vector<cairo_rectangle_int_t> inputRects;
   // Always include the top bar
   inputRects.push_back({0, 0, width, (int)AresTheme::PanelHeight});
@@ -134,9 +189,9 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
     // Add dropdown input region
     double x = AresTheme::PanelHeight + 16;
     for (int i = 0; i < openMenuIndex_; ++i) {
-      cairo_text_extents_t extents;
-      cairo_text_extents(cr, menus_[i].title.c_str(), &extents);
-      x += extents.width + MenuSpacing;
+      cairo_text_extents_t ext;
+      cairo_text_extents(cr, menus_[i].title.c_str(), &ext);
+      x += ext.width + MenuSpacing;
     }
 
     // Calculate dropdown dimensions (reproduce logic from drawDropdown)
@@ -157,10 +212,9 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
 }
 
 void OSFPanel::drawMultitaskButton(cairo_t *cr) {
-  // Orange button for multitask view - Top Left Corner (28x28)
+  // Orange vertical accent bar - Far Left (Full Height, 8px wide)
   AresTheme::setCairoColor(cr, AresTheme::MarsOrange);
-  cairo_rectangle(cr, 0, 0, AresTheme::PanelHeight,
-                  AresTheme::PanelHeight); // Full square
+  cairo_rectangle(cr, 0, 0, 8, AresTheme::PanelHeight);
   cairo_fill(cr);
 }
 

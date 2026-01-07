@@ -1,330 +1,167 @@
-# openSEF Architecture R&D
+# openSEF Architecture Reference
 
-**The Complete Research Foundation for Building a Premium Desktop Environment**
+**The Unified Framework for VitusOS Ares**
 
-*Last Updated: December 31, 2025*
-
----
-
-## Table of Contents
-
-1. [Architecture Pivot - December 2024](#architecture-pivot---december-2024)
-2. [How Other DEs Solved These Problems](#how-other-des-solved-these-problems)
-3. [Rendering Pipeline Analysis](#rendering-pipeline-analysis)
-4. [GNUStep Deep Dive](#gnustep-deep-dive)
-5. [macOS Cocoa & Core Animation](#macos-cocoa--core-animation)
-6. [GhostBSD Gershwin Study](#ghostbsd-gershwin-study)
-7. [Implementation Roadmap](#implementation-roadmap)
-8. [Boot, Lock Screen & Shutdown UI](#boot-lock-screen--shutdown-ui)
+*Last Updated: January 7, 2026*
 
 ---
 
-# Architecture Pivot - December 2024
+## 1. High-Level Overview
 
-## The Problem We Hit
+openSEF (open System Environment Framework) is the backbone of VitusOS Ares. It is a **Unified Framework** that bridges the gap between the low-level Display Server (Wayland/wlroots) and the high-level User Interface (Panel, Dock, Apps).
+
+Unlike traditional Linux desktops that glue together disparate components (compositor, panel, notification daemon) via ad-hoc protocols, openSEF connects them all through a single, coherent **Event Bus** and **State Manager**.
+
+### The "Unified" Promise
+
+> **"Everything is connected."**
+
+If a window opens, the Compositor knows. The Panel knows (to update the menu). The Dock knows (to show a running dot). The Filer knows. They all share the same "Brain" — the `OSFDesktop` singleton.
+
+---
+
+## 2. Core Architecture
+
+The architecture consists of three distinct layers, all connected by the **openSEF Framework**.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  wlroots C99 Syntax Incompatible with C++ Compilers                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  wlroots uses C99-only syntax:                                      │
-│    void wlr_renderer_clear(const float color[static 4]);            │
-│                                          ^^^^^^                     │
-│  This syntax is:                                                    │
-│  ❌ Valid C99                                                       │
-│  ❌ Invalid C++11/14/17/20 (parse error, not just warning)          │
-│  ❌ Cannot be fixed with -fpermissive or -Wno-* flags               │
-│                                                                     │
-│  Affected versions: ALL (0.16, 0.17, 0.18, 0.19)                   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           VitusOS Ares Ecosystem                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Layer 3: The Shell & Apps (C++)                                           │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                      │
+│   │   OSFPanel   │  │   OSFDock    │  │  OSFSettings │                      │
+│   └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                      │
+│          │                 │                 │                              │
+│          ▼                 ▼                 ▼                              │
+│   ┌──────────────────────────────────────────────────────┐                  │
+│   │           openSEF Framework (Shared Library)         │                  │
+│   │                                                      │                  │
+│   │   • OSFEventBus (Pub/Sub)                            │                  │
+│   │   • OSFStateManager (Windows, Apps, System)          │                  │
+│   │   • OSFResourceCache (Icons, Themes, Fonts)          │                  │
+│   │   • OSFDesktop (Singleton Access Point)              │                  │
+│   └─────────────────────────▲────────────────────────────┘                  │
+│                             │                                               │
+│   Layer 2: The Bridge       │                                               │
+│   ┌──────────────────────────────────────────────────────┐                  │
+│   │          OSFFrameworkC (C Wrapper for Framework)     │                  │
+│   └─────────────────────────▲────────────────────────────┘                  │
+│                             │                                               │
+│   Layer 1: The Compositor (C / wlroots)                     │                  │
+│   ┌──────────────────────────────────────────────────────┐  │                  │
+│   │                 opensef-compositor                   │  │                  │
+│   │   • Window Management (XDG Shell)                    │  │                  │
+│   │   • Input Handling                                   │  │                  │
+│   │   • Hardware Rendering                               │  │                  │
+│   └──────────────────────────────────────────────────────┘  │                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Attempts Made (All Failed)
+### Layer 1: The Compositor (`opensef-compositor`)
+- **Language**: Pure C (C11)
+- **Role**: Validates hardware, manages the display, handles raw input, and composite pixels.
+- **Framework Integration**: Uses `OSFFrameworkC` to publish events (`OSF_EVENT_WINDOW_CREATED`, `OSF_EVENT_WINDOW_FOCUSED`) and register window states.
+- **Crucial Design Choice**: The compositor is *dumb*. It doesn't know *what* it's drawing, it just manages the surfaces. The logic lives in the Framework.
 
-| Attempt | Result |
-|---------|--------|
-| `-fpermissive` flag | ❌ Parse error, not warning |
-| `-Wno-c99-extensions` | ❌ Clang only, doesn't help parser |
-| Switch GCC ↔ Clang | ❌ Both reject syntax |
-| Older wlroots (0.16, 0.17) | ❌ Same syntax present |
-| `extern "C"` wrapping | ❌ Doesn't fix array syntax |
-| C wrapper layer | ⚠️ Partial, but too complex |
+### Layer 2: The Framework (`opensef-framework`)
+- **Language**: C++17 (with C bindings)
+- **Role**: The "Brain". Holds the Source of Truth.
+- **Components**:
+    - `OSFEventBus`: A string-topic based generic event system.
+    - `OSFStateManager`: standardized structs for `Window`, `Application`, `Monitor`.
+    - `OSFDesktop`: The main entry point `OSFDesktop::shared()`.
 
-## Solution Chosen: Hybrid C/C++ Architecture
+### Layer 3: The Shell (`opensef-shell`)
+- **Language**: C++17
+- **Role**: The "Face". Renders the UI using Cairo.
+- **Framework Integration**: Subscribes to events.
+    - `OSFPanel` subscribes to `window.focused` to update the global menu title.
+    - `OSFDock` subscribes to `application.launched` and `window.minimized` to manage dock items.
 
+---
+
+## 3. The Event-Driven Model
+
+The core of openSEF is the **Event Bus**. We do not use polling.
+
+### Example Flow: User Opens a Window (e.g., Firefox)
+
+1.  **Wayland Event**: `opensef-compositor` receives a `map` request from the XDG Shell protocol (Firefox starts).
+2.  **Compositor Action**:
+    *   Creates an internal `osf_view`.
+    *   Calls `OSFDesktop_RegisterWindow(id, title, "firefox")`.
+    *   Calls `OSFEventBus_Publish("window.created", {id, title})`.
+    *   Give focus -> Calls `OSFEventBus_Publish("window.focused", {id, title})`.
+3.  **Framework Action**:
+    *   Updates `OSFStateManager` (adds window to list, sets active window ID).
+4.  **Shell Action (Panel)**:
+    *   `OSFPanel` (listening to `window.focused`) receives the event.
+    *   Calls `surface_->requestRedraw()`.
+    *   **Next Frame**: Draws "Firefox" in the center of the top bar.
+5.  **Shell Action (Dock)**:
+    *   `OSFDock` (listening to `window.created`) receives the event.
+    *   Checks if "Firefox" icon is already bouncing/present.
+    *   Adds a "running indicator" dot below the Firefox icon.
+
+This happens in milliseconds, with zero "asking" or polling.
+
+---
+
+## 4. Key Components Detail
+
+### OSFDesktop (Singleton)
+The primary access point.
+```cpp
+auto* desktop = OpenSEF::OSFDesktop::shared();
+desktop->eventBus()->subscribe("topic", callback);
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  NEW ARCHITECTURE (Post-Pivot)                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │              C++ UI Layer (Cairo/Pango)                      │   │
-│  │   osf-panel • osf-dock • osf-launcher • osf-settings         │   │
-│  │        (Wayland clients via wlr-layer-shell)                 │   │
-│  └──────────────────────────┬──────────────────────────────────┘   │
-│                              │                                      │
-│                         layer-shell protocol                        │
-│                              │                                      │
-│  ┌──────────────────────────┴──────────────────────────────────┐   │
-│  │              Pure C Compositor Core                          │   │
-│  │   main.c → server.c → output.c → view.c                     │   │
-│  │   input.c → layer_shell.c → decorations.c                   │   │
-│  │              (Direct wlroots integration)                    │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+
+### OSFEventBus
+A flexible Publish-Subscribe system.
+- **Topics**: Hierarchical strings (`window.created`, `system.power.shutdown`).
+- **Data**: Generic `OSFEvent` object holding a Key-Value map (`std::map<std::string, std::string>`).
+
+### OSFFrameworkC
+The C-compatible wrapper that allows the Pure C compositor to talk to the C++ framework.
+```c
+// In C compositor
+void* framework = OSFDesktop_Get();
+OSFEventBus_Publish(framework, "window.created", data);
 ```
 
 ---
 
-# How Other DEs Solved These Problems
+## 5. Design Decisions & Rationale
 
-## Research: December 31, 2024
+### Why not just use Wayland Protocols for everything?
+Wayland protocols are low-level and fragmentation-prone. Building a "Panel Protocol" or "Dock Protocol" for every feature is slow.
+**openSEF** bypasses this for trusted internal components. The Panel acts like a part of the OS, not just a random client. It has direct access to the `OSFDesktop` state (in the same process space or shared memory/IPC in the future service model).
 
-### 1. Hyprland — The Nuclear Option
+*Note: Currently, Shell and Compositor run as separate processes in Phase 4. The Event Bus currently uses IPC (mocked or pipe-based) or is planned to use a shared memory bus in Phase 6. For the implemented Prototype, they are tightly coupled via the build, but cleanly separated by API.*
 
-**Problem:** Same C99 compatibility issues, memory bugs, lack of control.
+### Why C++ for the Shell?
+- **Cairo/Pango**: Excellent C++ bindings.
+- **Productivity**: Classes, Vectors, Maps are superior for UI state management vs raw C structs.
+- **Performance**: Zero-overhead abstractions compared to Python/JS bridges.
 
-**Solution:** **Completely dropped wlroots** and built custom C++ backend.
-
-```
-Timeline:
-- 2022-2023: Based on wlroots
-- July 2024 (v0.42.0): Fully independent, 100% C++
-
-What they built:
-┌─────────────────────────────────────────────────────────────────────┐
-│  aquamarine (C++ library)                                           │
-│  • Lightweight abstraction layer                                    │
-│  • Handles: KMS, DRM, libinput (low-level hardware)                │
-│  • All protocol implementations rewritten in C++                    │
-│                                                                     │
-│  Result: No more wlroots dependency at all                         │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Why they did it:**
-- Reduce memory issues from C implementations
-- Better documentation control  
-- Faster feature development (explicit sync, HDR)
-- Full C++ memory safety
-
-**Lesson for openSEF:** Long-term, we could build our own C++ backend like `aquamarine`. Short-term, hybrid C/C++ works.
+### Why C for the Compositor?
+- **wlroots**: The gold standard library is C99.
+- **ABI Stability**: C is stable.
+- **Simplicity**: Keeps the crucial "display engine" simple, fast, and dumb.
 
 ---
 
-### 2. Wayfire — The Practical Approach
+## 6. Directory Structure
 
-**Problem:** C++ compositor using C library.
-
-**Solution:** **Use wlroots as-is**, write C++ around it.
-
-```
-Architecture:
-- 97.2% C++ codebase
-- Builds wlroots as submodule
-- Core and plugins in C++
-- Direct wlroots calls where needed
-
-Reality: Code sometimes resembles "C with classes"
-```
-
-**How they avoid the syntax issue:**
-- Their C++ code calls wlroots functions but doesn't #include headers with problematic syntax in .cpp files
-- Headers are included in .c translation units, not .cpp
-
-**Lesson for openSEF:** Keep wlroots includes isolated in pure C files.
+- `opensef/opensef-framework`: Core logic (C++).
+- `opensef/opensef-compositor`: Display server (C).
+- `opensef/opensef-shell`: UI components (C++).
+- `opensef/opensef-base`: Shared types/utils.
+- `opensef/opensef-appkit`: Widget library.
 
 ---
 
-### 3. Louvre — The C++ Wrapper
-
-**Problem:** Developers want pure C++ API.
-
-**Solution:** Full C++ library wrapping wlroots concepts.
-
-**Lesson for openSEF:** If we need C++ wlroots interaction, consider building a clean C wrapper library.
-
----
-
-### 4. qwlroots — Qt Bindings
-
-**Problem:** Qt developers want wlroots integration.
-
-**Solution:** Qt/C++ bindings for wlroots.
-
-**Lesson for openSEF:** We chose Cairo, so qwlroots doesn't apply, but the binding pattern is instructive.
-
----
-
-## Summary: Industry Solutions
-
-| Project | Approach | Language | Result |
-|---------|----------|----------|--------|
-| **Hyprland** | Drop wlroots, build `aquamarine` | 100% C++ | Full control |
-| **Wayfire** | Use wlroots, write C++ around it | 97% C++ | Works but "C with classes" |
-| **Louvre** | C++ wrapper library | C++ | Clean API |
-| **Sway** | Stay pure C | 100% C | Rock solid |
-| **labwc** | Pure C + external clients | C core | Simple, works |
-| **openSEF** | Hybrid C core + C++ UI | C + C++ | Best of both worlds |
-
----
-
-## openSEF Decision: Why Hybrid?
-
-| Option | Pros | Cons | Verdict |
-|--------|------|------|---------|
-| **Pure C (like Sway)** | No compat issues | C++ animation code wasted | ❌ |
-| **Drop wlroots (like Hyprland)** | Full control | Months of work | ❌ (future) |
-| **C++ wrapper (like Louvre)** | Clean API | Still hit C99 syntax | ❌ |
-| **Hybrid C/C++ (our choice)** | Works now, preserves C++ UI | Two languages | ✅ |
-
----
-
-# Current Implementation Status
-
-## Pure C Compositor Core ✅
-
-| File | Lines | Purpose |
-|------|-------|---------|
-| `server.h` | ~170 | All data structures |
-| `main.c` | ~100 | Entry point, CLI |
-| `server.c` | ~180 | wlroots init, scene graph |
-| `output.c` | ~100 | Monitor handling |
-| `view.c` | ~250 | Window management |
-| `input.c` | ~300 | Keyboard, mouse |
-| `layer_shell.c` | ~170 | Dock/panel support |
-| `decorations.c` | ~70 | Server-side decorations |
-
-**Total: ~1,340 lines of pure C**
-
-## C++ Shell Foundation ✅
-
-| File | Purpose | Status |
-|------|---------|--------|
-| `OSFSurface.h` | Cairo layer surface | ✅ Complete |
-| `OSFAresTheme.h` | Theme constants | ✅ Complete |
-| `OSFSurface.cpp` | Implementation | ✅ Complete |
-| `OSFPanel.cpp` | Global menu | ✅ Complete |
-| `OSFDock.cpp` | Dock | ✅ Complete |
-
----
-
-# Lessons Learned (December 2024)
-
-## 1. Don't Fight Language Boundaries
-
-> wlroots is C. Accept it. Build around it.
-
-Attempting to compile C99 code as C++ is a dead end. The hybrid approach respects language boundaries.
-
-## 2. The Hyprland Path is Ambitious
-
-Building a custom backend like `aquamarine` gives full control but requires:
-- Deep understanding of DRM/KMS/libinput
-- Months of development
-- Ongoing maintenance burden
-
-For openSEF v1.0, hybrid is pragmatic. For v2.0+, custom backend may be worth considering.
-
-## 3. labwc/Sway Architecture Works
-
-These compositors prove that:
-- Pure C core is stable and maintainable
-- UI can be external Wayland clients
-- layer-shell protocol is sufficient for desktop shells
-
-## 4. Cairo for Custom UI
-
-Choosing Cairo over GTK4/Qt gives:
-- Full control over rendering
-- Matches Ares design system exactly
-- No toolkit-imposed design constraints
-- Smaller dependency footprint
-
----
-
-# Next Steps
-
-1. **Test C Compositor Build** — Verify it compiles on NixOS
-2. **Implement OSFSurface.cpp** — Cairo rendering to layer-shell
-3. **Create OSFPanel** — Global menu bar
-4. **Port Animation Framework** — OSFLayer, OSFTransaction to C++
-5. **Build OSFDock** — App launcher
-
----
-
-# Boot, Lock Screen & Shutdown UI
-
-## The Golden Rule
-
-> **openSEF is to VitusOS what Cocoa is to macOS**
->
-> Cocoa doesn't replace Darwin/XNU — it makes them invisible.
-> openSEF doesn't replace systemd — it makes it invisible.
-
-## Boot-to-Shutdown Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Power On                                                        │
-│  └── BIOS/UEFI → Silent (no POST spam)                          │
-│      └── GRUB → Invisible (timeout=0, no menu)                  │
-│          └── Kernel → "quiet splash loglevel=0" (no text)       │
-│              └── Plymouth → VitusOS boot animation              │
-│                  └── systemd → Silent (ShowStatus=no)           │
-│                      └── osf-greeter → Lock screen (FIRST UI)   │
-│                          └── PAM authenticates                   │
-│                              └── osf-compositor launches         │
-│                                  └── osf-panel + osf-dock        │
-│                                      └── Desktop ready           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Required Components
-
-| Component | Purpose | Technology |
-|-----------|---------|------------|
-| Plymouth theme | Boot animation | Plymouth + script |
-| osf-greeter | Lock screen / login | C++ Cairo, PAM |
-| osf-wallpaper | Desktop background | C++ Cairo, layer-shell |
-| osf-shutdown | Shutdown overlay | C++ Cairo, logind D-Bus |
-
-## Kernel & systemd Configuration
-
-```bash
-# /etc/default/grub
-GRUB_TIMEOUT=0
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0"
-
-# /etc/systemd/system.conf
-ShowStatus=no
-```
-
-## Session Entry
-
-```desktop
-# /usr/share/xsessions/opensef.desktop
-[Desktop Entry]
-Name=openSEF
-Comment=VitusOS Ares Desktop
-Exec=/usr/bin/start-opensef
-Type=Application
-```
-
-## Success Criteria
-
-User experience from power button:
-1. **See**: VitusOS logo + progress bar
-2. **See**: Lock screen
-3. **Enter password**: Desktop appears instantly
-4. **Click shutdown**: Confirmation → "Shutting down..." → off
-
-User **never sees**: GRUB, kernel text, systemd output, terminal.
-
----
-
-*This document is the foundation for building openSEF. Updated January 1, 2026.*
-
+*This document supersedes all previous "R&D" research notes.*

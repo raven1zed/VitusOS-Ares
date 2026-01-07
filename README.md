@@ -53,38 +53,42 @@ VitusOS Ares is a **complete linux distro with openSEF that's work both as a des
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        VitusOS Ares Desktop                         │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ┌─────────────────────────────────────────────────────────────┐   │
-│   │           C++ UI Shell (opensef-shell)                      │   │
-│   │                                                             │   │
-│   │   osf-panel  ─── Global menu bar (Filer Menu Settings Help) │   │
-│   │   osf-dock   ─── Bottom dock with app icons                 │   │
-│   │                                                             │   │
-│   │   • Cairo/Pango rendering                                   │   │
-│   │   • Connects via wlr-layer-shell protocol                   │   │
-│   │   • AresTheme design system                                 │   │
-│   └──────────────────────────┬──────────────────────────────────┘   │
-│                              │ Wayland Protocol                     │
-│   ┌──────────────────────────┴──────────────────────────────────┐   │
-│   │           Pure C Compositor (opensef-compositor)            │   │
-│   │                                                             │   │
-│   │   server.c    ─── wlroots init, scene graph                 │   │
-│   │   output.c    ─── Monitor handling, background              │   │
-│   │   view.c      ─── Window management                         │   │
-│   │   input.c     ─── Keyboard/mouse handling                   │   │
-│   │   layer_shell.c ─ Dock/panel integration                    │   │
-│   │   decorations.c ─ Server-side window decorations            │   │
-│   │                                                             │   │
-│   │   • Direct wlroots 0.19 integration                         │   │
-│   │   • Scene graph rendering                                   │   │
-│   │   • XDG shell for client windows                            │   │
-│   └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           VitusOS Ares Desktop                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                    Unified Framework (opensef-framework)            │   │
+│   │                                                                     │   │
+│   │   [ OSFEventBus ] ──────┬────── [ OSFStateManager ] ──── [ Cache ]  |   │
+│   │           ▲             │               ▲                           │   │
+│   └───────────┼─────────────┼───────────────┼───────────────────────────┘   │
+│               │             │               │                               │
+│      Events   │             │ States        │ Queries                       │
+│  (Pub/Sub)    │             ▼               │                               │
+│               │    ┌───────────────────┐    │                               │
+│   ┌───────────┴────┴─┐               ┌──┴────┴────────────┐                 │
+│   │  Compositor (C)  │               │   Shell (C++)      │                 │
+│   │                  │               │                    │                 │
+│   │ • Window Mgmt    │◄─────────────►│ • OSFPanel         │                 │
+│   │ • Input          │    Wayland    │ • OSFDock          │                 │
+│   │ • Hardware       │  (Rendering)  │ • OSFAppKit        │                 │
+│   └──────────────────┘               └────────────────────┘                 │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│   Key:   ─── Framework Communication (Events)    ... Wayland Protocol       │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### The Unified Architecture
+
+VitusOS Ares uses a **Unified Framework Architecture** that bridges the gap between the C-based Compositor (wlroots) and the C++ UI Shell.
+
+- **opensef-framework**: The central nervous system.
+  - **OSFEventBus**: Decoupled communication. Compositor publishes `window.created`, Shell subscribes to `window.created`.
+  - **OSFDesktop**: Singleton access to system state.
+- **opensef-compositor**: A pure C Wayland compositor that "speaks" Framework. It publishes events and registers windows.
+- **opensef-shell**: A C++ UI layer that consumes Framework events to update the Panel (active window title) and Dock (running apps).
 
 ### Why Hybrid C/C++?
 
@@ -98,29 +102,29 @@ This is the same approach used by labwc, sway, and other production compositors.
 
 ---
 
-## Current Status (January 2026)
+## Current Status (January 7, 2026)
 
 | Component | Status |
 |-----------|--------|
 | **Framework Foundation** | ✅ Phase 1 Complete |
 | **Windowing Integration** | ✅ Phase 2 Complete |
-| **Compositor Core** | ✅ Working (wlroots 0.19, windows, input, layer-shell) |
-| **Panel** | ✅ Working (global menu bar, clock, system tray stubs) |
-| **Dock** | ✅ Working (icon display, click handlers) |
+| **Compositor Core** | ✅ Working (Unified Framework Integration) |
+| **Panel** | ✅ Phase 4 Complete (Event-driven, active window tracking) |
+| **Dock** | ✅ Phase 4 Complete (Event-driven, app lifecycle tracking) |
 | **Wallpaper** | ✅ Working (image rendering) |
 | **Widget Library** | ⚠️ Basic (Button, Label, TextField - Phase 5 incomplete) |
 | **Layout + Responder** | 📋 Phase 3 Planned |
-| **Theming System** | 📋 Phase 4 Planned |
+| **Theming System** | 📋 Phase 4 Extensions Planned |
 
-### Recent Improvements (January 6, 2026)
+### Recent Improvements (January 7, 2026)
 
-- **Performance**: Eliminated flickering by switching to event-driven rendering (redraws only on actual changes)
-- **Input Transparency**: Fixed click pass-through for transparent Panel/Dock regions
-- **Rendering Optimization**: Added `setOpaqueRegion()` API for compositor-side optimizations
-- **Assets**: Integrated WhiteSur icon theme for premium Aqua-inspired visuals
-- **Stability**: Clock updates once per minute instead of constant redraws
+- **Unified Framework Integration**: Compositor, Panel, and Dock now communicate entirely via the `OSFEventBus` (no direct coupling).
+- **Event-Driven UI**: `OSFPanel` subscribes to `window.focused` to update title; `OSFDock` subscribes to `application.launch` for app tracking.
+- **State Management**: Centralized `OSFStateManager` (via `OSFDesktop`) now holds the single source of truth for window/app state.
+- **Performance**: Eliminated polling in favor of event subscriptions, reducing idle CPU usage.
+- **Stability**: Fixed verify-build issues with `OSFEvent` API usage and include paths.
 
-> **Development Note**: We built the Shell (Phase 7) before completing foundation phases (3-6) to validate the desktop experience early. Core layout, theming, and services work is planned for upcoming phases.
+> **Development Note**: We have successfully refactored the core Shell components (Panel/Dock) to use the new Unified Framework. The next phase (Phase 5) will focus on applying this same framework pattern to standard applications (Filer, Settings, Terminal).
 
 ---
 
@@ -195,38 +199,46 @@ WLR_BACKENDS=wayland ./opensef-compositor
 
 ## File Structure
 
-```
 VitusOS Ares/
 ├── opensef/
-│   ├── opensef-compositor/     # Pure C Wayland compositor
-│   │   ├── src/
-│   │   │   ├── main.c          # Entry point
-│   │   │   ├── server.c        # Core initialization
-│   │   │   ├── output.c        # Monitor handling
-│   │   │   ├── view.c          # Window management
-│   │   │   ├── input.c         # Keyboard/mouse
-│   │   │   ├── layer_shell.c   # Dock/panel support
-│   │   │   └── decorations.c   # Window decorations
+│   ├── opensef-framework/      # Unified Event & Service Bus (The Core)
 │   │   ├── include/
-│   │   │   └── server.h        # Core data structures
-│   │   └── CMakeLists.txt
+│   │   │   ├── OSFDesktop.h        # Main singleton entry point
+│   │   │   ├── OSFEventBus.h       # Event subscription system
+│   │   │   ├── OSFStateManager.h   # Central state repository
+│   │   │   ├── OSFResourceCache.h  # Shared assets
+│   │   │   └── OSFFrameworkC.h     # C bindings for Compositor
+│   │   └── src/
 │   │
-│   ├── opensef-shell/          # C++ UI components
+│   ├── opensef-compositor/     # Pure C Wayland Compositor
 │   │   ├── src/
-│   │   │   ├── render/OSFSurface.cpp    # Cairo→Wayland bridge
-│   │   │   ├── panel/OSFPanel.cpp       # Global menu bar
-│   │   │   └── dock/OSFDock.cpp         # Bottom dock
-│   │   ├── include/
-│   │   │   ├── OSFSurface.h             # Surface API
-│   │   │   └── OSFAresTheme.h           # Colors, dimensions
-│   │   └── CMakeLists.txt
+│   │   │   ├── main.c              # Entry point & Framework init
+│   │   │   ├── server.c            # wlroots backend setup
+│   │   │   ├── view.c              # Window management (tracks windows)
+│   │   │   ├── layer_shell.c       # Panel/Dock positioning
+│   │   │   └── ...
 │   │
-│   ├── opensef-appkit/         # Widget library
-│   │   └── src/                # OSFButton, OSFLabel, etc.
+│   ├── opensef-shell/          # Native C++ UI Shell
+│   │   ├── src/
+│   │   │   ├── panel/OSFPanel.cpp  # Event-driven top bar
+│   │   │   ├── dock/OSFDock.cpp    # Event-driven dock
+│   │   │   └── render/OSFSurface.cpp
 │   │
-│   └── opensef-core/           # Animation framework
+│   ├── opensef-base/           # Foundation Classes
+│   │   └── include/
+│   │       ├── OSFApplication.h    # App lifecycle base
+│   │       └── OSFNotification.h
+│   │
+│   ├── opensef-appkit/         # Widget Toolkit (Buttons, Labels)
+│   ├── opensef-core/           # Animation & Render Layers
+│   └── opensef-auth/           # Future Authentication (PAM)
 │
-├── docs/
+├── apps/                       # Standard Applications
+│   ├── osf-filer/
+│   ├── osf-settings/
+│   └── osf-terminal/
+│
+├── docs/                       # Documentation
 │   ├── DEVELOPER_GUIDE.md      # Comprehensive dev docs
 │   └── API.md                  # API reference
 │
@@ -253,14 +265,14 @@ VitusOS Ares/
 | **1** | Framework Foundation | ✅ **Complete** |
 | **2** | Windowing Integration | ✅ **Complete** |
 | **3** | Layout & Input | ✅ **Complete** |
-| **4** | Theming & Appearance | 📋 **Next Up** |
-| **5** | Controls & Text | 📋 **Planned** |
-| **6** | System Services | 📋 **Planned** |
-| **7** | Shell & System Apps | ⚠️ **Partial** (Built Early) |
-| **8** | Performance | 📋 **Planned** |
-| **9** | Final Polish | 📋 **Planned** |
+| **4** | Shell Integration (Refactor) | ✅ **Complete** |
+| **5** | Application Integration | 📋 **Next Up** |
+| **6** | Service System | 📋 **Planned** |
+| **7** | Resource Management | 📋 **Planned** |
+| **8** | Testing & Verification | 📋 **Planned** |
+| **9** | Documentation | 📋 **Planned** |
 
-> **Note:** We built the Shell (Phase 7) components early to validate the desktop experience. The underlying framework phases (4-6) will be completed to provide proper foundation for the shell and third-party apps.
+> **Note**: Phase 4 involved refactoring the early prototype Shell (from Phase 7 original plan) to fully utilize the new Framework, ensuring a robust foundation before building more apps.
 
 ---
 

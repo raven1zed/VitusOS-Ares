@@ -1,6 +1,8 @@
 #ifndef OSF_DOCK_H
 #define OSF_DOCK_H
 
+#include "OSFDesktop.h"
+#include "OSFEventBus.h"
 #include "OSFSurface.h"
 #include <librsvg/rsvg.h>
 #include <memory>
@@ -37,6 +39,13 @@ private:
   std::unique_ptr<OSFSurface> surface_;
   std::vector<DockItem> items_;
   int hoveredIndex_ = -1;
+
+  // Framework Integration
+  OpenSEF::OSFDesktop *desktop_ = nullptr;
+  void subscribeToEvents();
+  void onAppLaunched(const OpenSEF::OSFEvent &event);
+  void onAppClosed(const OpenSEF::OSFEvent &event);
+  void updateRunningApps();
 
   // Dock items
   // std::vector<std::shared_ptr<OSFButton>> dockItems_; // Using custom struct

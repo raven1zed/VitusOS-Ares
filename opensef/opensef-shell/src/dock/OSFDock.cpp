@@ -40,6 +40,40 @@ OSFDock::OSFDock() {
 
   surface_->onMouseMove([this](int x, int y) { this->onMouseMove(x, y); });
   surface_->onMouseLeave([this]() { this->clearHover(); });
+
+  // Framework Integration
+  desktop_ = OpenSEF::OSFDesktop::shared();
+  subscribeToEvents();
+}
+
+void OSFDock::subscribeToEvents() {
+  auto *eventBus = desktop_->eventBus();
+
+  eventBus->subscribe(
+      "application.launched",
+      [this](const OpenSEF::OSFEvent &event) { onAppLaunched(event); });
+
+  eventBus->subscribe(
+      "application.closed",
+      [this](const OpenSEF::OSFEvent &event) { onAppClosed(event); });
+}
+
+void OSFDock::onAppLaunched(const OpenSEF::OSFEvent &event) {
+  updateRunningApps();
+  surface_->requestRedraw();
+}
+
+void OSFDock::onAppClosed(const OpenSEF::OSFEvent &event) {
+  updateRunningApps();
+  surface_->requestRedraw();
+}
+
+void OSFDock::updateRunningApps() {
+  // Determine running status
+  // For V1, we rely on event updates or polling StateManager
+  // Currently StateManager tracks windows, not full app lifecycle yet
+  // So we'll implement a basic check or just log for now
+  std::cout << "[Dock] Updating running apps list..." << std::endl;
 }
 
 OSFDock::~OSFDock() = default;

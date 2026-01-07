@@ -1,12 +1,13 @@
 #ifndef OSF_PANEL_H
 #define OSF_PANEL_H
 
+#include "OSFDesktop.h"
+#include "OSFEventBus.h"
 #include "OSFSurface.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
-
 
 namespace opensef {
 
@@ -69,6 +70,15 @@ private:
   // Hit testing
   int hitTestMenuTitle(int x, int y);
   int hitTestDropdownItem(int x, int y);
+
+  // Framework Integration
+  OpenSEF::OSFDesktop *desktop_ = nullptr;
+  std::string activeWindowTitle_;
+  std::string activeAppId_;
+
+  void subscribeToEvents();
+  void onWindowFocused(const OpenSEF::OSFEvent &event);
+  void onWindowTitleChanged(const OpenSEF::OSFEvent &event);
 };
 
 } // namespace opensef
