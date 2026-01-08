@@ -34,20 +34,6 @@ VitusOS Ares is a **complete linux distro with openSEF that's work both as a des
 >
 > We believe in transparency about AI's role in software development. The architectural decisions, design philosophy, and quality assurance are human-driven. AI accelerates implementation but doesn't replace human creativity and judgment.
 
-### Sponsors
-
-<a href="https://kilocode.ai">
-  <img src="https://kilocode.ai/logo.png" alt="Kilo Code" width="120">
-</a>
-
-**VitusOS Ares is proudly sponsored by [Kilo Code](https://kilocode.ai)** through their Open Source Sponsorship Program.
-
-- 🏆 **Seed Level Sponsor** — Kilo Enterprise (5 seats, $9,000/year value)
-- 🔍 Unlimited AI-powered Code Reviews
-- 🤝 Supporting open source innovation
-
-*Thank you to Brian Turcotte and the Kilo team for believing in this project!*
-
 ---
 
 ## Architecture
