@@ -1,8 +1,8 @@
 # AGENTS.md — AI Assistant Context & Guidelines
 **VitusOS Ares Development**
 
-**Current Phase**: Phase 3 Complete (DBusMenu + Cross-Toolkit)  
-**Next Phase**: Phase 4 — System Tray (StatusNotifierItem)
+**Current Phase**: Phase 4 Complete (System Tray - StatusNotifierItem)  
+**Next Phase**: Phase 5 — Multitask View Redesign (Windows 8 tiles + thumbnails)
 
 ## Project Overview
 
