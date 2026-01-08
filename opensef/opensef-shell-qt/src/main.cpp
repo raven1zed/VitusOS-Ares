@@ -11,10 +11,10 @@
 #include <QQuickStyle>
 
 #include "DockController.h"
+#include "IconProvider.h"
 #include "MultitaskController.h"
 #include "PanelController.h"
 #include "SystemTrayController.h"
-
 
 int main(int argc, char *argv[]) {
   // Enable Vulkan or OpenGL backend via Qt Quick
@@ -37,6 +37,9 @@ int main(int argc, char *argv[]) {
 
   // Set up QML engine
   QQmlApplicationEngine engine;
+
+  // Register image providers
+  engine.addImageProvider(QLatin1String("icon"), new IconProvider());
 
   // Expose controllers to QML
   QQmlContext *context = engine.rootContext();
