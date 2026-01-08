@@ -1,7 +1,8 @@
 # AGENTS.md — AI Assistant Context & Guidelines
 **VitusOS Ares Development**
 
----
+**Current Phase**: Phase 2 Complete (Qt Quick Shell Foundation)  
+**Next Phase**: Phase 3 — DBusMenu Integration + Cross-Toolkit Support
 
 ## Project Overview
 
