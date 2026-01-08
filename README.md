@@ -88,27 +88,43 @@ This is the same approach used by labwc, sway, and other production compositors.
 
 ---
 
-## Current Status (January 7, 2026)
+## Current Status (January 8, 2026)
 
 | Component | Status |
 |-----------|--------|
 | **Framework Foundation** | ✅ Phase 1 Complete |
 | **Windowing Integration** | ✅ Phase 2 Complete |
+| **Window Decorations & Polish** | ✅ Phase 3 Complete |
 | **Compositor Core** | ✅ Working (Unified Framework Integration) |
 | **Panel** | ✅ Phase 4 Complete (Event-driven, active window tracking) |
-| **Dock** | ✅ Phase 4 Complete (Event-driven, app lifecycle tracking) |
+| **Dock** | ✅ Phase 4 Complete (Event-driven, dynamic width, autohide) |
 | **Wallpaper** | ✅ Working (image rendering) |
 | **Widget Library** | ⚠️ Basic (Button, Label, TextField - Phase 5 incomplete) |
-| **Layout + Responder** | 📋 Phase 3 Planned |
-| **Theming System** | 📋 Phase 4 Extensions Planned |
+| **Layout + Responder** | ⚠️ Basic (Event loop, input handling) |
+| **Theming System** | ✅ Ares Palette Implemented |
 
-### Recent Improvements (January 7, 2026)
+### Recent Improvements (January 8, 2026)
 
-- **Unified Framework Integration**: Compositor, Panel, and Dock now communicate entirely via the `OSFEventBus` (no direct coupling).
-- **Event-Driven UI**: `OSFPanel` subscribes to `window.focused` to update title; `OSFDock` subscribes to `application.launch` for app tracking.
-- **State Management**: Centralized `OSFStateManager` (via `OSFDesktop`) now holds the single source of truth for window/app state.
-- **Performance**: Eliminated polling in favor of event subscriptions, reducing idle CPU usage.
-- **Stability**: Fixed verify-build issues with `OSFEvent` API usage and include paths.
+**Window Decorations & Polish (Phase 3 Complete)**:
+- **Native CSD with Ares Palette**: Window traffic lights now use custom colors — Mars Orange (#D4622A) for close, Mars Gold (#D4A93E) for minimize, Vitus Blue (#4A9FD4) for maximize
+- **Interactive Feedback**: Subtle symbols (×, −, +) appear on hover for intuitive interaction
+- **Premium Light Theme**: Polished title bar design with #F5F5F5 background and crisp typography
+- **Perfect Rounded Corners**: 9px rounded corners with anti-aliased transparency
+
+**Dynamic Dock Enhancements**:
+- **Intelligent Width Calculation**: Dock dynamically resizes based on number of running apps
+- **Proximity-Based Autohide**: Automatically hides when windows overlap the bottom region, smoothly slides back when clear
+- **Enhanced Indicator Dots**: 3px active app indicator positioned below dock pill for perfect visibility
+
+**Global Menu Refinement**:
+- **Custom Corner Masking**: Dropdowns feature square top edges (matching panel) with smooth 8px rounded bottom corners
+- **Improved Glassmorphism**: Light opaque background for better legibility
+
+**Framework Architecture**:
+- **Unified Framework Integration**: Compositor, Panel, and Dock communicate entirely via `OSFEventBus` (no direct coupling)
+- **Event-Driven UI**: Panel subscribes to `window.focused` to update title; Dock subscribes to `application.launch` for app tracking
+- **State Management**: Centralized `OSFStateManager` holds single source of truth for window/app state
+- **Window Geometry Tracking**: Compositor reports real-time window positions to framework for spatial features like autohide
 
 > **Development Note**: We have successfully refactored the core Shell components (Panel/Dock) to use the new Unified Framework. The next phase (Phase 5) will focus on applying this same framework pattern to standard applications (Filer, Settings, Terminal).
 
@@ -131,10 +147,20 @@ This is the same approach used by labwc, sway, and other production compositors.
 | Element | Size |
 |---------|------|
 | Panel height | 28px |
-| Dock height | 64px |
-| Window corner radius | 8px |
+| Dock height (surface) | 120px |
+| Dock pill height | 64px |
+| Window corner radius | 9px |
 | Dock corner radius | 16px |
 | Traffic light buttons | 12px diameter |
+| Active indicator dot | 3px radius |
+
+### Traffic Light Colors (Ares Palette)
+
+| Button | Color | Hex | Symbol |
+|--------|-------|-----|--------|
+| **Close** | Mars Orange | `#D4622A` | × |
+| **Minimize** | Mars Gold | `#D4A93E` | − |
+| **Maximize** | Vitus Blue | `#4A9FD4` | + |
 
 ---
 
@@ -251,7 +277,7 @@ VitusOS Ares/
 |-------|-------|--------|
 | **1** | Framework Foundation | ✅ **Complete** |
 | **2** | Windowing Integration | ✅ **Complete** |
-| **3** | Layout & Input | ✅ **Complete** |
+| **3** | Window Decorations & Polish | ✅ **Complete** |
 | **4** | Shell Integration (Refactor) | ✅ **Complete** |
 | **5** | Application Integration | 📋 **Next Up** |
 | **6** | Service System | 📋 **Planned** |

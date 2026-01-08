@@ -52,7 +52,7 @@ echo "Repo Root: $REPO_ROOT"
 
 # 1. Launch Compositor with explicit socket name
 echo "[1/3] Launching Compositor..."
-$REPO_ROOT/opensef/build/opensef-compositor/opensef-compositor -s "$SOCKET_NAME" > "$REPO_ROOT/compositor.log" 2>&1 &
+$REPO_ROOT/opensef/build/opensef-compositor/opensef-compositor -s "$SOCKET_NAME" > "$REPO_ROOT/logs/compositor.log" 2>&1 &
 COMPOSITOR_PID=$!
 echo "      Compositor PID: $COMPOSITOR_PID"
 
@@ -84,14 +84,14 @@ export LD_LIBRARY_PATH="./opensef/build/opensef-base:./opensef/build/opensef-fra
 
 # 2. Launch Shell (Wallpaper, Panel, Dock)
 echo "[2/3] Launching Shell..."
-$REPO_ROOT/opensef/build/opensef-shell/osf-shell > "$REPO_ROOT/shell.log" 2>&1 &
+$REPO_ROOT/opensef/build/opensef-shell/osf-shell > "$REPO_ROOT/logs/shell.log" 2>&1 &
 SHELL_PID=$!
 echo "      Shell PID: $SHELL_PID"
 sleep 1
 
 # 3. Launch Phase 3 Test Application
 echo "[3/3] Launching Phase 3 App..."
-$REPO_ROOT/opensef/build/test/phase3-app > "$REPO_ROOT/phase3.log" 2>&1 &
+$REPO_ROOT/opensef/build/test/phase3-app > "$REPO_ROOT/logs/phase3.log" 2>&1 &
 APP_PID=$!
 echo "      App PID: $APP_PID"
 
@@ -102,7 +102,7 @@ echo "Shell:      $SHELL_PID"
 echo "App:        $APP_PID"
 echo ""
 echo "Processes are running in the background."
-echo "Logs are located in the repository root."
+echo "Logs are located in the logs/ folder."
 echo "Keep this terminal open, or press Ctrl+C to exit everything."
 echo ""
 
