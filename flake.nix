@@ -27,6 +27,7 @@
             gnumake
             git
             weston
+            qt6.wrapQtAppsHook
           ];
           
           buildInputs = with pkgs; [
@@ -56,6 +57,12 @@
             vulkan-tools
             vulkan-validation-layers
             glm
+            # Qt6 components
+            qt6.qtbase
+            qt6.qtwayland
+            qt6.qtdeclarative
+            qt6.qtquickcontrols2
+            qt6.qtsvg
           ];
 
           shellHook = ''
