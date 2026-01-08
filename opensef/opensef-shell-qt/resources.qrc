@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/Main.qml</file>
+        <file>qml/Panel.qml</file>
+        <file>qml/Dock.qml</file>
+        <file>qml/SystemTray.qml</file>
+        <file>qml/Multitask.qml</file>
+    </qresource>
+</RCC>

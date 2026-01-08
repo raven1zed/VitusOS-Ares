@@ -31,6 +31,15 @@ endif()
 # Shell (Desktop UI)
 add_subdirectory(opensef-shell)
 
+# Qt Quick Shell (optional, requires Qt6)
+find_package(Qt6 QUIET COMPONENTS Core Gui Quick)
+if(Qt6_FOUND)
+    message(STATUS "Qt6 found - building Qt Quick shell")
+    add_subdirectory(opensef-shell-qt)
+else()
+    message(STATUS "Qt6 NOT found - skipping Qt Quick shell")
+endif()
+
 # Native Apps (Linux additions)
 add_subdirectory(apps)
 
