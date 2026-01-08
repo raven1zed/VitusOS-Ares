@@ -5,6 +5,9 @@
 #include <QString>
 #include <QVariantList>
 
+// Forward declaration
+class DBusMenuImporter;
+
 /**
  * PanelController - Global menu panel controller
  *
@@ -29,7 +32,7 @@ class PanelController : public QObject {
 
 public:
   explicit PanelController(QObject *parent = nullptr);
-  ~PanelController() override = default;
+  ~PanelController() override;
 
   // Property getters
   QString activeWindowTitle() const { return m_activeWindowTitle; }
@@ -56,16 +59,24 @@ private slots:
   void updateClock();
   void onWindowFocused(const QString &windowId, const QString &title,
                        const QString &appId);
+  void onMenuUpdated();
 
 private:
   void connectToFramework();
   void loadMenuForWindow(const QString &appId);
+  void loadDefaultMenu();
+  void connectToDBusMenu(const QString &service, const QString &path);
 
   QString m_activeWindowTitle;
   QString m_activeAppId;
   QVariantList m_globalMenuItems;
   QString m_currentTime;
   bool m_multitaskActive = false;
+
+  // DBusMenu integration
+  DBusMenuImporter *m_menuImporter = nullptr;
+  QString m_currentMenuService;
+  QString m_currentMenuPath;
 };
 
 #endif // PANEL_CONTROLLER_H
