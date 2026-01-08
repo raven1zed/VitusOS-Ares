@@ -46,10 +46,11 @@ private:
 
   // Layout cache
   double multitaskButtonX_ = 8;
-  double multitaskButtonSize_ = 20;
-  double menuStartX_ = 40;
+  double multitaskButtonSize_ = 80; // Updated from 20px to 80px
+  double menuStartX_ = 100;         // Account for 8 + 80 + padding
   double clockEndX_ = 0;
   std::string currentClockText_;
+  cairo_rectangle_int_t multitaskButtonRect_ = {8, 4, 80, 20}; // Hit rect
 
   // Rendering
   void initMenus();

@@ -61,6 +61,14 @@ void osf_window_update_title(const char *id, const char *title) {
 }
 
 void osf_window_set_geometry(const char *id, int x, int y, int w, int h) {
+  // Update geometry in StateManager so dock autohide can see window positions
+  auto *desktop = OSFDesktop::shared();
+  auto *window = desktop->stateManager()->windowById(id);
+  if (window) {
+    window->setGeometry(x, y, w, h);
+  }
+
+  // Also update local map for any internal tracking
   auto it = window_map.find(id);
   if (it != window_map.end()) {
     it->second->setGeometry(x, y, w, h);

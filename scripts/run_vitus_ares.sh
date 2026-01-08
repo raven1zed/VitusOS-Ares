@@ -31,7 +31,8 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
     export WLR_WL_FULLSCREEN=0
     
     # Stability and Software stack
-    export WLR_RENDERER=pixman
+    # Prefer Vulkan renderer, fallback to GLES2, then software
+    export WLR_RENDERER=gles2
     export WLR_NO_HARDWARE_CURSORS=1
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export WLR_LOG_LEVEL=info

@@ -202,10 +202,34 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
 }
 
 void OSFPanel::drawMultitaskButton(cairo_t *cr) {
-  // Orange vertical accent bar - Far Left (Full Height, 12px wide)
+  // Multitask button - 80px wide with rounded corners
+  double buttonX = 8;
+  double buttonY = 4;
+  double buttonW = 80;
+  double buttonH = AresTheme::PanelHeight - 8;
+  double radius = 4;
+
+  // Button background (Mars Orange)
   AresTheme::setCairoColor(cr, AresTheme::MarsOrange);
-  cairo_rectangle(cr, 0, 0, 12, AresTheme::PanelHeight);
+  AresTheme::roundedRect(cr, buttonX, buttonY, buttonW, buttonH, radius);
   cairo_fill(cr);
+
+  // Button text
+  cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+  cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL,
+                         CAIRO_FONT_WEIGHT_BOLD);
+  cairo_set_font_size(cr, 11);
+
+  cairo_text_extents_t extents;
+  cairo_text_extents(cr, "Multitask", &extents);
+  double textX = buttonX + (buttonW - extents.width) / 2;
+  double textY = buttonY + (buttonH + extents.height) / 2;
+  cairo_move_to(cr, textX, textY);
+  cairo_show_text(cr, "Multitask");
+
+  // Store hit rect for click detection
+  multitaskButtonRect_ = {(int)buttonX, (int)buttonY, (int)buttonW,
+                          (int)buttonH};
 }
 
 void OSFPanel::drawMenuTitles(cairo_t *cr, int width) {
@@ -214,7 +238,7 @@ void OSFPanel::drawMenuTitles(cairo_t *cr, int width) {
   cairo_set_font_size(cr, 13);
   AresTheme::setCairoColor(cr, AresTheme::StarWhite);
 
-  double x = 12 + 20; // multitask(12) + start_padding(20)
+  double x = 100; // 8px margin + 80px button + 12px padding
 
   for (size_t i = 0; i < menus_.size(); ++i) {
     auto &menu = menus_[i];
