@@ -2,9 +2,9 @@
  * SystemTray.qml - macOS-style System Tray
  * 
  * Minimalist icon-only tray with:
+ * - Dynamic app icons (StatusNotifierItem)
  * - Volume icon (with mute state)
  * - Battery icon (with level)
- * - Network status (future)
  */
 
 import QtQuick 2.15
@@ -12,7 +12,75 @@ import QtQuick.Controls 2.15
 
 Row {
     id: systemTray
-    spacing: 12
+    spacing: 8
+    
+    // Dynamic app tray icons from StatusNotifierWatcher
+    Repeater {
+        model: systemTrayController.trayIcons
+        
+        delegate: Item {
+            width: 18
+            height: 18
+            anchors.verticalCenter: parent.verticalCenter
+            
+            Image {
+                id: appIcon
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                source: modelData.iconName ? "image://icon/" + modelData.iconName : ""
+                sourceSize: Qt.size(16, 16)
+                visible: status === Image.Ready
+            }
+            
+            // Fallback: colored circle with first letter
+            Rectangle {
+                visible: appIcon.status !== Image.Ready
+                anchors.centerIn: parent
+                width: 14
+                height: 14
+                radius: 7
+                color: "#666666"
+                
+                Text {
+                    anchors.centerIn: parent
+                    text: modelData.title ? modelData.title.charAt(0).toUpperCase() : "?"
+                    color: "white"
+                    font.pixelSize: 8
+                    font.bold: true
+                }
+            }
+            
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                cursorShape: Qt.PointingHandCursor
+                
+                onClicked: {
+                    if (mouse.button === Qt.RightButton) {
+                        systemTrayController.trayIconRightClicked(modelData.id)
+                    } else {
+                        systemTrayController.trayIconClicked(modelData.id)
+                    }
+                }
+            }
+            
+            ToolTip {
+                visible: parent.containsMouse
+                text: modelData.title || ""
+                delay: 500
+            }
+        }
+    }
+    
+    // Separator if there are app icons
+    Rectangle {
+        visible: systemTrayController.trayIcons.length > 0
+        width: 1
+        height: 14
+        color: "#CCCCCC"
+        anchors.verticalCenter: parent.verticalCenter
+    }
     
     // Volume icon
     Item {
@@ -50,7 +118,6 @@ Row {
             border.width: 1.5
             border.color: "#1A1A1A"
             
-            // Battery fill
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -63,7 +130,6 @@ Row {
             }
         }
         
-        // Battery nub
         Rectangle {
             width: 2
             height: 6
@@ -73,7 +139,6 @@ Row {
             anchors.verticalCenter: parent.verticalCenter
         }
         
-        // Charging indicator
         Text {
             visible: systemTrayController.isCharging
             anchors.centerIn: batteryOutline

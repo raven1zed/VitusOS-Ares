@@ -1,9 +1,14 @@
 #include "SystemTrayController.h"
+#include "StatusNotifierWatcher.h"
+#include <QDBusConnection>
+#include <QDBusInterface>
 #include <QDebug>
+#include <QFile>
 #include <QTimer>
 
+
 SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
-  initTrayIcons();
+  // Connect to StatusNotifierWatcher for app icons
   connectToStatusNotifier();
 
   // Periodic battery refresh
@@ -11,23 +16,66 @@ SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
   connect(batteryTimer, &QTimer::timeout, this,
           &SystemTrayController::refreshBattery);
   batteryTimer->start(30000); // Every 30 seconds
+
+  // Initial battery check
+  refreshBattery();
+}
+
+SystemTrayController::~SystemTrayController() { delete m_notifierWatcher; }
+
+void SystemTrayController::connectToStatusNotifier() {
+  m_notifierWatcher = new StatusNotifierWatcher(this);
+
+  if (m_notifierWatcher->isRunning()) {
+    connect(m_notifierWatcher, &StatusNotifierWatcher::itemsChanged, this,
+            &SystemTrayController::onItemsChanged);
+
+    // Initial rebuild
+    rebuildTrayIcons();
+
+    qDebug() << "[SystemTrayController] Connected to StatusNotifierWatcher";
+  } else {
+    qDebug() << "[SystemTrayController] StatusNotifierWatcher not available";
+    initTrayIcons();
+  }
+}
+
+void SystemTrayController::onItemsChanged() { rebuildTrayIcons(); }
+
+void SystemTrayController::rebuildTrayIcons() {
+  m_trayIcons.clear();
+
+  if (m_notifierWatcher && m_notifierWatcher->isRunning()) {
+    QStringList items = m_notifierWatcher->registeredItems();
+
+    for (const QString &service : items) {
+      QVariantMap info = m_notifierWatcher->getItemInfo(service);
+
+      if (!info.isEmpty()) {
+        QVariantMap icon;
+        icon["id"] = info["id"];
+        icon["iconName"] = info["iconName"];
+        icon["title"] = info["title"];
+        icon["category"] = info["category"];
+        icon["status"] = info["status"];
+
+        // Only show icons that are "Active" or "NeedsAttention"
+        QString status = info["status"].toString();
+        if (status != "Passive") {
+          m_trayIcons.append(icon);
+        }
+      }
+    }
+  }
+
+  emit trayIconsChanged();
+  qDebug() << "[SystemTrayController] Rebuilt tray icons:"
+           << m_trayIcons.size();
 }
 
 void SystemTrayController::initTrayIcons() {
-  // Core system tray icons (always visible)
   m_trayIcons.clear();
-
-  // These are template icons that adapt to light/dark theme
-  // Additional app icons will be added via StatusNotifierItem
-
   emit trayIconsChanged();
-}
-
-void SystemTrayController::connectToStatusNotifier() {
-  // TODO: Connect to org.kde.StatusNotifierWatcher via DBus
-  // Watch for new tray icons from applications
-
-  qDebug() << "[SystemTrayController] Connecting to StatusNotifierWatcher...";
 }
 
 void SystemTrayController::setVolume(int volume) {
@@ -46,23 +94,69 @@ void SystemTrayController::setVolume(int volume) {
 void SystemTrayController::toggleMute() {
   m_isMuted = !m_isMuted;
   emit isMutedChanged();
-
   qDebug() << "[SystemTrayController] Mute toggled:" << m_isMuted;
 }
 
 void SystemTrayController::trayIconClicked(const QString &iconId) {
   qDebug() << "[SystemTrayController] Tray icon clicked:" << iconId;
 
-  // TODO: Activate the corresponding StatusNotifierItem
+  QString serviceName = iconId;
+  QString path = "/StatusNotifierItem";
+
+  if (iconId.contains('/')) {
+    QStringList parts = iconId.split('/');
+    serviceName = parts[0];
+    path = "/" + parts.mid(1).join('/');
+  }
+
+  QDBusInterface item(serviceName, path, "org.kde.StatusNotifierItem",
+                      QDBusConnection::sessionBus());
+
+  if (item.isValid()) {
+    item.call("Activate", 0, 0);
+  }
+}
+
+void SystemTrayController::trayIconRightClicked(const QString &iconId) {
+  qDebug() << "[SystemTrayController] Tray icon right-clicked:" << iconId;
+
+  QString serviceName = iconId;
+  QString path = "/StatusNotifierItem";
+
+  if (iconId.contains('/')) {
+    QStringList parts = iconId.split('/');
+    serviceName = parts[0];
+    path = "/" + parts.mid(1).join('/');
+  }
+
+  QDBusInterface item(serviceName, path, "org.kde.StatusNotifierItem",
+                      QDBusConnection::sessionBus());
+
+  if (item.isValid()) {
+    item.call("ContextMenu", 0, 0);
+  }
 }
 
 void SystemTrayController::refreshBattery() {
-  // TODO: Read actual battery state from /sys/class/power_supply
-  // For now, simulate
+  QFile capacityFile("/sys/class/power_supply/BAT0/capacity");
+  if (capacityFile.open(QIODevice::ReadOnly)) {
+    QString content = capacityFile.readAll().trimmed();
+    int newLevel = content.toInt();
+    if (newLevel != m_batteryLevel) {
+      m_batteryLevel = newLevel;
+      emit batteryLevelChanged();
+    }
+    capacityFile.close();
+  }
 
-  // In production:
-  // QFile batteryFile("/sys/class/power_supply/BAT0/capacity");
-  // m_batteryLevel = batteryFile.readAll().trimmed().toInt();
-
-  qDebug() << "[SystemTrayController] Battery level:" << m_batteryLevel << "%";
+  QFile statusFile("/sys/class/power_supply/BAT0/status");
+  if (statusFile.open(QIODevice::ReadOnly)) {
+    QString status = statusFile.readAll().trimmed();
+    bool charging = (status == "Charging" || status == "Full");
+    if (charging != m_isCharging) {
+      m_isCharging = charging;
+      emit isChargingChanged();
+    }
+    statusFile.close();
+  }
 }

@@ -26,6 +26,7 @@ set(SOURCES
     src/DockController.cpp
     src/MultitaskController.cpp
     src/SystemTrayController.cpp
+    src/StatusNotifierWatcher.cpp
     src/DBusMenuImporter.cpp
 )
 
@@ -34,6 +35,7 @@ set(HEADERS
     src/DockController.h
     src/MultitaskController.h
     src/SystemTrayController.h
+    src/StatusNotifierWatcher.h
     src/DBusMenuImporter.h
 )
 

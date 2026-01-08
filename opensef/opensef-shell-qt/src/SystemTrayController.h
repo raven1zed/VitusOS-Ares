@@ -2,7 +2,12 @@
 #define SYSTEM_TRAY_CONTROLLER_H
 
 #include <QObject>
+#include <QString>
 #include <QVariantList>
+
+
+// Forward declaration
+class StatusNotifierWatcher;
 
 /**
  * SystemTrayController - macOS-style minimalist system tray
@@ -24,7 +29,7 @@ class SystemTrayController : public QObject {
 
 public:
   explicit SystemTrayController(QObject *parent = nullptr);
-  ~SystemTrayController() override = default;
+  ~SystemTrayController() override;
 
   QVariantList trayIcons() const { return m_trayIcons; }
 
@@ -39,6 +44,7 @@ public:
 public slots:
   void toggleMute();
   void trayIconClicked(const QString &iconId);
+  void trayIconRightClicked(const QString &iconId);
   void refreshBattery();
 
 signals:
@@ -48,10 +54,15 @@ signals:
   void batteryLevelChanged();
   void isChargingChanged();
 
+private slots:
+  void onItemsChanged();
+
 private:
   void initTrayIcons();
   void connectToStatusNotifier();
+  void rebuildTrayIcons();
 
+  StatusNotifierWatcher *m_notifierWatcher = nullptr;
   QVariantList m_trayIcons;
   int m_volume = 75;
   bool m_isMuted = false;
