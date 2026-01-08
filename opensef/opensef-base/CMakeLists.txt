@@ -46,6 +46,7 @@ add_library(opensef-base SHARED
     src/OSFView.cpp
     src/OSFStackView.cpp
     src/OSFShortcutManager.cpp
+    src/OSFAresTheme.cpp
     # Windowing (Wayland dependency)
     src/OSFWindow.cpp
     ${XDG_SHELL_C}

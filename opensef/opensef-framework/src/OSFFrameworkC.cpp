@@ -4,7 +4,6 @@
 #include "OSFStateManager.h"
 #include "OSFWindowManager.h"
 
-
 #include <cstring>
 #include <map>
 
@@ -59,6 +58,13 @@ void osf_window_unregister(const char *id) {
 void osf_window_update_title(const char *id, const char *title) {
   auto *desktop = OSFDesktop::shared();
   desktop->windowManager()->updateWindowTitle(id, title);
+}
+
+void osf_window_set_geometry(const char *id, int x, int y, int w, int h) {
+  auto it = window_map.find(id);
+  if (it != window_map.end()) {
+    it->second->setGeometry(x, y, w, h);
+  }
 }
 
 void osf_window_destroy(OSFWindowC *window_c) {

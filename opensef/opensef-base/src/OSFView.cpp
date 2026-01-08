@@ -12,7 +12,10 @@
 
 namespace opensef {
 
-OSFView::OSFView() { layer_ = OSFLayer::create(); }
+OSFView::OSFView() {
+  layer_ = OSFLayer::create();
+  layer_->setBackgroundColor(OSFColor(0, 0, 0, 0)); // Transparent by default
+}
 
 void OSFView::setFrame(const OSFRect &frame) {
   frame_ = frame;

@@ -1,4 +1,4 @@
-#include "OSFAresTheme.h"
+#include <opensef/OSFAresTheme.h>
 
 namespace opensef {
 namespace AresTheme {

@@ -60,11 +60,25 @@ static int create_shm_file(off_t size) {
 }
 
 OSFSurface::OSFSurface(const std::string &namespace_name)
-    : namespace_(namespace_name) {}
+    : namespace_(namespace_name), running_(false), configured_(false),
+      width_(0), height_(0), configuredWidth_(0), configuredHeight_(0),
+      exclusiveZone_(0), marginTop_(0), marginRight_(0), marginBottom_(0),
+      marginLeft_(0), display_(nullptr), registry_(nullptr),
+      compositor_(nullptr), shm_(nullptr), layerShell_(nullptr),
+      layerSurface_(nullptr), surface_(nullptr), shmData_(nullptr), shmSize_(0),
+      shmFd_(-1), cairoSurface_(nullptr), buffer_(nullptr), timerFd_(-1) {}
 
 OSFSurface::~OSFSurface() { disconnect(); }
 
 bool OSFSurface::connect(const char *display_name) {
+  // Debug: show what display we're trying to connect to
+  const char *env_display = getenv("WAYLAND_DISPLAY");
+  std::cerr << "OSFSurface connecting to display: "
+            << (display_name ? display_name
+                             : (env_display ? env_display : "default"))
+            << " (WAYLAND_DISPLAY=" << (env_display ? env_display : "not set")
+            << ")" << std::endl;
+
   display_ = wl_display_connect(display_name);
   if (!display_) {
     std::cerr << "Failed to connect to Wayland display" << std::endl;
@@ -338,12 +352,16 @@ void OSFSurface::run() {
       if (errno == EINTR) {
         continue;
       }
+      std::cerr << "  [" << namespace_ << "] poll() failed with errno=" << errno
+                << std::endl;
       break;
     }
 
     // Check Display
     if (fds[0].revents & POLLIN) {
       if (wl_display_dispatch(display_) == -1) {
+        std::cerr << "  [" << namespace_ << "] wl_display_dispatch() FAILED!"
+                  << std::endl;
         break;
       }
     }
@@ -359,29 +377,21 @@ void OSFSurface::run() {
     }
 
     // Check Dynamic Timers
-    // We iterate the map and check against the fds we populated.
-    // Note: fds indices > frameTimerIndex correspond to timers_ in order.
-    // However, it's safer to check the fd directly from the map against the
-    // struct results? Or just iterate the fds vector starting from after the
-    // known ones.
-
-    // Easier approach: iterate the fds array for the dynamic part
-    size_t dynamicStart = (frameTimerIndex != -1) ? 2 : 1;
-    for (size_t i = dynamicStart; i < fds.size(); ++i) {
-      if (fds[i].revents & POLLIN) {
-        int fd = fds[i].fd;
-        auto it = timers_.find(fd);
-        if (it != timers_.end()) {
-          uint64_t expirations = 0;
-          if (read(fd, &expirations, sizeof(expirations)) > 0) {
-            if (it->second.callback) {
-              it->second.callback();
-            }
-          }
+    int baseIdx = (frameTimerIndex != -1) ? 2 : 1;
+    int i = 0;
+    for (auto const &[fd, info] : timers_) {
+      if (fds[baseIdx + i].revents & POLLIN) {
+        if (info.callback) {
+          info.callback();
         }
       }
+      i++;
     }
   }
+
+  std::cerr << "  [" << namespace_
+            << "] EVENT LOOP EXITED. (running_=" << running_ << ")"
+            << std::endl;
 }
 
 int OSFSurface::addTimer(int intervalMs, std::function<void()> callback) {
@@ -583,8 +593,13 @@ void OSFSurface::layerSurfaceConfigure(void *data,
                                        uint32_t serial, uint32_t width,
                                        uint32_t height) {
   auto self = static_cast<OSFSurface *>(data);
-  self->configuredWidth_ = width;
-  self->configuredHeight_ = height;
+
+  // Ensure dimensions are > 0 for buffer creation
+  uint32_t drawW = (width == 0) ? 100 : width;
+  uint32_t drawH = (height == 0) ? 100 : height;
+
+  self->configuredWidth_ = drawW;
+  self->configuredHeight_ = drawH;
   self->configured_ = true;
 
   // Acknowledge configure
@@ -592,17 +607,21 @@ void OSFSurface::layerSurfaceConfigure(void *data,
 
   // Trigger user callback if set
   if (self->configureCallback_) {
-    self->configureCallback_(width, height);
+    self->configureCallback_(drawW, drawH);
   }
 
   // Auto-paint on configure (basic frame loop)
   if (self->drawCallback_) {
     auto cr = self->beginPaint();
     if (cr) {
-      self->drawCallback_(cr.get(), width, height);
+      self->drawCallback_(cr.get(), drawW, drawH);
       self->endPaint();
-      self->damage(0, 0, width, height);
+      self->damage(0, 0, drawW, drawH);
       self->commit();
+    } else {
+      std::cerr << "  [" << self->namespace_
+                << "] CRITICAL: beginPaint() failed!" << std::endl;
+      // If we are configured but can't paint, something is wrong with SHM
     }
   }
 }
@@ -610,6 +629,8 @@ void OSFSurface::layerSurfaceConfigure(void *data,
 void OSFSurface::layerSurfaceClosed(void *data,
                                     struct zwlr_layer_surface_v1 *surface) {
   auto self = static_cast<OSFSurface *>(data);
+  std::cerr << "  [" << self->namespace_ << "] SERVER CLOSED SURFACE"
+            << std::endl;
   self->running_ = false;
   if (self->closeCallback_) {
     self->closeCallback_();

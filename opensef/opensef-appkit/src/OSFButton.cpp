@@ -9,36 +9,9 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#include <opensef/OSFAresTheme.h>
+
 namespace opensef {
-
-// AresTheme colors
-namespace AresTheme {
-constexpr uint32_t MarsOrange = 0xFFE57C3A;
-constexpr uint32_t StarWhite = 0xFFF5F5F5;
-constexpr uint32_t LunarGray = 0xFF2D2D2D;
-constexpr uint32_t Nebula = 0xFF3D3D3D;
-constexpr double CornerRadius = 6.0;
-constexpr const char *FontFamily = "Inter";
-constexpr double FontSizeNormal = 13.0;
-
-inline void setCairoColor(cairo_t *cr, uint32_t color) {
-  double a = ((color >> 24) & 0xFF) / 255.0;
-  double r = ((color >> 16) & 0xFF) / 255.0;
-  double g = ((color >> 8) & 0xFF) / 255.0;
-  double b = (color & 0xFF) / 255.0;
-  cairo_set_source_rgba(cr, r, g, b, a);
-}
-
-inline void roundedRect(cairo_t *cr, double x, double y, double w, double h,
-                        double r) {
-  cairo_new_sub_path(cr);
-  cairo_arc(cr, x + w - r, y + r, r, -M_PI / 2, 0);
-  cairo_arc(cr, x + w - r, y + h - r, r, 0, M_PI / 2);
-  cairo_arc(cr, x + r, y + h - r, r, M_PI / 2, M_PI);
-  cairo_arc(cr, x + r, y + r, r, M_PI, 3 * M_PI / 2);
-  cairo_close_path(cr);
-}
-} // namespace AresTheme
 
 OSFButton::OSFButton() = default;
 
@@ -103,7 +76,7 @@ void OSFButton::render(cairo_t *cr) {
 
   // Draw background
   AresTheme::setCairoColor(cr, bgColor);
-  AresTheme::roundedRect(cr, x, y, w, h, AresTheme::CornerRadius);
+  AresTheme::roundedRect(cr, x, y, w, h, AresTheme::ButtonCornerRadius);
   cairo_fill(cr);
 
   // Draw label

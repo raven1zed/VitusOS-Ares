@@ -12,6 +12,7 @@
 #include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFBase.h>
 // Needed for OSFView hitTest
+#include <opensef/OSFAresTheme.h>
 #include <opensef/OSFView.h>
 
 #ifndef M_PI
@@ -83,6 +84,7 @@ struct WindowImpl {
   OSFView *pressedView =
       nullptr; // View that received mouseDown (captures mouse)
   OSFView *hoveredView = nullptr; // View currently under the cursor
+  int hoveredButton = 0;          // 0: none, 1: close, 2: min, 3: max
 
   // Helper to dispatch event to view hierarchy
   void dispatchMouseEvent(OSFEvent::Type type, uint32_t button = 0) {
@@ -113,14 +115,46 @@ struct WindowImpl {
 
     // 1. Check Titlebar Interactions (y < 38)
     if (mouseY < 38.0) {
+      // Determine button index
+      int oldHover = hoveredButton;
+      hoveredButton = 0;
+
+      // Close (24, 19) radius 8
+      double dx1 = mouseX - 24, dy1 = mouseY - 19;
+      if (dx1 * dx1 + dy1 * dy1 < 64)
+        hoveredButton = 1;
+
+      // Min (46, 19)
+      double dx2 = mouseX - 46, dy2 = mouseY - 19;
+      if (dx2 * dx2 + dy2 * dy2 < 64)
+        hoveredButton = 2;
+
+      // Max (68, 19)
+      double dx3 = mouseX - 68, dy3 = mouseY - 19;
+      if (dx3 * dx3 + dy3 * dy3 < 64)
+        hoveredButton = 3;
+
+      if (oldHover != hoveredButton)
+        window->setNeedsDisplay();
+
       if (type == OSFEvent::Type::MouseDown && button == BTN_LEFT) {
-        // Red Button (Close)
-        double dx = mouseX - 24;
-        double dy = mouseY - 19;
-        if (dx * dx + dy * dy < 64) { // radius 8 (6+margin)
+        if (hoveredButton == 1) {
           window->close();
           return;
         }
+        if (hoveredButton > 1)
+          return; // Ignore min/max clicks for now
+
+        // If not a button, request MOVE
+        if (xdgToplevel && seat) {
+          xdg_toplevel_move(xdgToplevel, seat, lastSerial);
+          return;
+        }
+      }
+    } else {
+      if (hoveredButton != 0) {
+        hoveredButton = 0;
+        window->setNeedsDisplay();
       }
     }
 
@@ -736,48 +770,90 @@ void OSFWindow::runEventLoop() {
 
       // === VitusOS CSD (Client Side Decorations) ===
 
-      // 1. Background (Dark Mode Glass: LunarGray #2D2D2D with Alpha)
-      cairo_save(cr);
+      // 0. Transparent Background and Rounding
       cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-      cairo_set_source_rgba(cr, 0.18, 0.18, 0.18, 0.85); // 85% opacity
+      cairo_set_source_rgba(cr, 0, 0, 0, 0); // Clear to transparency
       cairo_paint(cr);
-      cairo_restore(cr);
 
-      // 2. Titlebar (Slightly lighter, also glass)
-      cairo_set_source_rgba(cr, 0.24, 0.24, 0.24, 0.90); // 90% opacity
-      cairo_rectangle(cr, 0, 0, width_, 30);             // 30px height
-      cairo_fill(cr);
+      // Clip to rounded rectangle (9px)
+      AresTheme::roundedRect(cr, 0, 0, width_, height_, 9.0);
+      cairo_clip(cr);
 
-      // 3. Traffic Lights
-      // Red
-      cairo_set_source_rgba(cr, 1.0, 0.37, 0.35, 1.0); // #FF5F5A
-      cairo_arc(cr, 20, 15, 6, 0, 2 * M_PI);
-      cairo_fill(cr);
-      // Yellow
-      cairo_set_source_rgba(cr, 1.0, 0.73, 0.19, 1.0); // #FFBB30
-      cairo_arc(cr, 40, 15, 6, 0, 2 * M_PI);
-      cairo_fill(cr);
-      // Green
-      cairo_set_source_rgba(cr, 0.16, 0.78, 0.25, 1.0); // #28C840
-      cairo_arc(cr, 60, 15, 6, 0, 2 * M_PI);
+      cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+      // 1. Window Background (Pure White)
+      cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+      cairo_paint(cr);
+
+      // 2. Titlebar (VitusOS Light: #F5F5F5)
+      cairo_set_source_rgb(cr, 0.96, 0.96, 0.96); // #F5F5F5
+      cairo_rectangle(cr, 0, 0, width_, 38);
       cairo_fill(cr);
 
-      // 4. Title Text (White)
+      // 3. Traffic Lights (Mars themed)
+      // Close (Orange-Red: #D4622A)
+      cairo_set_source_rgb(cr, 0.83, 0.38, 0.16);
+      cairo_arc(cr, 24, 19, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+      if (impl_->hoveredButton == 1) {
+        cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+        cairo_set_line_width(cr, 1.2);
+        cairo_move_to(cr, 21, 16);
+        cairo_line_to(cr, 27, 22);
+        cairo_move_to(cr, 27, 16);
+        cairo_line_to(cr, 21, 22);
+        cairo_stroke(cr);
+      }
+
+      // Minimize (Gold: #D4A93E)
+      cairo_set_source_rgb(cr, 0.83, 0.66, 0.24);
+      cairo_arc(cr, 46, 19, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+      if (impl_->hoveredButton == 2) {
+        cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+        cairo_set_line_width(cr, 1.2);
+        cairo_move_to(cr, 43, 19);
+        cairo_line_to(cr, 49, 19);
+        cairo_stroke(cr);
+      }
+
+      // Maximize (Blue: #4A9FD4)
+      cairo_set_source_rgb(cr, 0.29, 0.62, 0.83);
+      cairo_arc(cr, 68, 19, 6, 0, 2 * M_PI);
+      cairo_fill(cr);
+      if (impl_->hoveredButton == 3) {
+        cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+        cairo_set_line_width(cr, 1.2);
+        cairo_move_to(cr, 65, 19);
+        cairo_line_to(cr, 71, 19);
+        cairo_move_to(cr, 68, 16);
+        cairo_line_to(cr, 68, 22);
+        cairo_stroke(cr);
+      }
+
+      // 4. Title Text (Dark: #1A1A1A)
       if (!title_.empty()) {
-        cairo_set_source_rgba(cr, 0.9, 0.9, 0.9, 1.0);
-        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL,
+        cairo_set_source_rgb(cr, 0.1, 0.1, 0.1); // #1A1A1A
+        cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
                                CAIRO_FONT_WEIGHT_BOLD);
         cairo_set_font_size(cr, 13);
-        cairo_text_extents_t extents;
-        cairo_text_extents(cr, title_.c_str(), &extents);
-        cairo_move_to(cr, (width_ - extents.width) / 2, 20);
+        cairo_text_extents_t ext;
+        cairo_text_extents(cr, title_.c_str(), &ext);
+        cairo_move_to(cr, (width_ - ext.width) / 2.0,
+                      19 + ext.height / 2.0 - 2);
         cairo_show_text(cr, title_.c_str());
       }
 
-      // Separator Line
-      cairo_set_source_rgba(cr, 0.1, 0.1, 0.1, 0.5);
-      cairo_move_to(cr, 0, 30);
-      cairo_line_to(cr, width_, 30);
+      // 5. App Content
+      cairo_save(cr);
+      if (drawCallback_)
+        drawCallback_(cr, width_, height_);
+      cairo_restore(cr);
+
+      // 6. Separator
+      cairo_set_source_rgba(cr, 0, 0, 0, 0.1);
+      cairo_move_to(cr, 0, 38);
+      cairo_line_to(cr, width_, 38);
       cairo_stroke(cr);
 
       if (drawCallback_)
@@ -874,80 +950,100 @@ void OSFWindow::update() {
     if (!cr)
       return;
 
-    // --- PREMIUM VISUALS RESTORED ---
+    // === VitusOS CSD (Client Side Decorations) ===
 
-    // 2. Background: Glassmorphism (Dark Grey + Alpha)
-    cairo_save(cr);
+    // 0. Transparent Background and Rounding
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgba(cr, 0.16, 0.16, 0.16, 0.90); // Deep Dark Glass
+    cairo_set_source_rgba(cr, 0, 0, 0, 0); // Clear to transparency
     cairo_paint(cr);
-    cairo_restore(cr);
 
-    // 3. Titlebar: Slightly lighter glass
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.05); // White overlay
-    cairo_rectangle(cr, 0, 0, width_, 38);          // Taller titlebar (38px)
+    // Clip to rounded rectangle (9px)
+    AresTheme::roundedRect(cr, 0, 0, width_, height_, 9.0);
+    cairo_clip(cr);
+
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+    // 1. Window Background (Pure White)
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_paint(cr);
+
+    // 2. Titlebar (VitusOS Light: #F5F5F5)
+    cairo_set_source_rgb(cr, 0.96, 0.96, 0.96); // #F5F5F5
+    cairo_rectangle(cr, 0, 0, width_, 38);
     cairo_fill(cr);
 
-    // 4. Border: Subtle highlight
-    cairo_set_line_width(cr, 1.0);
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.15);
-    cairo_rectangle(cr, 0.5, 0.5, width_ - 1, height_ - 1);
-    cairo_stroke(cr);
-
-    // 5. Traffic Lights (macOS style positioning)
-    // Red
-    cairo_set_source_rgba(cr, 1.0, 0.35, 0.35, 1.0);
+    // 3. Traffic Lights (Ares Palette)
+    // Close (MarsOrange: #D4622A)
+    cairo_set_source_rgb(cr, 0.83, 0.38, 0.16);
     cairo_arc(cr, 24, 19, 6, 0, 2 * M_PI);
     cairo_fill(cr);
-    // Yellow
-    cairo_set_source_rgba(cr, 1.0, 0.75, 0.20, 1.0);
-    cairo_arc(cr, 44, 19, 6, 0, 2 * M_PI);
+    if (impl_->hoveredButton == 1) {
+      cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+      cairo_set_line_width(cr, 1.2);
+      cairo_move_to(cr, 21, 16);
+      cairo_line_to(cr, 27, 22);
+      cairo_move_to(cr, 27, 16);
+      cairo_line_to(cr, 21, 22);
+      cairo_stroke(cr);
+    }
+
+    // Minimize (MarsGold: #D4A93E)
+    cairo_set_source_rgb(cr, 0.83, 0.66, 0.24);
+    cairo_arc(cr, 46, 19, 6, 0, 2 * M_PI);
     cairo_fill(cr);
-    // Green
-    cairo_set_source_rgba(cr, 0.20, 0.80, 0.35, 1.0);
-    cairo_arc(cr, 64, 19, 6, 0, 2 * M_PI);
+    if (impl_->hoveredButton == 2) {
+      cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+      cairo_set_line_width(cr, 1.2);
+      cairo_move_to(cr, 43, 19);
+      cairo_line_to(cr, 49, 19);
+      cairo_stroke(cr);
+    }
+
+    // Maximize (VitusBlue: #4A9FD4)
+    cairo_set_source_rgb(cr, 0.29, 0.62, 0.83);
+    cairo_arc(cr, 68, 19, 6, 0, 2 * M_PI);
     cairo_fill(cr);
+    if (impl_->hoveredButton == 3) {
+      cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
+      cairo_set_line_width(cr, 1.2);
+      cairo_move_to(cr, 65, 19);
+      cairo_line_to(cr, 71, 19);
+      cairo_move_to(cr, 68, 16);
+      cairo_line_to(cr, 68, 22);
+      cairo_stroke(cr);
+    }
 
-    // 6. Title Text: Inter/Sans-Serif, Centered
-    // Shadow
-    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.5);
-    cairo_select_font_face(cr, "sans-serif", CAIRO_FONT_SLANT_NORMAL,
-                           CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 14);
-    cairo_text_extents_t extents;
-    const char *titleStr = title_.empty() ? "VitusOS" : title_.c_str();
-    cairo_text_extents(cr, titleStr, &extents);
-    cairo_move_to(cr, (width_ - extents.width) / 2 + 1, 25); // y center ~19 + 5
-    cairo_show_text(cr, titleStr);
+    // 4. Title Text (Dark: #1A1A1A)
+    if (!title_.empty()) {
+      cairo_set_source_rgb(cr, 0.1, 0.1, 0.1); // #1A1A1A
+      cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                             CAIRO_FONT_WEIGHT_BOLD);
+      cairo_set_font_size(cr, 13);
+      cairo_text_extents_t ext;
+      cairo_text_extents(cr, title_.c_str(), &ext);
+      cairo_move_to(cr, (width_ - ext.width) / 2.0, 19 + ext.height / 2.0 - 2);
+      cairo_show_text(cr, title_.c_str());
+    }
 
-    // Main text
-    cairo_set_source_rgba(cr, 0.95, 0.95, 0.95, 1.0);
-    cairo_move_to(cr, (width_ - extents.width) / 2, 24);
-    cairo_show_text(cr, titleStr);
-
-    // Separator line
-    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.3);
+    // 5. Separator
+    cairo_set_source_rgba(cr, 0, 0, 0, 0.1);
     cairo_move_to(cr, 0, 38);
     cairo_line_to(cr, width_, 38);
     cairo_stroke(cr);
 
-    // 7. Content Area
-    // Clip content to below titlebar
+    // 6. App Content (Clipped to area below title bar)
     cairo_save(cr);
     cairo_rectangle(cr, 0, 38, width_, height_ - 38);
     cairo_clip(cr);
-    cairo_translate(cr, 0, 38); // Offset by titlebar for content
+    cairo_translate(cr, 0, 38);
 
-    // Draw custom content (if callback provided)
-    if (drawCallback_)
-      drawCallback_(cr, width_, height_ - 38); // Pass content dimensions
-
-    // Render view hierarchy
     if (contentView_) {
-      contentView_->layoutIfNeeded();
       contentView_->render(cr);
     }
-    cairo_restore(cr); // Restore clip and transform
+    if (drawCallback_) {
+      drawCallback_(cr, width_, height_ - 38);
+    }
+    cairo_restore(cr);
 
     cairo_destroy(cr);
 

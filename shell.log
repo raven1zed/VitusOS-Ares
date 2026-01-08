@@ -1,0 +1,64 @@
+Starting VitusOS Ares Desktop...
+All surfaces running in separate threadsPanel thread starting...
+
+Wallpaper thread starting...
+OSFSurface connecting to display: Dock thread starting...
+OSFSurface connecting to display: wayland-1wayland-1 (WAYLAND_DISPLAY=wayland-1 (WAYLAND_DISPLAY=wayland-1)
+)
+OSFSurface connecting to display: wayland-1 (WAYLAND_DISPLAY=wayland-1)
+[Dock] First draw call: 1280x120
+Launching Filer...
+Launching Discord...
+Launching Facebook...
+Launching Spotify...
+Launching Video...
+[Panel] Mouse Down at (55, 7) Btn:272
+[Panel] Menu Opened: Filer
+[Panel] Mouse Up at (65, 11)
+[Panel] Switched to menu index: 1
+[Panel] Mouse Down at (131, 16) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (133, 16)
+[Panel] Mouse Down at (225, 15) Btn:272
+[Panel] Menu Opened: Settings
+[Panel] Mouse Up at (226, 15)
+[Panel] Switched to menu index: 3
+[Panel] Mouse Down at (276, 11) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (279, 11)
+[Panel] Mouse Down at (140, 25) Btn:272
+[Panel] Menu Opened: Menu
+[Panel] Mouse Up at (140, 25)
+[Panel] Mouse Down at (139, 25) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (139, 25)
+[Panel] Mouse Down at (43, 12) Btn:272
+[Panel] Menu Opened: Filer
+[Panel] Mouse Up at (43, 12)
+[Panel] Mouse Down at (50, 9) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (50, 9)
+[Panel] Mouse Down at (104, 22) Btn:272
+[Panel] Menu Opened: Menu
+[Panel] Mouse Up at (104, 22)
+[Panel] Mouse Down at (117, 17) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (117, 17)
+[Panel] Mouse Down at (197, 15) Btn:272
+[Panel] Menu Opened: Settings
+[Panel] Mouse Up at (197, 15)
+[Panel] Mouse Down at (198, 14) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (198, 14)
+[Panel] Mouse Down at (302, 12) Btn:272
+[Panel] Menu Opened: Help
+[Panel] Mouse Up at (302, 12)
+[Panel] Mouse Down at (302, 12) Btn:272
+[Panel] Menu Closed
+[Panel] Mouse Up at (302, 12)
+  [osf-panel] wl_display_dispatch() FAILED!  [osf-wallpaper] wl_display_dispatch() FAILED!
+  [osf-wallpaper] EVENT LOOP EXITED. (running_=1)
+
+  [osf-panel] EVENT LOOP EXITED. (running_=1)
+  [osf-dock] wl_display_dispatch() FAILED!
+  [osf-dock] EVENT LOOP EXITED. (running_=1)

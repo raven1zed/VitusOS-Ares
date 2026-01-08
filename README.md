@@ -53,7 +53,7 @@ VitusOS Ares is a **complete linux distro with openSEF that's work both as a des
 │      Events   │             │ States        │ Queries                       │
 │  (Pub/Sub)    │             ▼               │                               │
 │               │    ┌───────────────────┐    │                               │
-│   ┌───────────┴────┴─┐               ┌──┴────┴────────────┐                 │
+│   ┌───────────┴────┴─┐               ┌─┴────┴─────────────┐                 │
 │   │  Compositor (C)  │               │   Shell (C++)      │                 │
 │   │                  │               │                    │                 │
 │   │ • Window Mgmt    │◄─────────────►│ • OSFPanel         │                 │

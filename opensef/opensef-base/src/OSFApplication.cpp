@@ -66,6 +66,7 @@ void OSFApplication::run() {
       fds.push_back(pfd);
     }
 
+    // Check if we have any file descriptors to poll
     if (fds.empty()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(16));
       continue;

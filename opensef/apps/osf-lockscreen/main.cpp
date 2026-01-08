@@ -2,13 +2,12 @@
  * main.cpp - VitusOS Lock Screen
  */
 
-#include <OSFAresTheme.h>
 #include <OSFAuth.h>
 #include <OSFSurface.h>
 #include <cairo.h>
 #include <ctime>
 #include <iostream>
-
+#include <opensef/OSFAresTheme.h>
 
 using namespace opensef;
 

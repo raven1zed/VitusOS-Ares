@@ -71,9 +71,20 @@ public:
   bool isMaximized() const { return maximized_; }
   bool isFocused() const { return focused_; }
 
+  int x() const { return x_; }
+  int y() const { return y_; }
+  int width() const { return width_; }
+  int height() const { return height_; }
+
   void setMinimized(bool minimized) { minimized_ = minimized; }
   void setMaximized(bool maximized) { maximized_ = maximized; }
   void setFocused(bool focused) { focused_ = focused; }
+  void setGeometry(int x, int y, int w, int h) {
+    x_ = x;
+    y_ = y;
+    width_ = w;
+    height_ = h;
+  }
 
 private:
   std::string id_;
@@ -82,6 +93,7 @@ private:
   bool minimized_ = false;
   bool maximized_ = false;
   bool focused_ = false;
+  int x_ = 0, y_ = 0, width_ = 0, height_ = 0;
 };
 
 /**

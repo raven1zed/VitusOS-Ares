@@ -40,4 +40,4 @@ echo ""
 cd "$(dirname "$0")/.."
 
 # Run compositor and log output
-./build/opensef/opensef-compositor/opensef-compositor 2>&1 | tee compositor.log
+./opensef/build/opensef-compositor/opensef-compositor 2>&1 | tee compositor.log

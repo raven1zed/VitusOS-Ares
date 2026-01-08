@@ -1,5 +1,5 @@
 #include "OSFPanel.h"
-#include "OSFAresTheme.h"
+#include <opensef/OSFAresTheme.h>
 
 #include <ctime>
 #include <iomanip>
@@ -86,6 +86,13 @@ void OSFPanel::onWindowTitleChanged(const OpenSEF::OSFEvent &event) {
   }
 }
 
+void OSFPanel::run() {
+  if (surface_->connect()) {
+    surface_->requestRedraw(); // Force initial render
+    surface_->run();
+  }
+}
+
 void OSFPanel::initMenus() {
   // Filer menu
   MenuDef filer;
@@ -129,14 +136,6 @@ void OSFPanel::initMenus() {
   menus_.push_back(help);
 }
 
-void OSFPanel::run() {
-  if (surface_->connect()) {
-    surface_->run();
-  } else {
-    std::cerr << "Failed to connect OSFPanel to display." << std::endl;
-  }
-}
-
 void OSFPanel::draw(cairo_t *cr, int width, int height) {
   // 1. Clear implementation for transparency
   cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
@@ -144,9 +143,7 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
 
   // 2. Draw Panel Background (Top Strip Only)
   cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-  // Use theme color if available, fallback to dark
-  cairo_set_source_rgba(cr, 0.1, 0.1, 0.1,
-                        1.0); // Detailed implementation would use theme
+  AresTheme::setCairoColor(cr, AresTheme::PanelBackground);
   cairo_rectangle(cr, 0, 0, width, AresTheme::PanelHeight);
   cairo_fill(cr);
 
@@ -187,44 +184,37 @@ void OSFPanel::draw(cairo_t *cr, int width, int height) {
     drawDropdown(cr, openMenuIndex_);
 
     // Add dropdown input region
-    double x = AresTheme::PanelHeight + 16;
+    double x = 16 + 16; // multitask(16) + padding(16)
     for (int i = 0; i < openMenuIndex_; ++i) {
       cairo_text_extents_t ext;
       cairo_text_extents(cr, menus_[i].title.c_str(), &ext);
       x += ext.width + MenuSpacing;
     }
 
-    // Calculate dropdown dimensions (reproduce logic from drawDropdown)
-    // We assume DropdownWidth and rough height estimation
     int dropdownH =
         menus_[openMenuIndex_].items.size() * DropdownItemHeight + 10;
     inputRects.push_back(
         {(int)x, (int)AresTheme::PanelHeight, (int)DropdownWidth, dropdownH});
   }
 
-  // Update Input Region to fix flickering
+  // Update Input Region
   surface_->setInputRegion(inputRects);
-
-  // Set Opaque Region for the panel bar itself (optimization)
-  std::vector<cairo_rectangle_int_t> opaqueRects;
-  opaqueRects.push_back({0, 0, width, (int)AresTheme::PanelHeight});
-  surface_->setOpaqueRegion(opaqueRects);
 }
 
 void OSFPanel::drawMultitaskButton(cairo_t *cr) {
-  // Orange vertical accent bar - Far Left (Full Height, 8px wide)
+  // Orange vertical accent bar - Far Left (Full Height, 12px wide)
   AresTheme::setCairoColor(cr, AresTheme::MarsOrange);
-  cairo_rectangle(cr, 0, 0, 8, AresTheme::PanelHeight);
+  cairo_rectangle(cr, 0, 0, 12, AresTheme::PanelHeight);
   cairo_fill(cr);
 }
 
 void OSFPanel::drawMenuTitles(cairo_t *cr, int width) {
   cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
-                         CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_set_font_size(cr, 14);
-  AresTheme::setCairoColor(cr, AresTheme::StarWhite); // Dark text
+                         CAIRO_FONT_WEIGHT_BOLD);
+  cairo_set_font_size(cr, 13);
+  AresTheme::setCairoColor(cr, AresTheme::StarWhite);
 
-  double x = AresTheme::PanelHeight + 16;
+  double x = 12 + 20; // multitask(12) + start_padding(20)
 
   for (size_t i = 0; i < menus_.size(); ++i) {
     auto &menu = menus_[i];
@@ -375,13 +365,14 @@ void OSFPanel::drawDropdown(cairo_t *cr, int menuIndex) {
 
   // Shadow
   cairo_set_source_rgba(cr, 0, 0, 0, 0.3);
-  AresTheme::roundedRect(cr, dropX + 2, dropY + 2, DropdownWidth,
-                         dropdownHeight, 8);
+  AresTheme::roundedBottomRect(cr, dropX + 2, dropY + 2, DropdownWidth,
+                               dropdownHeight, 8);
   cairo_fill(cr);
 
   // Background
-  cairo_set_source_rgba(cr, 0.15, 0.15, 0.15, 0.95); // Dark translucent
-  AresTheme::roundedRect(cr, dropX, dropY, DropdownWidth, dropdownHeight, 8);
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.98); // Light opaque
+  AresTheme::roundedBottomRect(cr, dropX, dropY, DropdownWidth, dropdownHeight,
+                               8);
   cairo_fill(cr);
 
   // Draw items
@@ -391,7 +382,7 @@ void OSFPanel::drawDropdown(cairo_t *cr, int menuIndex) {
 
     if (item.isSeparator) {
       // Draw separator line
-      cairo_set_source_rgba(cr, 1, 1, 1, 0.2);
+      cairo_set_source_rgba(cr, 0, 0, 0, 0.1);
       cairo_move_to(cr, dropX + 12, itemY + SeparatorHeight / 2);
       cairo_line_to(cr, dropX + DropdownWidth - 12,
                     itemY + SeparatorHeight / 2);
@@ -407,7 +398,12 @@ void OSFPanel::drawDropdown(cairo_t *cr, int menuIndex) {
       }
 
       // Draw text
-      cairo_set_source_rgb(cr, 1, 1, 1);
+      if ((int)i == hoveredItemIndex_) {
+        cairo_set_source_rgb(cr, 1, 1, 1); // White text if highlighted orange
+      } else {
+        AresTheme::setCairoColor(cr,
+                                 AresTheme::StarWhite); // Dark text otherwise
+      }
       cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
                              CAIRO_FONT_WEIGHT_NORMAL);
       cairo_set_font_size(cr, 13);

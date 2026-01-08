@@ -10,8 +10,12 @@ pkill -9 -f osf-shell || true
 pkill -9 -f phase3-app || true
 sleep 0.5
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
 # Set library paths
-export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$PWD/build/opensef/opensef-base:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$REPO_ROOT/opensef/build/opensef-base:$REPO_ROOT/opensef/build/opensef-framework:$LD_LIBRARY_PATH
 if [ -d "/mnt/wslg/runtime-dir" ]; then
     export XDG_RUNTIME_DIR="/mnt/wslg/runtime-dir"
 fi
@@ -19,9 +23,10 @@ export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 
 # Detect if running in WSL
 if [ -n "$WSL_DISTRO_NAME" ]; then
-    echo "WSL detected - launching Wayland-Pixman path"
+    echo "WSL detected - launching Wayland path"
     export VITUS_BACKEND=wayland
     export WAYLAND_DISPLAY=wayland-0
+    export WLR_BACKENDS=wayland
     export WLR_WL_OUTPUTS=1
     export WLR_WL_FULLSCREEN=0
     
@@ -43,10 +48,11 @@ rm -f "$XDG_RUNTIME_DIR/$SOCKET_NAME" "$XDG_RUNTIME_DIR/$SOCKET_NAME.lock"
 echo "=== VitusOS Ares Desktop Launcher ==="
 echo "XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR"
 echo "Socket: $SOCKET_NAME"
+echo "Repo Root: $REPO_ROOT"
 
 # 1. Launch Compositor with explicit socket name
 echo "[1/3] Launching Compositor..."
-./build/opensef/opensef-compositor/opensef-compositor -s "$SOCKET_NAME" > compositor.log 2>&1 &
+$REPO_ROOT/opensef/build/opensef-compositor/opensef-compositor -s "$SOCKET_NAME" > "$REPO_ROOT/compositor.log" 2>&1 &
 COMPOSITOR_PID=$!
 echo "      Compositor PID: $COMPOSITOR_PID"
 
@@ -74,17 +80,18 @@ fi
 
 # Set environment for clients
 export WAYLAND_DISPLAY="$SOCKET_NAME"
+export LD_LIBRARY_PATH="./opensef/build/opensef-base:./opensef/build/opensef-framework:$LD_LIBRARY_PATH"
 
 # 2. Launch Shell (Wallpaper, Panel, Dock)
 echo "[2/3] Launching Shell..."
-./build/opensef/opensef-shell/osf-shell > shell.log 2>&1 &
+$REPO_ROOT/opensef/build/opensef-shell/osf-shell > "$REPO_ROOT/shell.log" 2>&1 &
 SHELL_PID=$!
 echo "      Shell PID: $SHELL_PID"
 sleep 1
 
 # 3. Launch Phase 3 Test Application
 echo "[3/3] Launching Phase 3 App..."
-./build/opensef/test/phase3-app > phase3.log 2>&1 &
+$REPO_ROOT/opensef/build/test/phase3-app > "$REPO_ROOT/phase3.log" 2>&1 &
 APP_PID=$!
 echo "      App PID: $APP_PID"
 
@@ -94,5 +101,13 @@ echo "Compositor: $COMPOSITOR_PID"
 echo "Shell:      $SHELL_PID"  
 echo "App:        $APP_PID"
 echo ""
-echo "Logs: compositor.log, shell.log, phase3.log"
-ps aux | grep -E "(opensef|phase3)" | grep -v grep
+echo "Processes are running in the background."
+echo "Logs are located in the repository root."
+echo "Keep this terminal open, or press Ctrl+C to exit everything."
+echo ""
+
+# Prevent the script from exiting (which can kill background children in some environments)
+# and provide a clean way to kill everything on exit.
+trap "echo 'Terminating...'; kill $COMPOSITOR_PID $SHELL_PID $APP_PID 2>/dev/null; exit" SIGINT SIGTERM
+
+wait

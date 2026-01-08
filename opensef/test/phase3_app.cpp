@@ -9,6 +9,7 @@
 
 #include <cairo/cairo.h>
 #include <iostream>
+#include <opensef/OSFAresTheme.h>
 #include <opensef/OSFStackView.h>
 #include <opensef/OSFWindow.h>
 #include <opensef/OpenSEFAppKit.h> // Triggers dependency on OSFView/Geometry
@@ -97,18 +98,13 @@ int main() {
   // === Draw Callback (Integration) ===
   // AppKit views render themselves, but we clear the window first.
   window->onDraw([rootView](cairo_t *cr, int width, int height) {
-    // 1. Draw Background (Mars Gradient)
-    cairo_pattern_t *gradient =
-        cairo_pattern_create_linear(0, 0, width, height);
-    cairo_pattern_add_color_stop_rgb(gradient, 0.0, 0.91, 0.36, 0.02);
-    cairo_pattern_add_color_stop_rgb(gradient, 0.5, 0.83, 0.50, 0.10);
-    cairo_pattern_add_color_stop_rgb(gradient, 1.0, 0.20, 0.12, 0.08);
-    cairo_set_source(cr, gradient);
+    /* 1. Draw Background (Follow Theme: DeepSpace / White) */
+    /* Content drawing respects the window clip from OSFWindow */
+    AresTheme::setCairoColor(cr, AresTheme::DeepSpace);
     cairo_paint(cr);
-    cairo_pattern_destroy(gradient);
 
-    // 2. Render Overlay Text
-    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    // 2. Render Overlay Text (Follow Theme: Dark)
+    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1); // Dark grey for Light Mode
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_BOLD);
     cairo_set_font_size(cr, 36);

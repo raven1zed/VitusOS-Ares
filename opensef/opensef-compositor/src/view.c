@@ -113,8 +113,11 @@ static void view_map(struct wl_listener *listener, void *data) {
 
   view->mapped = true;
   wl_list_insert(&view->server->views, &view->link);
+
+  /* Initial position (avoid overlapping panel at Y=0) */
+  wlr_scene_node_set_position(&view->scene_tree->node, 50, 50);
+
   osf_focus_view(view, view->xdg_toplevel->base->surface);
-  osf_view_update_borders(view, true);
 
   const char *title =
       view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)";
@@ -132,6 +135,11 @@ static void view_map(struct wl_listener *listener, void *data) {
 
   /* Store window pointer in view for later cleanup */
   view->framework_window = window;
+
+  /* Report initial geometry */
+  struct wlr_box geo;
+  wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  osf_window_set_geometry(window_id, 50, 50, geo.width, geo.height);
 
   wlr_log(WLR_INFO, "Window registered with framework: %s", window_id);
 }

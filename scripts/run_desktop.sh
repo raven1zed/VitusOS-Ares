@@ -34,7 +34,7 @@ cd "$PROJECT_ROOT"
 
 # Start compositor in background
 echo "Starting compositor..."
-./build/opensef/opensef-compositor/opensef-compositor > compositor.log 2>&1 &
+./opensef/build/opensef-compositor/opensef-compositor > compositor.log 2>&1 &
 COMPOSITOR_PID=$!
 
 # Wait for compositor to be ready
@@ -51,7 +51,7 @@ echo "Compositor started (PID: $COMPOSITOR_PID)"
 
 # Start shell components
 echo "Starting shell..."
-./build/opensef/opensef-shell/osf-shell > shell.log 2>&1 &
+./opensef/build/opensef-shell/osf-shell > shell.log 2>&1 &
 SHELL_PID=$!
 
 echo "Shell started (PID: $SHELL_PID)"

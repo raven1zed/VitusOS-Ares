@@ -81,7 +81,6 @@ target_include_directories(osf-protocols PUBLIC
 add_executable(osf-shell
     src/main.cpp
     src/render/OSFSurface.cpp
-    src/core/OSFAresTheme.cpp
     src/panel/OSFPanel.cpp
     src/dock/OSFDock.cpp
     src/wallpaper/OSFWallpaper.cpp

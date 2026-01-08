@@ -25,6 +25,7 @@ OSFWindowC *osf_window_create(const char *id, const char *title,
 void osf_window_register(OSFWindowC *window);
 void osf_window_unregister(const char *id);
 void osf_window_update_title(const char *id, const char *title);
+void osf_window_set_geometry(const char *id, int x, int y, int w, int h);
 void osf_window_destroy(OSFWindowC *window);
 
 // Window actions

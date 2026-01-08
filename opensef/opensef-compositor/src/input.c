@@ -6,6 +6,7 @@
 
 #include "server.h"
 
+#include "OSFFrameworkC.h"
 #include "multitask.h"
 #include "tiling.h"
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
+
 
 /* ============================================================================
  * Keyboard
@@ -203,9 +205,23 @@ static void process_cursor_move(struct osf_server *server, uint32_t time) {
   (void)time;
 
   struct osf_view *view = server->grabbed_view;
+  double next_y = server->cursor->y - server->grab_y;
+
+  /* Global Menu (Panel) constraint: Y must be >= 28 */
+  if (next_y < 28) {
+    next_y = 28;
+  }
+
   wlr_scene_node_set_position(&view->scene_tree->node,
-                              server->cursor->x - server->grab_x,
-                              server->cursor->y - server->grab_y);
+                              server->cursor->x - server->grab_x, next_y);
+
+  /* Report to framework */
+  char window_id[64];
+  snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+  struct wlr_box geo;
+  wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  osf_window_set_geometry(window_id, server->cursor->x - server->grab_x, next_y,
+                          geo.width, geo.height);
 }
 
 static void process_cursor_resize(struct osf_server *server, uint32_t time) {
@@ -223,6 +239,10 @@ static void process_cursor_resize(struct osf_server *server, uint32_t time) {
 
   if (server->resize_edges & WLR_EDGE_TOP) {
     new_top = border_y;
+    /* Global Menu constraint */
+    if (new_top < 28) {
+      new_top = 28;
+    }
     if (new_top >= new_bottom) {
       new_top = new_bottom - 1;
     }
@@ -254,6 +274,11 @@ static void process_cursor_resize(struct osf_server *server, uint32_t time) {
   int new_width = new_right - new_left;
   int new_height = new_bottom - new_top;
   wlr_xdg_toplevel_set_size(view->xdg_toplevel, new_width, new_height);
+
+  /* Report to framework */
+  char window_id[64];
+  snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+  osf_window_set_geometry(window_id, new_left, new_top, new_width, new_height);
 }
 
 static void process_cursor_motion(struct osf_server *server, uint32_t time) {

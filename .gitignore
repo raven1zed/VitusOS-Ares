@@ -55,4 +55,3 @@ compile_commands.json
 # VM
 NixOS/
 opensef/build/
-*.log

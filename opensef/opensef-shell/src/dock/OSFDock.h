@@ -19,6 +19,7 @@ struct DockItem {
   std::shared_ptr<RsvgHandle> svgHandle;
   double x = 0, y = 0, size = 48;      // Hit detection logic
   uint32_t fallbackColor = 0xFF555555; // Default grey
+  bool isActive = false;               // Active app indicator
 };
 
 class OSFDock {
@@ -39,6 +40,9 @@ private:
   std::unique_ptr<OSFSurface> surface_;
   std::vector<DockItem> items_;
   int hoveredIndex_ = -1;
+  bool isHidden_ = false;
+
+  void checkOverlap();
 
   // Framework Integration
   OpenSEF::OSFDesktop *desktop_ = nullptr;

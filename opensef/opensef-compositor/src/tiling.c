@@ -11,7 +11,7 @@
 static struct osf_tiling_config config = {
     .inner_gap = 10,
     .outer_gap = 15,
-    .border_width = 2,
+    .border_width = 0,
     .active_border_color = 0xFFE85D04, // Ares Orange
     .inactive_border_color = 0xFF404040,
 };
@@ -89,9 +89,19 @@ void osf_tiling_arrange(struct osf_server *server, struct osf_output *output) {
 }
 
 void osf_view_update_borders(struct osf_view *view, bool active) {
-  int bw = 2;
-  uint32_t active_color = 0xFFE85D04;
-  uint32_t inactive_color = 0xFF404040;
+  int bw = config.border_width;
+  if (bw <= 0) {
+    if (view->border_top) {
+      wlr_scene_node_set_enabled(&view->border_top->node, false);
+      wlr_scene_node_set_enabled(&view->border_bottom->node, false);
+      wlr_scene_node_set_enabled(&view->border_left->node, false);
+      wlr_scene_node_set_enabled(&view->border_right->node, false);
+    }
+    return;
+  }
+
+  uint32_t active_color = config.active_border_color;
+  uint32_t inactive_color = config.inactive_border_color;
   uint32_t color = active ? active_color : inactive_color;
   float rgba[4];
   rgba[0] = ((color >> 16) & 0xFF) / 255.0f;
@@ -109,6 +119,10 @@ void osf_view_update_borders(struct osf_view *view, bool active) {
     view->border_left = wlr_scene_rect_create(view->scene_tree, bw, h, rgba);
     view->border_right = wlr_scene_rect_create(view->scene_tree, bw, h, rgba);
   } else {
+    wlr_scene_node_set_enabled(&view->border_top->node, true);
+    wlr_scene_node_set_enabled(&view->border_bottom->node, true);
+    wlr_scene_node_set_enabled(&view->border_left->node, true);
+    wlr_scene_node_set_enabled(&view->border_right->node, true);
     wlr_scene_rect_set_color(view->border_top, rgba);
     wlr_scene_rect_set_color(view->border_bottom, rgba);
     wlr_scene_rect_set_color(view->border_left, rgba);

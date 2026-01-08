@@ -42,7 +42,7 @@ if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
     echo "🖥️  Wayland session detected"
     echo ""
     echo "Running hello-window test..."
-    ./build/opensef/test/hello-window
+    ./opensef/build/test/hello-window
 else
     echo "⚠️  Not a Wayland session (XDG_SESSION_TYPE=$XDG_SESSION_TYPE)"
     echo "   hello-window requires Wayland to display"
@@ -60,11 +60,11 @@ echo "╔═══════════════════════�
 echo "║                    Build Summary                       ║"
 echo "╠════════════════════════════════════════════════════════╣"
 echo "║  Libraries:                                            ║"
-echo "║    - build/opensef/opensef-base/libopensef-base.so     ║"
-echo "║    - build/opensef/opensef-appkit/libopensef-appkit.so ║"
-echo "║    - build/opensef/opensef-backend/libopensef-backend.so║"
-echo "║    - build/opensef/opensef-ui/libopensef-ui.so         ║"
+echo "║    - opensef/build/opensef-base/libopensef-base.so     ║"
+echo "║    - opensef/build/opensef-appkit/libopensef-appkit.so ║"
+echo "║    - opensef/build/opensef-backend/libopensef-backend.so║"
+echo "║    - opensef/build/opensef-ui/libopensef-ui.so         ║"
 echo "║                                                        ║"
 echo "║  Test Programs:                                        ║"
-echo "║    - build/opensef/test/hello-window                   ║"
+echo "║    - opensef/build/test/hello-window                   ║"
 echo "╚════════════════════════════════════════════════════════╝"
