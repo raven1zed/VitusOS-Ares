@@ -81,8 +81,8 @@
 
 ### ⚠️ Known Issues
 
-1. **Dock autohide not working**: Window geometry events not triggering `checkOverlap()`
-2. **Multitask button too narrow**: 20px instead of 80px
+1. ~~**Dock autohide not working**: Window geometry events not triggering `checkOverlap()`~~ **FIXED** (Jan 8, 2026)
+2. ~~**Multitask button too narrow**: 20px instead of 80px~~ **FIXED** (Jan 8, 2026)
 3. **Multitask view**: Shows orange strip instead of Windows 8-style tiles
 4. **Deprecated librsvg functions**: Using `rsvg_handle_render_cairo` instead of `rsvg_handle_render_document`
 5. **Lint errors**: Missing includes, undeclared types (systematic cleanup needed)
