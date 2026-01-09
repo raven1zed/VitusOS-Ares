@@ -4,7 +4,6 @@
 #include <QDBusReply>
 #include <QDebug>
 
-
 DBusMenuImporter::DBusMenuImporter(const QString &service, const QString &path,
                                    QObject *parent)
     : QObject(parent), m_service(service), m_path(path) {
@@ -117,8 +116,9 @@ void DBusMenuImporter::activateItem(int id) {
     return;
 
   // Event(id, eventType, data, timestamp)
-  m_interface->call("Event", id, QString("clicked"), QDBusVariant(QVariant()),
-                    (uint)QDateTime::currentSecsSinceEpoch());
+  m_interface->call("Event", id, QString("clicked"),
+                    QVariant::fromValue(QDBusVariant(QVariant())),
+                    (uint)QDateTime::currentDateTime().toSecsSinceEpoch());
 
   qDebug() << "[DBusMenuImporter] Activated item:" << id;
 }
