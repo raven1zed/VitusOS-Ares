@@ -1,10 +1,10 @@
 #include "StatusNotifierWatcher.h"
+#include <QCoreApplication>
 #include <QDBusArgument>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusReply>
 #include <QDebug>
-
 
 // DBus service names
 static const QString WATCHER_SERVICE = "org.kde.StatusNotifierWatcher";

@@ -19,7 +19,6 @@
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 
-
 /* ============================================================================
  * Keyboard
  * ============================================================================
@@ -218,8 +217,7 @@ static void process_cursor_move(struct osf_server *server, uint32_t time) {
   /* Report to framework */
   char window_id[64];
   snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
-  struct wlr_box geo;
-  wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  struct wlr_box geo = view->xdg_toplevel->base->current.geometry;
   osf_window_set_geometry(window_id, server->cursor->x - server->grab_x, next_y,
                           geo.width, geo.height);
 }

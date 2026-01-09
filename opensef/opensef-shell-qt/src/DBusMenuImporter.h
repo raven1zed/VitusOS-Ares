@@ -2,10 +2,10 @@
 #define DBUS_MENU_IMPORTER_H
 
 #include <QDBusInterface>
+#include <QDateTime>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
-
 
 /**
  * DBusMenuImporter - Import application menus via DBusMenu protocol

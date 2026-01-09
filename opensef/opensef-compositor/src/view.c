@@ -137,8 +137,7 @@ static void view_map(struct wl_listener *listener, void *data) {
   view->framework_window = window;
 
   /* Report initial geometry */
-  struct wlr_box geo;
-  wlr_xdg_surface_get_geometry(view->xdg_toplevel->base, &geo);
+  struct wlr_box geo = view->xdg_toplevel->base->current.geometry;
   osf_window_set_geometry(window_id, 50, 50, geo.width, geo.height);
 
   wlr_log(WLR_INFO, "Window registered with framework: %s", window_id);
