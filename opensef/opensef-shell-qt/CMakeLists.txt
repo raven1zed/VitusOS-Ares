@@ -17,6 +17,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     QuickControls2
     DBus
     WaylandClient
+    Svg
 )
 
 # Source files
@@ -39,36 +40,37 @@ set(HEADERS
     src/DBusMenuImporter.h
 )
 
-# QML resources
-qt_add_resources(QML_RESOURCES resources.qrc)
+# QML resources - DISABLED to force filesystem loading
+# qt_add_resources(QML_RESOURCES resources.qrc)
 
 # Executable
-add_executable(osf-shell-qt
+add_executable(osf-shell-qt-v2
     ${SOURCES}
     ${HEADERS}
-    ${QML_RESOURCES}
+    # ${QML_RESOURCES}
 )
 
 # Include paths
-target_include_directories(osf-shell-qt PRIVATE
+target_include_directories(osf-shell-qt-v2 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/opensef-framework/include
     ${CMAKE_SOURCE_DIR}/opensef-base/include
 )
 
 # Link libraries
-target_link_libraries(osf-shell-qt PRIVATE
+target_link_libraries(osf-shell-qt-v2 PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::DBus
     Qt6::WaylandClient
+    Qt6::Svg
     opensef-framework
     opensef-base
 )
 
 # Install
-install(TARGETS osf-shell-qt
+install(TARGETS osf-shell-qt-v2
     RUNTIME DESTINATION bin
 )

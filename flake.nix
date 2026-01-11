@@ -57,11 +57,12 @@
             vulkan-tools
             vulkan-validation-layers
             glm
-            # Qt6 components
+            # Qt6 components - explicit packages for shell
             qt6.qtbase
             qt6.qtwayland
             qt6.qtdeclarative
             qt6.qtsvg
+            qt6.qt5compat  # For QtGraphicalEffects
             # Additional dependencies
             pam
             sysprof
@@ -92,6 +93,13 @@
             export CC=clang
             export CXX=clang++
             echo "Using Clang compiler: $(clang --version | head -n1)"
+            
+            # Qt6 environment for Wayland - combine paths from all Qt packages
+            export QT_QPA_PLATFORM=wayland
+            export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins"
+            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/lib/qt-6/qml:${pkgs.qt6.qt5compat}/lib/qt-6/qml"
+            export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
+            echo "Qt6 Wayland environment configured"
           '';
         };
       }

@@ -32,10 +32,28 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
     
     # Stability and Software stack
     # Prefer Vulkan renderer, fallback to GLES2, then software
-    export WLR_RENDERER=gles2
+    export WLR_RENDERER=pixman
     export WLR_NO_HARDWARE_CURSORS=1
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export WLR_LOG_LEVEL=info
+    
+    # Qt6 environment for shell - find wayland-capable qtbase
+    export QT_QPA_PLATFORM=wayland
+    # Find Qt with wayland support
+    QT6_WAYLAND_PATH=$(find /nix/store -maxdepth 1 -name '*qtbase-6*' -type d 2>/dev/null | while read dir; do
+        if [ -f "$dir/lib/qt-6/plugins/platforms/libqwayland.so" ]; then
+            echo "$dir"
+            break
+        fi
+    done)
+    if [ -n "$QT6_WAYLAND_PATH" ]; then
+        echo "Qt6 with Wayland: $QT6_WAYLAND_PATH"
+        export QT_PLUGIN_PATH="$QT6_WAYLAND_PATH/lib/qt-6/plugins"
+        export QML2_IMPORT_PATH="$QT6_WAYLAND_PATH/lib/qt-6/qml"
+        export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
+    else
+        echo "WARNING: Qt6 Wayland plugin not found!"
+    fi
 else
     echo "Native Linux - using auto-detect backend"
 fi
@@ -83,12 +101,12 @@ fi
 export WAYLAND_DISPLAY="$SOCKET_NAME"
 export LD_LIBRARY_PATH="./opensef/build/opensef-base:./opensef/build/opensef-framework:$LD_LIBRARY_PATH"
 
-# 2. Launch Shell (Wallpaper, Panel, Dock)
-echo "[2/3] Launching Shell..."
-$REPO_ROOT/opensef/build/opensef-shell/osf-shell > "$REPO_ROOT/logs/shell.log" 2>&1 &
+# 2. Launch Qt Shell (Panel, Dock, Multitask View)
+echo "[2/3] Launching Qt Shell..."
+bash "$REPO_ROOT/scripts/run_qt_shell.sh" > "$REPO_ROOT/logs/shell.log" 2>&1 &
 SHELL_PID=$!
 echo "      Shell PID: $SHELL_PID"
-sleep 1
+sleep 2
 
 # 3. Launch Phase 3 Test Application
 echo "[3/3] Launching Phase 3 App..."

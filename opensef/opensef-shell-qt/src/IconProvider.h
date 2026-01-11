@@ -1,7 +1,9 @@
 #ifndef ICON_PROVIDER_H
 #define ICON_PROVIDER_H
 
+#include <QColor>
 #include <QIcon>
+#include <QPainter>
 #include <QPixmap>
 #include <QQuickImageProvider>
 
@@ -22,7 +24,14 @@ public:
 
     QIcon icon = QIcon::fromTheme(id);
     if (icon.isNull()) {
-      return QPixmap();
+      // Fallback: Generate a colored pixmap
+      QPixmap pixmap(width, height);
+      pixmap.fill(QColor("#4A9FD4")); // Vitus Blue default
+
+      QPainter painter(&pixmap);
+      painter.setPen(Qt::white);
+      painter.drawRect(0, 0, width - 1, height - 1);
+      return pixmap;
     }
 
     QPixmap pixmap = icon.pixmap(width, height);

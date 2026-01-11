@@ -20,7 +20,8 @@ void DockController::initDockItems() {
   };
 
   QList<AppDef> apps = {
-      {"Filer", "system-file-manager", "nautilus", "#4A9FD4", false},
+      {"Filer", "system-file-manager", "nautilus", "#4A9FD4",
+       true}, // Always running like Finder
       {"Terminal", "utilities-terminal", "gnome-terminal", "#333333", false},
       {"Firefox", "firefox", "firefox", "#E66000", false},
       {"Discord", "discord", "discord", "#5865F2", false},

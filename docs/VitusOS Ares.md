@@ -1,400 +1,383 @@
-# VitusOS Ares - The Complete Desktop Experience
+# VitusOS Ares - openSEF Unified Architecture
 
-## What is VitusOS Ares?
+**openSEF is NOT a Linux Desktop Environment.**
 
-**VitusOS Ares is NOT a Linux distribution with a desktop environment.**
-
-**VitusOS Ares is a complete Desktop Experience** - from the moment you press the power button until the machine shuts down.
+openSEF is a **complete Desktop Experience framework** - from boot to shutdown, ONE unified system like macOS.
 
 ---
 
-## The Desktop Experience
+## The Fundamental Difference
 
-### Boot Sequence
-
-**What Users See**:
-1. Press power button
-2. Beautiful VitusOS boot animation
-   - Mars-themed colors (red/orange)
-   - Smooth progress indicator
-   - No text, no logs, no "Starting service..."
-3. Fade to lockscreen
-
-**What's Happening** (invisible to users):
-- Bootloader loads kernel
-- Kernel initializes hardware
-- openSEF compositor starts
-- Boot animation service displays graphics
-- System services start in background
-- Lockscreen appears when ready
-
-**NO systemd logs. NO terminal output. Just smooth, beautiful graphics.**
-
-### Login
-
-**What Users See**:
-1. Premium lockscreen
-   - Blurred wallpaper background
-   - Password field with smooth focus animation
-   - Time and date display
-2. Enter password
-3. Smooth fade transition to desktop
-
-**What's Happening**:
-- PAM authentication via opensef-auth
-- User session initialization
-- Desktop services start
-- Shell components load
-- Fade animation to desktop
-
-**NO loading screens. NO "Starting Desktop Environment..." Just instant, smooth transition.**
-
-### Desktop
-
-**What Users See**:
-- **Global Menu Bar** (top)
-  - Application menus (Filer, Menu, Settings, Help)
-  - System tray (right side)
-  - Clock (far right)
-- **Wallpaper** (center)
-  - Beautiful Mars landscape
-  - Smooth, no tearing
-- **Dock** (bottom)
-  - Running applications
-  - Favorites
-  - Smooth hover animations
-
-**What's Happening**:
-- opensef-compositor rendering all windows
-- opensef-shell providing panel and dock
-- opensef-framework coordinating everything
-- All components sharing state via unified API
-
-**NO separate "window manager". NO "panel applets". ONE integrated system.**
-
-### Running Applications
-
-**What Users See**:
-1. Click app in dock or menu
-2. Window appears smoothly
-3. Window has consistent theme
-4. Window appears in dock
-5. Global menu updates
-
-**What's Happening**:
-- Application launches
-- Registers with opensef-framework
-- Creates window via compositor
-- Framework publishes "window.created" event
-- Panel subscribes to event, updates UI
-- Dock subscribes to event, shows app icon
-- Theme manager provides consistent colors
-
-**NO manual window management. NO separate taskbar. Everything automatic.**
-
-### Shutdown
-
-**What Users See**:
-1. Click shutdown in menu
-2. Smooth fade-out animation
-3. Screen goes black
-4. Machine powers off
-
-**What's Happening**:
-- Shutdown signal sent to framework
-- Applications notified to save state
-- Windows close gracefully
-- Services stop in order
-- Compositor shuts down
-- System powers off
-
-**NO "Stopping service..." messages. NO systemd output. Just smooth fade to black.**
-
----
-
-## The Technology
-
-### openSEF Framework
-
-**The Core** - Unified Desktop Environment API
+### Linux Paradigm (What We REJECT) ❌
 
 ```
-┌─────────────────────────────────────────┐
-│         OSFDesktop (Singleton)          │
-├─────────────────────────────────────────┤
-│  Event Bus      │  State Manager        │
-│  Window Manager │  Service Registry     │
-│  Resource Cache │  Theme Manager        │
-└─────────────────────────────────────────┘
-```
-
-**What It Does**:
-- Provides ONE API for everything
-- Manages all desktop state
-- Coordinates all components
-- Ensures consistent experience
-
-**Why It Matters**:
-- No fragmentation
-- No manual IPC
-- No duplicate state
-- Everything works together
-
-### Components
-
-#### opensef-compositor
-**Display Server** - Renders everything you see
-
-- Based on wlroots (Wayland)
-- Handles windows, input, outputs
-- Registers windows with framework
-- Publishes window events
-
-#### opensef-shell
-**Desktop UI** - Panel, dock, wallpaper
-
-- Global menu bar
-- Application dock
-- System tray
-- Wallpaper manager
-
-Uses framework to:
-- Query window state
-- Subscribe to events
-- Share theme
-
-#### opensef-appkit
-**Application Framework** - Build apps easily
-
-- Widgets (buttons, labels, etc.)
-- Window management
-- Event handling
-- Theme integration
-
-#### Applications
-**Built-in Apps** - Everything you need
-
-- Lockscreen - Login interface
-- Settings - System configuration
-- Filer - File manager
-- Terminal - Command line (when needed)
-
-All apps:
-- Use opensef-framework
-- Share resources
-- Follow unified theme
-- Communicate via events
-
----
-
-## Why This Matters
-
-### The Linux DE Problem
-
-**Traditional Linux Desktop Environments**:
-```
-Compositor (Wayland/X11)
-    ↓ (protocols)
-Window Manager
-    ↓ (D-Bus)
-Panel
-    ↓ (???)
-Applications
+Separate components talking via protocols:
+- Compositor (Wayland)
+- Panel (listening to D-Bus)
+- Dock (reading .desktop files)
+- Apps (doing their own thing)
+- SystemD (boot logs visible)
 ```
 
 **Problems**:
-- Each component maintains own state
-- Manual IPC via D-Bus/protocols
-- Each loads own theme
-- Fragmented experience
-- Visible systemd logs
-- No boot animation
-- Collection of separate apps
+- Fragmented
+- Each component loads own config/theme
+- Manual IPC via D-Bus
+- User sees boot logs
+- Feels like separate apps, not ONE system
 
-### The openSEF Solution
+### openSEF Paradigm (What We ARE) ✅
 
-**VitusOS Ares**:
 ```
-┌─────────────────────────────────┐
-│     openSEF Framework           │
-│  (Unified API + State)          │
-└────────┬────────┬───────┬───────┘
-         │        │       │
-    Compositor  Shell  Apps
+┌────────────────────────────────────────────────────┐
+│            openSEF Framework (Cocoa-like)          │
+│  ┌──────────────────────────────────────────────┐  │
+│  │         OSFDesktop (Singleton API)           │  │
+│  │   • EventBus  • StateManager  • WindowMgr   │  │
+│  │   • Theme  • Resources  • Services           │  │
+│  └──────────────────────────────────────────────┘  │
+│                       ↕                            │
+│  ALL COMPONENTS USE THE SAME FRAMEWORK:            │
+│                                                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │Compositor│  │  Shell   │  │   Apps   │        │
+│  │(wlroots +│  │(Qt Quick)│  │ (GNUstep)│        │
+│  │ Vulkan)  │  │          │  │          │        │
+│  └──────────┘  └──────────┘  └──────────┘        │
+│                                                    │
+│  Boot Animation → Login → Desktop → Shutdown      │
+│         (NO systemd logs visible)                  │
+└────────────────────────────────────────────────────┘
 ```
 
-**Benefits**:
-- Single source of truth
-- Event-driven communication
-- Shared resources
-- Unified theme
-- Smooth boot animation
-- No systemd logs visible
-- Integrated system
+**Result**:
+- ONE system (feels like macOS)
+- Unified API for everything
+- Shared state across all components
+- Smooth experience from boot to shutdown
+- No fragmentation
 
 ---
 
-## The Vision in Action
+## The Stack (As It Should Be)
 
-### Scenario: Opening a Window
+### Layer 1: Rendering (Qt Quick + Vulkan)
+**Purpose**: High-performance GPU rendering
 
-**Linux DE Way**:
-1. User clicks app
-2. App starts (separate process)
-3. App creates window via Wayland
-4. Compositor renders window
-5. Panel polls D-Bus to find new window
-6. Panel updates taskbar manually
-7. Each component has different state
+```
+QML (declarative UI)
+  ↓
+Qt Quick Scene Graph
+  ↓
+QRhi (abstraction)
+  ↓
+Vulkan (600+ FPS)
+```
 
-**openSEF Way**:
-1. User clicks app
-2. App starts and registers with framework
-3. App creates window via compositor
-4. Compositor registers window with framework
-5. Framework publishes "window.created" event
-6. Panel subscribes to event, updates automatically
-7. Dock subscribes to event, shows icon automatically
-8. All components share same state
+**This is ONLY for rendering** - not the widget logic.
 
-**Result**: Instant, automatic, integrated.
+### Layer 2: Widget Framework (GNUstep AppKit - Forked)
+**Purpose**: macOS-like widget library (NOT for rendering!)
 
-### Scenario: Changing Theme
+```
+GNUstep AppKit (forked from GitHub)
+  • NSButton, NSMenu, NSWindow
+  • Layout engine (constraints, stack views)
+  • Responder chain
+  • MVC pattern
+  • Delegates
 
-**Linux DE Way**:
-1. User changes theme in settings
-2. Settings writes config file
-3. Each app reads own config
-4. Each app reloads own theme
-5. Inconsistent timing
-6. Possible theme mismatches
+NO CAIRO BACKEND - We strip out GNUstep's rendering code
+```
 
-**openSEF Way**:
-1. User changes theme in settings
-2. Settings calls `themeManager->loadTheme("NewTheme")`
-3. Framework publishes "theme.changed" event
-4. All components subscribe to event
-5. All components update simultaneously
-6. Perfectly synchronized
+**Bridge**: Objective-C++ connects AppKit widgets to Qt Quick for rendering
 
-**Result**: Instant, consistent, synchronized.
-
----
-
-## Development Philosophy
-
-### What We Believe
-
-**1. Users Should Never See Technical Details**
-- No systemd logs
-- No "Starting service..." messages
-- No configuration files
-- Just smooth, beautiful graphics
-
-**2. Developers Should Have One API**
-- Not "compositor API + D-Bus + Wayland protocols"
-- Just `OSFDesktop::shared()`
-- One way to do things
-- Clear, documented, consistent
-
-**3. Components Should Work Together**
-- Not separate apps that happen to run together
-- Integrated system with shared state
-- Event-driven communication
-- Automatic coordination
-
-**4. The Experience Should Be Seamless**
-- Boot to shutdown
-- No visible seams
-- Smooth animations
-- Consistent theme
-- Feels like ONE system
-
-### What We Reject
-
-❌ **Linux DE Paradigms**
-- Fragmented components
-- Manual IPC
-- Per-app configuration
-- Visible system internals
-
-❌ **"Good Enough" Mentality**
-- "Users can configure it"
-- "It works if you know how"
-- "Just edit the config file"
-
-❌ **Technical Exposure**
-- Systemd logs on boot
-- Terminal for basic tasks
-- Manual service management
-
-✅ **We Build macOS-Style Experiences**
-- Integrated from boot to shutdown
-- Beautiful by default
-- Just works
-- No configuration needed
-
----
-
-## The Result
-
-**When you use VitusOS Ares, you get:**
-
-✅ **Smooth boot animation** - Not systemd logs  
-✅ **Beautiful lockscreen** - Not login prompt  
-✅ **Integrated desktop** - Not collection of apps  
-✅ **Consistent theme** - Not per-app styling  
-✅ **Automatic coordination** - Not manual configuration  
-✅ **Smooth shutdown** - Not service stop messages  
-
-**It's a complete Desktop Experience, not a Linux Desktop Environment.**
-
----
-
-## For Users
-
-**You don't need to know any of this.**
-
-Just:
-1. Turn on computer
-2. See beautiful boot animation
-3. Login at lockscreen
-4. Use integrated desktop
-5. Shutdown smoothly
-
-**It just works.**
-
----
-
-## For Developers
-
-**You get a unified API:**
+### Layer 3: openSEF Desktop Framework
+**Purpose**: Unified system API (boot to shutdown)
 
 ```cpp
-#include <OSFDesktop.h>
-
+// Single API for EVERYTHING
 auto* desktop = OSFDesktop::shared();
+
+// Window management
+desktop->windowManager()->allWindows();
+
+//Events
 desktop->eventBus()->subscribe("window.created", handler);
-auto windows = desktop->windowManager()->allWindows();
-auto color = desktop->themeManager()->primaryColor();
+
+// Theme
+desktop->themeManager()->primaryColor();
+
+// Boot sequence
+desktop->bootManager()->showBootAnimation();
+
+// Session
+desktop->sessionManager()->logout();
 ```
 
-**One framework. One API. One system.**
+### Layer 4: System Integration
+**Purpose**: Boot, login, services
+
+- **Boot sequence** (custom, NO systemd logs shown)
+- **Login screen** (smooth animation)
+- **Session management** (logout/shutdown)
+- **Service registry** (like launchd, not systemd)
 
 ---
 
-## The Bottom Line
+## What We're Actually Building
 
-**VitusOS Ares is not trying to be "another Linux desktop".**
+### Phase 1: Fork GNUstep AppKit ✅
 
-**VitusOS Ares is building the Desktop Experience that Linux deserves.**
+```bash
+cd opensef/
+git clone https://github.com/gnustep/libs-gui.git opensef-gnustep
+cd opensef-gnustep
 
-**From boot to shutdown. Seamless. Beautiful. Integrated.**
+# Keep ONLY:
+# - Foundation/ (NSString, NSArray)
+# - AppKit/NSView.m NSButton.m NSMenu.m NSWindow.m
+# - AppKit/Layout/
 
-**No Linux DE paradigms. Just a complete experience.**
+# REMOVE:
+# - All Cairo/X11 rendering code
+# - Back.framework (graphics backend)
+# - Art/ (drawing code)
+```
+
+### Phase 2: Qt/AppKit Bridge ✅
+
+```
+opensef-shell-qt/
+├── AppKit/              🆕 AppKit widget wrappers
+│   ├── AresButton.m     (NSButton-based)
+│   ├── AresMenu.m       (NSMenu-based)
+│   └── AresWindow.m
+│
+├── src/
+│   ├── AppKitBridge.mm  🆕 Objective-C++ bridge
+│   └── PanelController.cpp
+│
+└── qml/
+    ├── Panel.qml        (Uses AresButton via bridge)
+    └── Dock.qml
+```
+
+**Bridge Example**:
+```cpp
+// AppKitBridge.mm
+class AresButtonQML : public QQuickItem {
+  Q_OBJECT
+  Q_PROPERTY(QString label READ label WRITE setLabel)
+  
+private:
+  AresButton* ns_button_; // GNUstep widget (logic only)
+  
+public:
+  // Button click logic = AppKit
+  // Rendering = Qt Quick
+  void paint(QPainter *painter) override {
+    // Read state from ns_button_, render with Qt
+  }
+};
+```
+
+### Phase 3: Unified Framework API ✅
+
+**Boot Sequence**:
+```cpp
+// Instead of systemd showing logs:
+OSFDesktop::shared()->bootManager()->showSplash();
+OSFDesktop::shared()->bootManager()->initServices();
+OSFDesktop::shared()->bootManager()->transitionToLogin();
+```
+
+**All Components Use Same API**:
+```cpp
+// Compositor
+osf_framework_init(); // C wrapper
+
+// Shell
+OSFDesktop::shared()->eventBus()->subscribe("window.focused");
+
+// Apps
+OSFDesktop::shared()->windowManager()->createWindow();
+```
 
 ---
 
-**Welcome to VitusOS Ares.**
+## What Gemini Got COMPLETELY Wrong
 
-**The future of Linux desktop computing.**
+### ❌ WRONG: "Use DBusMenu protocol"
+**Correct**: Apps use openSEF native menu API, NOT D-Bus
+
+```cpp
+// Native openSEF app:
+auto* menu = OSFMenu::create();
+menu->addItem("File", @selector(openFile:));
+desktop->menuManager()->registerMenu(menu, windowId);
+
+// Shell automatically shows it - NO D-Bus
+```
+
+### ❌ WRONG: "Use StatusNotifier for tray"
+**Correct**: Apps register with openSEF tray API
+
+```cpp
+// Native app:
+auto* tray = OSF TrayIcon::create("app-icon");
+desktop->systemTray()->registerIcon(tray);
+
+// Shell shows it - NO D-Bus
+```
+
+### ❌ WRONG: "Separate stack for native apps (Cairo)"
+**Correct**: ONE rendering stack (Qt Quick), AppKit provides widget LOGIC
+
+```
+Native App:
+  AppKit widgets (NSButton logic)
+    ↓
+  openSEF framework
+    ↓
+  Qt Quick rendering (Vulkan)
+```
+
+### ❌ WRONG: "Two parallel stacks"
+**Correct**: ONE unified system
+
+```
+Everything goes through openSEF framework:
+Boot → Compositor → Shell → Apps → Shutdown
+
+All use OSFDesktop API
+All render via Qt Quick + Vulkan
+AppKit provides widget architecture (not rendering)
+```
+
+---
+
+## The Experience (Boot to Shutdown)
+
+### 1. Boot
+```
+Hardware ON
+  ↓
+OSFBootManager::showSplash()
+  ↓
+Load openSEF framework
+  ↓
+Init compositor (wlroots + Vulkan)
+  ↓
+Transition to login (smooth fade)
+
+NO SYSTEMD LOGS VISIBLE
+```
+
+### 2. Login
+```
+OSFLockscreen appears
+  ↓
+User enters password
+  ↓
+OSFAuthenticator validates
+  ↓
+Fade to desktop
+
+ONE SMOOTH ANIMATION
+```
+
+### 3. Desktop
+```
+Panel (Qt Quick rendering, AppKit logic)
+Dock (Qt Quick rendering, AppKit logic)
+Apps (Qt Quick rendering, AppKit logic)
+
+All using: OSFDesktop::shared()
+```
+
+### 4. Shutdown
+```
+User clicks Shutdown
+  ↓
+OSFSessionManager::shutdown()
+  ↓
+Save state
+  ↓
+Fade out animation
+  ↓
+Hardware OFF
+
+NO SYSTEMD LOGS
+```
+
+---
+
+## Current Status (What's Done vs What's Needed)
+
+### ✅ Done
+- Compositor (wlroots + Vulkan)
+- Shell UI (Qt Quick rendering)
+- Framework skeleton (OSFDesktop stub)
+- Event bus (basic pub/sub)
+
+### 🚧 In Progress
+- Qt shell works butuses QML components, not AppKit widgets
+- Framework exists but not fully wired
+- Boot sequence shows systemd logs (need custom boot)
+
+### ❌ Not Started
+- Fork GNUstep AppKit
+- Qt/AppKit bridge (Objective-C++)
+- Native app support (using AppKit widgets)
+- Boot manager (hide systemd)
+- Session manager (smooth logout/shutdown)
+
+---
+
+## Next Steps (The Real Plan)
+
+### Week 1: Fork GNUstep
+1. Clone GNUstep libs-gui
+2. Strip out Cairo rendering code
+3. Keep only AppKit widget logic
+4. CMake build for static library
+
+### Week 2: AppKit Bridge
+1. Create Objective-C++ bridge layer
+2. Expose NSButton, NSMenu to QML
+3. Test: Button rendered via Qt, logic via AppKit
+
+### Week 3: Native App Support
+1. Create native app template using AppKit
+2. Wire up to framework API
+3. Test: Full native app running
+
+### Week 4: Boot/Session Management
+1. Custom boot splash (hide systemd)
+2. Smooth login transition
+3. Clean shutdown sequence
+
+---
+
+## The Unified Vision
+
+**What openSEF IS**:
+- macOS Cocoa for Linux
+- Boot-to-shutdown integrated system
+- ONE framework API
+- AppKit widgets + Qt Quick rendering
+- Seamless user experience
+
+**What openSEF IS NOT**:
+- Another Linux DE (GNOME/KDE)
+- Collection of separate tools
+- D-Bus spaghetti
+- Fragmented components
+
+---
+
+**This document is the source of truth.**  
+**Everything else that contradicts this is outdated.**
+
+Last Updated: 2026-01-11

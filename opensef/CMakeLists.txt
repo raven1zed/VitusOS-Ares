@@ -28,10 +28,7 @@ else()
     message(STATUS "wlroots NOT found - skipping compositor")
 endif()
 
-# Shell (Desktop UI)
-add_subdirectory(opensef-shell)
-
-# Qt Quick Shell (optional, requires Qt6)
+# Qt Quick Shell (requires Qt6) - PRODUCTION SHELL
 find_package(Qt6 QUIET COMPONENTS Core Gui Quick)
 if(Qt6_FOUND)
     message(STATUS "Qt6 found - building Qt Quick shell")

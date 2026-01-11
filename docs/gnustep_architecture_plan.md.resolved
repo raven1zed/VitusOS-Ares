@@ -1,0 +1,1001 @@
+# GNUstep + Qt Quick + Vulkan Architecture - Implementation Plan
+
+## Executive Summary
+
+**Current State:** VitusOS Ares has **two shells coexisting**:
+- `opensef-shell` (C + Cairo/Pango) ❌ **PROTOTYPE ONLY - REMOVE**
+- [opensef-shell-qt](file:///c:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt) (C++ + Qt Quick) ✅ **PRODUCTION - KEEP & ENHANCE**
+
+**User's Vision:**
+1. ✅ **Remove Cairo/Pango** (prototype served its purpose)
+2. ✅ **Keep Qt Quick + Vulkan** (already decided - AGENTS.md:115-118)
+3. 🆕 **Fork GNUstep AppKit** (for widget library, not rendering)
+4. ✅ **Keep openSEF architecture** (event bus, framework)
+
+---
+
+## Architecture Clarification
+
+### What We're Actually Building
+
+```
+Rendering Stack:
+┌─────────────────────────────────────────┐
+│ Qt Quick QML (Declarative UI)           │  ← UI Description
+├─────────────────────────────────────────┤
+│ Qt Quick Scene Graph                    │  ← Batching/Optimization  
+├─────────────────────────────────────────┤
+│ Qt RHI (Rendering Hardware Interface)   │  ← Abstraction Layer
+├─────────────────────────────────────────┤
+│ Vulkan (Primary)                        │  ← GPU API
+│ OpenGL ES (Fallback)                    │  
+└─────────────────────────────────────────┘
+
+Widget/Framework Layer:
+┌─────────────────────────────────────────┐
+│ GNUstep AppKit (forked)                 │  ← Widget Library
+│ • NSButton, NSWindow, NSView            │     (NOT for rendering!)
+│ • Layout engine                         │
+│ • Event handling patterns               │
+├─────────────────────────────────────────┤
+│ Qt/AppKit Bridge                        │  ← Interop Layer
+│ • QQuickItem ↔ NSView mapping          │
+│ • QML ↔ Objective-C bindings           │
+└─────────────────────────────────────────┘
+
+Desktop Integration:
+┌─────────────────────────────────────────┐
+│ opensef-shell-qt (Qt Quick + AppKit)    │
+│ • Panel.qml (uses GNUstep widgets)      │
+│ • Dock.qml                              │
+├─────────────────────────────────────────┤
+│ opensef-framework                       │
+│ • Event bus, state management           │
+├─────────────────────────────────────────┤
+│ opensef-compositor (wlroots)            │
+│ • Wayland protocol                      │
+└─────────────────────────────────────────┘
+```
+
+**Key Decision:** Qt Quick handles **rendering** (Vulkan), GNUstep provides **widget architecture**.
+
+---
+
+## Why This Combination?
+
+### Qt Quick + Vulkan (Already Decided)
+
+From AGENTS.md:
+> Qt chosen for: 600+ FPS, desktop ecosystem, gaming support
+
+**Strengths:**
+- ✅ 600+ FPS rendering
+- ✅ Vulkan primary, OpenGL fallback
+- ✅ Gaming-ready (DirectDRM passthrough)
+- ✅ QRhi abstraction (hardware-agnostic)
+
+**Weaknesses:**
+- ❌ QML caching issues (we've experienced this)
+- ❌ Opaque resource compilation
+- ❌ Limited widget library (needs custom work)
+
+### GNUstep AppKit (New Addition)
+
+**What GNUstep Provides:**
+- ✅ **Widget library**: NSButton, NSTableView, NSMenu, etc.
+- ✅ **Layout engine**: Constraints, stack views
+- ✅ **Design patterns**: Responder chain, MVC, delegates
+- ✅ **macOS compatibility**: Ares aesthetic aligns with Aqua
+
+**What GNUstep Does NOT Provide (we don't need):**
+- ❌ Rendering backend (Qt Quick does this)
+- ❌ Window system (wlroots compositor does this)
+- ❌ Event loop (Qt/openSEF handles this)
+
+---
+
+## Proposed Architecture
+
+### Remove Cairo Shell Entirely
+
+```bash
+# Delete prototype
+rm -rf opensef/opensef-shell/
+
+# Update CMakeLists.txt
+# Remove: add_subdirectory(opensef-shell)
+```
+
+**Rationale:** Cairo served its purpose for prototyping. Qt Quick is production.
+
+---
+
+### Fork and Integrate GNUstep
+
+```
+opensef/
+├── opensef-gnustep/              🆕 Minimal AppKit fork
+│   ├── Foundation/               (Keep: NSString, NSArray basics)
+│   ├── AppKit/
+│   │   ├── NSView.m             (Widget base class)
+│   │   ├── NSButton.m           (Button widget)
+│   │   ├── NSMenu.m             (Menu system)
+│   │   ├── NSWindow.m           (Window management)
+│   │   └── Layout/
+│   │       ├── NSLayoutConstraint.m
+│   │       └── NSStackView.m
+│   └── NO RENDERING CODE        ⚠️  GNUstep's Cairo backend EXCLUDED
+│
+├── opensef-shell-qt/             ✅ Enhanced, not replaced
+│   ├── qml/
+│   │   ├── Panel.qml            (Qt Quick rendering)
+│   │   ├── Dock.qml
+│   │   └── components/
+│   │       └── AresButton.qml   🆕 Uses AppKit logic internally
+│   ├── src/
+│   │   ├── PanelController.cpp  (Existing Qt C++)
+│   │   └── AppKitBridge.mm      🆕 Objective-C++ bridge
+│   └── AppKit/                  🆕 AppKit widget wrappers
+│       ├── AresButton.m         (NSButton → QML exposed)
+│       └── AresMenu.m           (NSMenu → QML exposed)
+│
+└── opensef-compositor/           ✅ Keep unchanged
+    └── wlroots Wayland
+```
+
+---
+
+## How Components Work Together
+
+### Example: Ares Button
+
+#### 1. GNUstep Widget (Objective-C)
+
+```objc
+// opensef-shell-qt/AppKit/AresButton.m
+
+@interface AresButton : NSButton
+@property (copy) NSString *label;
+@property (copy) NSColor *backgroundColor;
+@end
+
+@implementation AresButton
+
+- (instancetype)initWithLabel:(NSString*)label {
+  self = [super init];
+  self.label = label;
+  self.backgroundColor = [NSColor marsOrangeColor];
+  return self;
+}
+
+- (void)click {
+  // NSButton handles state, events
+  [self sendAction:self.action to:self.target];
+}
+
+@end
+```
+
+#### 2. Qt/QML Bridge (Objective-C++)
+
+```cpp
+// opensef-shell-qt/src/AppKitBridge.mm
+
+#import <AppKit/AppKit.h>
+#import <QQuickItem>
+
+class AresButtonQML : public QQuickItem {
+  Q_OBJECT
+  Q_PROPERTY(QString label READ label WRITE setLabel)
+  
+private:
+  AresButton* ns_button_;  // AppKit widget
+  
+public:
+  AresButtonQML() {
+    ns_button_ = [[AresButton alloc] initWithLabel:@""];
+    // Connect NSButton action to Qt signal
+    [ns_button_ setTarget:self];
+    [ns_button_ setAction:@selector(onButtonClicked)];
+  }
+  
+  QString label() const {
+    return QString::fromNSString(ns_button_.label);
+  }
+  
+  void setLabel(const QString& text) {
+    ns_button_.label = text.toNSString();
+    updateGeometry();  // Trigger QML relayout
+  }
+  
+  // Qt Quick renders, AppKit provides logic/state
+  QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData*) override {
+    // Render button using Qt Quick Scene Graph
+    // Use ns_button_ properties for appearance
+    auto* button = createButtonNode();
+    button->setRect(boundingRect());
+    button->setColor(ns_button_.backgroundColor.toQColor());
+    return button;
+  }
+  
+signals:
+  void clicked();
+  
+private slots:
+  void onButtonClicked() {
+    emit clicked();  // Bridge to Qt
+  }
+};
+```
+
+#### 3. Use in QML
+
+```qml
+// opensef-shell-qt/qml/Panel.qml
+
+import Ares.AppKit 1.0  // Our custom QML module
+
+Rectangle {
+  id: panel
+  
+  AresButton {  // Our AppKit-backed widget
+    id: multitaskButton
+    label: "Multitask"
+    width: 80
+    height: parent.height
+    
+    onClicked: multitaskController.toggle()
+  }
+}
+```
+
+**Flow:**
+1. QML declares `AresButton`
+2. C++ creates `AresButtonQML` (QQuickItem)
+3. `AresButtonQML` creates `AresButton` (NSButton)
+4. NSButton provides state/behavior
+5. Qt Quick Scene Graph renders visuals (Vulkan)
+6. User clicks → NSButton handles event → Qt signal emitted
+
+---
+
+## Migration Plan
+
+### Phase 1: Remove Cairo Shell (Week 1)
+
+**Tasks:**
+- [ ] Delete `opensef/opensef-shell/` directory
+- [ ] Remove `add_subdirectory(opensef-shell)` from CMakeLists
+- [ ] Update launch scripts to only use `osf-shell-qt-v2`
+- [ ] Clean build and verify Qt Quick shell works standalone
+
+**Deliverable:** Single Qt Quick shell, no Cairo
+
+---
+
+### Phase 2: Fork GNUstep AppKit (Week 1-2)
+
+**Tasks:**
+- [ ] Clone GNUstep: `git clone https://github.com/gnustep/libs-gui`
+- [ ] Create minimal subset: Foundation + AppKit (NO rendering!)
+- [ ] Remove Cairo dependencies from AppKit
+- [ ] Create CMake build (replace GNUmake)
+- [ ] Build standalone AppKit library
+
+**Deliverable:** `libopensef-gnustep.so` (AppKit widgets only)
+
+---
+
+### Phase 3: Qt/AppKit Bridge (Week 2-3)
+
+**Goal:** Allow QML to use AppKit widgets
+
+**Tasks:**
+- [ ] Create `AppKitBridge.mm` (Objective-C++ translation unit)
+- [ ] Implement `QQuickItem` base class for AppKit widgets
+- [ ] Create `AresButton` (NSButton → QML)
+- [ ] Create `AresMenu` (NSMenu → QML)
+- [ ] Register QML module: `qmlRegisterType<AresButton>("Ares.AppKit", 1, 0, "AresButton")`
+
+**Example Test:**
+```qml
+import QtQuick 2.15
+import Ares.AppKit 1.0
+
+Item {
+  AresButton {
+    label: "Test"
+    onClicked: console.log("AppKit button works!")
+  }
+}
+```
+
+---
+
+### Phase 4: Rewrite Shell Components (Week 3-4)
+
+**Goal:** Replace hardcoded QML with AppKit-backed widgets
+
+**Before (Current):**
+```qml
+Rectangle {
+  id: multitaskButton
+  width: 80
+  color: "#D4622A"
+  Text { text: "Multitask" }
+  MouseArea { onClicked: ... }
+}
+```
+
+**After (AppKit):**
+```qml
+AresButton {
+  id: multitaskButton
+  label: "Multitask"
+  width: 80
+  theme: AresTheme.Mars  // AppKit theme support
+  onClicked: multitaskController.toggle()
+}
+```
+
+**Tasks:**
+- [ ] Panel: Replace Rectangle buttons with `AresButton`
+- [ ] Dock: Use `AresIconView` (NSCollectionView wrapper)
+- [ ] Menus: Use `AresMenu` (NSMenu wrapper)
+
+---
+
+### Phase 5: Layout Engine (Week 4-5)
+
+**Goal:** Use AppKit auto-layout instead of manual QML anchors
+
+```qml
+AresStackView {  // NSStackView wrapper
+  orientation: Horizontal
+  spacing: 16
+  
+  AresButton { label: "Filer" }
+  AresButton { label: "Edit" }
+  AresButton { label: "View" }
+  
+  // Auto-layout handles positioning
+}
+```
+
+---
+
+## Technical Details
+
+### Build System
+
+```cmake
+# opensef/CMakeLists.txt
+
+# Remove Cairo shell
+# add_subdirectory(opensef-shell)  ← DELETE THIS
+
+# Add GNUstep
+add_subdirectory(opensef-gnustep)
+
+# Qt shell depends on GNUstep now
+add_subdirectory(opensef-shell-qt)
+```
+
+```cmake
+# opensef/opensef-shell-qt/CMakeLists.txt
+
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick)
+
+add_library(ares-appkit-qml SHARED
+  src/AppKitBridge.mm           # Objective-C++ bridge
+  AppKit/AresButton.m           # AppKit widgets
+  AppKit/AresMenu.m
+)
+
+target_link_libraries(ares-appkit-qml
+  Qt6::Quick
+  opensef-gnustep               # Our forked AppKit
+  objc                          # Objective-C runtime
+)
+
+# Set Objective-C++ flags
+set_source_files_properties(
+  src/AppKitBridge.mm
+  PROPERTIES COMPILE_FLAGS "-fobjc-arc"
+)
+```
+
+### File Organization
+
+```
+opensef-shell-qt/
+├── qml/                    # Qt Quick UI (Vulkan rendering)
+│   ├── Panel.qml
+│   └── Dock.qml
+│
+├── src/                    # Qt C++ controllers
+│   ├── PanelController.cpp
+│   ├── DockController.cpp
+│   └── AppKitBridge.mm    🆕 Objective-C++ bridge
+│
+├── AppKit/                 🆕 GNUstep widget wrappers
+│   ├── AresButton.m       # NSButton wrapper
+│   ├── AresButton.h
+│   ├── AresMenu.m         # NSMenu wrapper
+│   └── AresTheme.m        # Ares color palette
+│
+└── CMakeLists.txt
+```
+
+### What Gets Compiled
+
+- `.qml` → Embedded via Qt RCC (QML cache issues we know about)
+- `.cpp` → Standard C++ (clang++)
+- `.mm` → Objective-C++ (clang++ with `-fobjc-arc`)
+- `.m` → Objective-C (clang with `-fobjc-arc`)
+
+---
+
+## Why This Works Better
+
+### Before (Dual Shell Mess)
+
+```
+User Request → Qt Quick QML 
+                 ↓
+            QML Cache Hell 🔥
+                 ↓
+            Embedded Resources
+                 ↓
+            Vulkan Rendering
+```
+
+**OR**
+
+```
+User Request → Cairo Shell (C)
+                 ↓
+            Manual Drawing
+                 ↓
+            CPU Rendering 🐌
+```
+
+### After (Unified AppKit + Qt Quick)
+
+```
+User Request → QML (UI Description)
+                 ↓
+            AppKit Widgets (Logic/State) 🧠
+                 ↓
+            Qt Quick Scene Graph (Batching)
+                 ↓
+            Vulkan Rendering (GPU) ⚡
+```
+
+**Benefits:**
+- ✅ **Single rendering path** (Vulkan via Qt Quick)
+- ✅ **Proven widget logic** (AppKit patterns)
+- ✅ **No manual drawing** (Qt handles pixels)
+- ✅ **macOS familiarity** (Ares aesthetic match)
+
+---
+
+## Risks & Mitigations
+
+### High Risk
+1. **Objective-C learning curve**
+   - Mitigation: Start small, document patterns
+   - Team bonus: transfers to iOS/macOS knowledge
+
+2. **Qt Quick + AppKit integration complexity**
+   - Mitigation: Build incrementally, test each widget
+
+### Medium Risk
+3. **GNUstep fork maintenance**
+   - Mitigation: Minimal subset, freeze version
+
+4. **QML caching still exists**
+   - Mitigation: AppKit widgets compiled, QML just glue layer
+
+---
+
+## Success Metrics
+
+✅ Zero Cairo/Pango dependencies  
+✅ Single `osf-shell-qt-v2` binary  
+✅ AppKit widgets usable in QML  
+✅ Vulkan rendering 600+ FPS  
+✅ No "multitask button doesn't update" bugs (compiled widgets!)  
+
+---
+
+## Timeline
+
+| Phase | Duration | Key Milestone |
+|-------|----------|--------------|
+| 1. Remove Cairo | 1 week | Qt-only build |
+| 2. Fork GNUstep | 1 week | AppKit library compiles |
+| 3. Qt/AppKit Bridge | 2 weeks | `AresButton` works in QML |
+| 4. Shell Rewrite | 1 week | Panel uses AppKit widgets |
+| 5. Layout Engine | 1 week | Auto-layout working |
+| **Total** | **6 weeks** | **Production AppKit + Qt shell** |
+
+---
+
+## Next Steps
+
+**Immediate Action (This Session):**
+1. Delete `opensef/opensef-shell/` (Cairo prototype)
+2. Update CMakeLists.txt to only build Qt shell
+3. Create `opensef/opensef-gnustep/` directory structure
+
+**This Week:**
+1. Fork GNUstep Foundation + AppKit
+2. Extract minimal subset (no rendering!)
+3. Create CMake build
+
+---
+
+## Appendix: Why Not Just Qt Widgets?
+
+**Qt Widgets (C++)** vs **Qt Quick (QML)**:
+
+Qt already has a C++ widget library (`QWidget`, `QPushButton`). Why add GNUstep?
+
+**Reasons:**
+1. **Qt Widgets are legacy**: Qt's future is Qt Quick/QML
+2. **Performance**: Qt Quick uses Scene Graph (better Vulkan integration)
+3. **Declarative UI**: QML is nicer than C++ widget code
+4. **GNUstep philosophy**: AppKit patterns better match our Ares vision
+
+**Best of both:**
+- Qt Quick (rendering, scene graph, Vulkan)
+- AppKit (widget logic, design patterns)
+- QML (declarative glue)
+
+
+## Executive Summary
+
+**Problem:** VitusOS Ares currently maintains **two parallel shell implementations**:
+- `opensef-shell` (C + Cairo/Pango) - Legacy rendering
+- `opensef-shell-qt` (C++ + Qt Quick) - GPU-accelerated but QML complexity
+
+**Proposed Solution:** Fork and modernize **GNUstep's AppKit** as the unified UI foundation, eliminating redundancy and leveraging proven macOS-style architecture.
+
+---
+
+## Current Architecture Analysis
+
+### Dual Shell Problem
+
+```
+opensef/
+├── opensef-shell/        ❌ C + Cairo + Pango (CPU rendering)
+│   ├── OSFPanel.cpp
+│   ├── OSFDock.cpp
+│   └── OSFWallpaper.cpp
+│
+├── opensef-shell-qt/     ❌ C++ + Qt Quick + QML (GPU but complex)
+│   ├── Panel.qml
+│   ├── Dock.qml
+│   └── PanelController.cpp
+│
+└── opensef-appkit/       ⚠️  Basic widgets (OSFButton, OSFWindow)
+    └── Limited functionality
+```
+
+**Issues:**
+1. **Redundancy**: Two codebases doing the same thing
+2. **Maintenance burden**: Fix bugs twice, implement features twice
+3. **Inconsistency**: Different rendering paths, different behaviors
+4. **Resource waste**: Building both shells increases build time
+5. **QML cache hell**: We just spent hours debugging Qt's opaque caching
+
+---
+
+## Why GNUstep AppKit?
+
+### Strategic Advantages
+
+1. **Proven Architecture**
+   - 30+ years of Cocoa/AppKit design patterns
+   - Mature view hierarchy and event system
+   - Aligns with VitusOS "Ares" aesthetic (macOS inspiration)
+
+2. **Technical Benefits**
+   - **Objective-C ⊂ C**: Can call from C/C++ with minimal bridging
+   - **Clean separation**: UI (AppKit) vs Foundation (data structures)
+   - **Renderer agnostic**: Currently uses Cairo, but we can replace with Skia/Vulkan
+   - **Window management**: Built-in NSWindow system maps to Wayland
+
+3. **Design Philosophy Match**
+   - First-class animations (NSAnimationContext)
+   - Constraint-based layouts (NSLayoutConstraint)
+   - Responder chain pattern (event handling)
+   - MVC architecture
+
+### What We Get Out-of-the-Box
+
+```objc
+// Complete UI framework
+NSWindow, NSView, NSButton, NSTextField
+NSMenu, NSPanel, NSScrollView
+NSTableView, NSOutlineView, NSCollectionView
+
+// Layout & constraints
+NSLayoutConstraint, NSStackView
+Auto Layout engine
+
+// Graphics & animation
+NSBezierPath, NSImage, NSColor
+NSAnimation, CALayer integration
+
+// Event handling
+NSResponder chain
+NSEvent system
+Gesture recognizers
+```
+
+---
+
+## Proposed Architecture
+
+### New Structure
+
+```
+opensef/
+├── opensef-gnustep/           🆕 Forked GNUstep
+│   ├── Foundation/            (Data structures, collections)
+│   ├── AppKit/                (UI framework - OUR FOCUS)
+│   │   ├── NSWindow.m
+│   │   ├── NSView.m
+│   │   ├── NSButton.m
+│   │   └── Rendering/
+│   │       ├── skia_backend.cpp   🆕 Replace Cairo with Skia
+│   │       └── wayland_window.c   🆕 Wayland integration
+│   └── CoreAnimation/         (Layer-based animations)
+│
+├── opensef-shell-appkit/      🆕 Unified shell using AppKit
+│   ├── AresPanel.m            (NSWindow + custom NSView)
+│   ├── AresDock.m             (NSPanel with icon views)
+│   ├── AresWallpaper.m        (Full-screen NSView)
+│   └── C++ Bridge/
+│       └── appkit_bridge.cpp  (C++ → Objective-C calls)
+│
+├── opensef-compositor/        ✅ Keep as-is (wlroots)
+└── opensef-framework/         ✅ Keep as-is (event bus)
+```
+
+---
+
+## Migration Strategy
+
+### Phase 1: GNUstep Fork & Preparation (Week 1-2)
+
+**Tasks:**
+- [ ] Fork GNUstep from https://github.com/gnustep/libs-gui
+- [ ] Study current build system (GNUmake → CMake conversion)
+- [ ] Identify minimal AppKit subset needed
+- [ ] Create CMake build files for our fork
+
+**Deliverable:** Buildable GNUstep AppKit library
+
+---
+
+### Phase 2: Rendering Backend Modernization (Week 2-3)
+
+**Current:** GNUstep uses Cairo for rendering  
+**Goal:** Replace with Skia for GPU acceleration
+
+```cpp
+// opensef-gnustep/AppKit/Rendering/skia_backend.cpp
+
+class SkiaRenderContext : public NSGraphicsContext {
+  sk_sp<SkSurface> surface_;
+  SkCanvas* canvas_;
+  
+public:
+  void drawRect(NSRect rect, NSColor* color) {
+    SkPaint paint;
+    paint.setColor(nscolor_to_skcolor(color));
+    canvas_->drawRect(nsrect_to_skrect(rect), paint);
+  }
+  
+  void flush() {
+    surface_->flush();
+    // Send to Wayland buffer
+  }
+};
+```
+
+**Tasks:**
+- [ ] Create Skia rendering backend
+- [ ] Implement NSGraphicsContext → SkCanvas bridge
+- [ ] Port NSBezierPath to SkPath
+- [ ] Test basic shape rendering
+
+---
+
+### Phase 3: Wayland Integration (Week 3-4)
+
+**Goal:** Map NSWindow to Wayland surfaces
+
+```c
+// opensef-gnustep/AppKit/Rendering/wayland_window.c
+
+struct NSWindowWaylandBacking {
+  struct wl_surface *surface;
+  struct wl_buffer *buffer;
+  struct zwlr_layer_surface_v1 *layer_surface;  // For panel/dock
+};
+
+void NSWindow_show_wayland(NSWindow *window) {
+  window->wayland_backing = create_wayland_surface();
+  attach_skia_buffer(window->wayland_backing);
+  wl_surface_commit(window->wayland_backing->surface);
+}
+```
+
+**Tasks:**
+- [ ] Create Wayland window backend for NSWindow
+- [ ] Implement layer-shell protocol for panels
+- [ ] Map NSEvent to Wayland input events
+- [ ] Test window creation and input
+
+---
+
+### Phase 4: Shell Reimplementation (Week 4-5)
+
+**Goal:** Rebuild panel/dock/wallpaper using AppKit
+
+```objc
+// opensef-shell-appkit/AresPanel.m
+
+@interface AresPanel : NSPanel
+@property (strong) NSStackView *menuBar;
+@property (strong) NSTextField *titleLabel;
+@property (strong) NSImageView *accentBox;
+@end
+
+@implementation AresPanel
+
+- (instancetype)init {
+  self = [super initWithContentRect:NSMakeRect(0, 0, 1920, 28)
+                          styleMask:NSBorderlessWindowMask
+                            backing:NSBackingStoreBuffered
+                              defer:NO];
+  
+  // 8px orange accent box
+  self.accentBox = [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, 8, 28)];
+  self.accentBox.wantsLayer = YES;
+  self.accentBox.layer.backgroundColor = [NSColor marsOrangeColor].CGColor;
+  
+  // Global menu
+  self.menuBar = [[NSStackView alloc] init];
+  self.menuBar.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  self.menuBar.spacing = 16;
+  
+  [self.contentView addSubview:self.accentBox];
+  [self.contentView addSubview:self.menuBar];
+  
+  return self;
+}
+
+@end
+```
+
+**Tasks:**
+- [ ] Implement AresPanel (top bar)
+- [ ] Implement AresDock (bottom launcher)
+- [ ] Implement AresWallpaper (background)
+- [ ] Wire up to opensef-framework event bus
+
+---
+
+### Phase 5: C++ Integration Bridge (Week 5-6)
+
+**Goal:** Allow C++ apps to use AppKit without Objective-C
+
+```cpp
+// opensef-shell-appkit/C++ Bridge/appkit_bridge.h
+
+namespace opensef {
+
+class Window {
+  void* ns_window_;  // NSWindow opaque pointer
+  
+public:
+  Window(int width, int height);
+  void setTitle(const std::string& title);
+  void show();
+  void addButton(const std::string& label, std::function<void()> callback);
+};
+
+} // namespace opensef
+
+
+// Implementation (appkit_bridge.mm - Objective-C++)
+#import <AppKit/AppKit.h>
+
+namespace opensef {
+
+Window::Window(int w, int h) {
+  NSWindow* win = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, w, h)
+                                              styleMask:NSTitledWindowMask
+                                                backing:NSBackingStoreBuffered
+                                                  defer:NO];
+  ns_window_ = (__bridge_retained void*)win;
+}
+
+void Window::show() {
+  NSWindow* win = (__bridge NSWindow*)ns_window_;
+  [win makeKeyAndOrderFront:nil];
+}
+
+} // namespace opensef
+```
+
+---
+
+## Technical Considerations
+
+### Objective-C Runtime
+
+**Option 1:** Use GNUstep's Objective-C runtime (libobjc2)  
+**Option 2:** Use LLVM's Objective-C support (modern, better C++ interop)
+
+**Recommendation:** LLVM runtime for better C++/ObjC++ integration
+
+### Build System
+
+```cmake
+# opensef/opensef-gnustep/CMakeLists.txt
+
+find_package(Skia REQUIRED)
+find_package(Wayland REQUIRED)
+
+add_library(gnustep-appkit SHARED
+  AppKit/NSWindow.m
+  AppKit/NSView.m
+  AppKit/NSButton.m
+  AppKit/Rendering/skia_backend.cpp
+  AppKit/Rendering/wayland_window.c
+)
+
+target_compile_options(gnustep-appkit PRIVATE
+  -fobjc-arc          # Automatic Reference Counting
+  -fblocks            # Block support
+)
+
+target_link_libraries(gnustep-appkit
+  objc                # Objective-C runtime
+  skia
+  wayland-client
+)
+```
+
+### File Extensions
+
+- `.m` - Pure Objective-C
+- `.mm` - Objective-C++ (ObjC + C++ in same file)
+- `.cpp` - Pure C++
+- `.h` - Headers (can be imported by all)
+
+---
+
+## Risk Assessment
+
+### High Risk
+1. **Learning curve**: Team unfamiliar with Objective-C
+   - *Mitigation*: Start with small subset, document patterns
+
+2. **GNUstep codebase complexity**: Large, mature project
+   - *Mitigation*: Fork only AppKit, not full GNUstep stack
+
+### Medium Risk
+3. **Skia integration effort**: Replacing Cairo is non-trivial
+   - *Mitigation*: Gradual port, start with basic shapes
+
+4. **Wayland protocol gaps**: NSWindow assumptions may not map 1:1
+   - *Mitigation*: Custom layer-shell extensions
+
+### Low Risk
+5. **Performance**: Objective-C overhead
+   - *Note*: Negligible for UI code, same as C++
+
+---
+
+## Success Criteria
+
+✅ **Single unified shell** (eliminate dual Cairo/Qt shells)  
+✅ **Declarative UI** (Objective-C is cleaner than QML for this)  
+✅ **GPU acceleration** (Skia backend)  
+✅ **No QML cache issues** (pure compiled code)  
+✅ **Familiar patterns** (AppKit = Cocoa = macOS developers onboard easily)  
+✅ **Extensible** (C++ apps can use via bridge)
+
+---
+
+## Timeline
+
+| Phase | Duration | Deliverable |
+|-------|----------|-------------|
+| 1. Fork & Setup | 2 weeks | Buildable AppKit library |
+| 2. Skia Backend | 1 week | GPU rendering working |
+| 3. Wayland | 1 week | Windows display on screen |
+| 4. Shell Rewrite | 1 week | Panel + Dock + Wallpaper |
+| 5. C++ Bridge | 1 week | C++ API usable |
+| **Total** | **6 weeks** | **Production-ready AppKit shell** |
+
+---
+
+## Next Steps
+
+> [!IMPORTANT]  
+> **Decision Required**: Do we proceed with this architectural shift?
+
+If approved:
+1. Create new repository: `opensef-gnustep` (fork of GNUstep)
+2. Set up CMake build system
+3. Begin Phase 1 (minimal AppKit extraction)
+
+**Alternative:** Continue with Qt Quick but eliminate Cairo shell entirely
+- Faster short-term
+- Less strategic long-term
+- Doesn't address QML complexity
+
+---
+
+## Appendix: Code Examples
+
+### Before (Current Qt Quick)
+
+```qml
+// Panel.qml - Declarative but opaque caching
+Rectangle {
+  id: panel
+  height: 28
+  
+  Rectangle {
+    id: accentBox
+    width: 8
+    height: parent.height
+    color: "#D4622A"
+  }
+  
+  Row {
+    id: menuBar
+    Repeater {
+      model: panelController.menuItems
+      delegate: Text { text: modelData.title }
+    }
+  }
+}
+```
+
+### After (GNUstep AppKit)
+
+```objc
+// AresPanel.m - Explicit, no caching issues
+@implementation AresPanel
+
+- (void)layout {
+  // Accent box: 8px × 28px
+  [self.accentBox setFrame:NSMakeRect(0, 0, 8, self.frame.size.height)];
+  
+  // Menu bar
+  CGFloat x = 16;
+  for (NSMenuItem *item in self.menuItems) {
+    NSButton *btn = [self createMenuButton:item.title];
+    [btn setFrame:NSMakeRect(x, 0, btn.intrinsicContentSize.width, 28)];
+    [self.contentView addSubview:btn];
+    x += btn.frame.size.width + 16;
+  }
+}
+
+@end
+```
+
+**Clarity:** Explicit layouts, no "QRC embedding" mystery  
+**Debugging:** Standard C/ObjC debugger, no QML runtime  
+**Performance:** Compiled code, predictable behavior

@@ -1,10 +1,13 @@
 #include "PanelController.h"
 #include "DBusMenuImporter.h"
+#include <OSFDesktop.h>
+#include <OSFEventBus.h>
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDateTime>
 #include <QDebug>
+#include <QMetaObject>
 #include <QTimer>
 
 // DBusMenu registrar service name
@@ -37,22 +40,33 @@ PanelController::PanelController(QObject *parent) : QObject(parent) {
 PanelController::~PanelController() { delete m_menuImporter; }
 
 void PanelController::connectToFramework() {
-  // TODO: Connect to OSFEventBus via DBus or direct linkage
-  // For now, we'll simulate events
+  qDebug() << "[PanelController] Subscribing to OSFEventBus...";
 
-  // In production, this would subscribe to:
-  // - window.focused
-  // - window.title_changed
-  // - application.launched
-  // - application.closed
+  auto *eventBus = OpenSEF::OSFDesktop::shared()->eventBus();
 
-  qDebug() << "[PanelController] Connecting to framework...";
+  // Subscribe to window focus events
+  eventBus->subscribe(
+      OpenSEF::OSFEventBus::WINDOW_FOCUSED, [this](const OpenSEF::OSFEvent &e) {
+        QString title = QString::fromStdString(e.get<std::string>("title"));
+        QString appId = QString::fromStdString(e.get<std::string>("app_id"));
+        QString windowId =
+            QString::fromStdString(e.get<std::string>("window_id"));
+
+        // Update on UI thread
+        QMetaObject::invokeMethod(this, [this, title, appId, windowId]() {
+          onWindowFocused(windowId, title, appId);
+        });
+      });
+
+  qDebug() << "[PanelController] Success: Connected to OSF framework.";
 }
 
 void PanelController::updateClock() {
-  QString time = QDateTime::currentDateTime().toString("h:mm AP");
+  QDateTime now = QDateTime::currentDateTime();
+  QString time = now.toString("dddd, MMM d, h:mm:ss AP");
   if (time != m_currentTime) {
     m_currentTime = time;
+    qDebug() << "[PanelController] Heartbeat - Clock ticking:" << m_currentTime;
     emit currentTimeChanged();
   }
 }
@@ -79,6 +93,10 @@ void PanelController::menuItemClicked(int menuIndex, int itemIndex) {
         QVariantMap item = items[itemIndex].toMap();
         int id = item["id"].toInt();
         if (id > 0) {
+          // DEBUG: Verify binary version
+          fprintf(stderr, "=== OSF SHELL QT V2 STARTING - BUILD_ID: "
+                          "VERIFY_FRAMEWORK_LIVE ===\n");
+          fflush(stderr);
           m_menuImporter->activateItem(id);
           return;
         }
@@ -90,9 +108,10 @@ void PanelController::menuItemClicked(int menuIndex, int itemIndex) {
   qDebug() << "[PanelController] No DBusMenu action available for item";
 }
 
-void PanelController::showMenu(int menuIndex) {
-  qDebug() << "[PanelController] Show menu:" << menuIndex;
-  // Menu expansion is handled by QML
+void PanelController::showMenu(int menuIndex, int x, int y) {
+  qDebug() << "[PanelController] showMenu requested for index:" << menuIndex
+           << "at" << x << "," << y;
+  emit menuRequested(menuIndex, x, y);
 }
 
 void PanelController::hideMenu() { qDebug() << "[PanelController] Hide menu"; }
@@ -224,22 +243,22 @@ void PanelController::loadDefaultMenu() {
       QVariantMap{{"label", "Close"}, {"action", "close"}, {"id", 0}}};
   m_globalMenuItems.append(filerMenu);
 
-  // Edit menu
-  QVariantMap editMenu;
-  editMenu["title"] = "Edit";
-  editMenu["items"] = QVariantList{
+  // Menu menu
+  QVariantMap menuMenu;
+  menuMenu["title"] = "Menu";
+  menuMenu["items"] = QVariantList{
       QVariantMap{{"label", "Undo"}, {"action", "undo"}, {"id", 0}},
       QVariantMap{{"label", "Redo"}, {"action", "redo"}, {"id", 0}},
       QVariantMap{{"separator", true}},
       QVariantMap{{"label", "Cut"}, {"action", "cut"}, {"id", 0}},
       QVariantMap{{"label", "Copy"}, {"action", "copy"}, {"id", 0}},
       QVariantMap{{"label", "Paste"}, {"action", "paste"}, {"id", 0}}};
-  m_globalMenuItems.append(editMenu);
+  m_globalMenuItems.append(menuMenu);
 
-  // View menu
-  QVariantMap viewMenu;
-  viewMenu["title"] = "View";
-  viewMenu["items"] = QVariantList{
+  // Settings menu
+  QVariantMap settingsMenu;
+  settingsMenu["title"] = "Settings";
+  settingsMenu["items"] = QVariantList{
       QVariantMap{{"label", "Icons"}, {"action", "view_icons"}, {"id", 0}},
       QVariantMap{{"label", "List"}, {"action", "view_list"}, {"id", 0}},
       QVariantMap{{"label", "Columns"}, {"action", "view_columns"}, {"id", 0}},
@@ -247,7 +266,7 @@ void PanelController::loadDefaultMenu() {
       QVariantMap{{"label", "Show Hidden Files"},
                   {"action", "show_hidden"},
                   {"id", 0}}};
-  m_globalMenuItems.append(viewMenu);
+  m_globalMenuItems.append(settingsMenu);
 
   // Help menu
   QVariantMap helpMenu;

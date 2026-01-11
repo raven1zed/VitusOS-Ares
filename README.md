@@ -1,334 +1,211 @@
 # VitusOS Ares
 
-<div align="center">
-
-<img src="resources/vitusos-logo.png" alt="VitusOS Logo" width="120">
-
-![VitusOS Ares](https://img.shields.io/badge/VitusOS-Ares-E85D04?style=for-the-badge)
-![openSEF](https://img.shields.io/badge/Framework-openSEF-3D5A80?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Prototype-green?style=for-the-badge)
-
-**"Bringing Life to the Beautiful Future We Were Promised"**
-
-*A unified Linux desktop experience combining OS1 minimalism, macOS Aqua vitality, and Ares warmth*
-
-</div>
+**openSEF**: Open Seamless Environment Framework  
+**Current Release**: Upstream Color (uptc) - Development Channel  
+**Next Release**: Upstream One (up1) - Stable
 
 ---
 
-## About
+## What is VitusOS Ares?
 
-VitusOS Ares is a **complete linux distro with openSEF that's work both as a desktop environment and a framework**
-- **Pure C Wayland compositor** using wlroots 0.19
-- **C++ UI shell** with Cairo/Pango rendering
-- **Mars-inspired "Ares" aesthetic** — warm, polished, human
+VitusOS Ares is a **unified Desktop Experience** from boot to shutdown - like macOS, not like traditional Linux DEs.
 
-### AI-Assisted Development
+**Not**: GNOME/KDE/XFCE (fragmented components)  
+**Is**: Complete integrated system with ONE framework controlling everything
 
-> **Transparency Notice**
-> 
-> This project is developed by **[@raven1zed](https://github.com/raven1zed)** (Human Architect) with significant AI assistance from **Claude** (Anthropic) and **Gemini** (Google DeepMind).
->
-> - **Human (@raven1zed)**: Vision, design direction, architecture decisions, code review, testing
-> - **AI (Claude/Gemini/ChatGPT)**: Code implementation, documentation, debugging, research
->
-> We believe in transparency about AI's role in software development. The architectural decisions, design philosophy, and quality assurance are human-driven. AI accelerates implementation but doesn't replace human creativity and judgment.
+---
+
+## Quick Start
+
+### Prerequisites
+- NixOS or Linux with Nix
+- WSL2 (for development) or native Wayland
+
+### Build & Run
+
+```bash
+# Enter dev environment
+nix develop
+
+# Build everything
+cd opensef && cmake -B build -G Ninja && cmake --build build
+
+# Run (in WSL2)
+bash scripts/run_vitus_ares.sh
+```
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           VitusOS Ares Desktop                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │                    Unified Framework (opensef-framework)            │   │
-│   │                                                                     │   │
-│   │   [ OSFEventBus ] ──────┬────── [ OSFStateManager ] ──── [ Cache ]  |   │
-│   │           ▲             │               ▲                           │   │
-│   └───────────┼─────────────┼───────────────┼───────────────────────────┘   │
-│               │             │               │                               │
-│      Events   │             │ States        │ Queries                       │
-│  (Pub/Sub)    │             ▼               │                               │
-│               │    ┌───────────────────┐    │                               │
-│   ┌───────────┴────┴─┐               ┌─┴────┴─────────────┐                 │
-│   │  Compositor (C)  │               │   Shell (C++)      │                 │
-│   │                  │               │                    │                 │
-│   │ • Window Mgmt    │◄─────────────►│ • OSFPanel         │                 │
-│   │ • Input          │    Wayland    │ • OSFDock          │                 │
-│   │ • Hardware       │  (Rendering)  │ • OSFAppKit        │                 │
-│   └──────────────────┘               └────────────────────┘                 │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│   Key:   ─── Framework Communication (Events)    ... Wayland Protocol       │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│            openSEF Framework (Unified)             │
+│  ┌──────────────────────────────────────────────┐  │
+│  │         OSFDesktop (Cocoa-like API)          │  │
+│  │   EventBus │ StateManager │ WindowManager    │  │
+│  └──────────────────────────────────────────────┘  │
+│                       ↕                            │
+│  ┌──────────────────────────────────────────────┐  │
+│  │  Compositor (wlroots + Vulkan)               │  │
+│  │  Shell (Qt Quick + Vulkan)                   │  │
+│  │  Apps (GNUstep AppKit + Qt Quick)            │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                    │
+│  Boot Animation → Login → Desktop → Shutdown       │
+│         (NO systemd logs visible)                  │
+└────────────────────────────────────────────────────┘
 ```
 
-### The Unified Architecture
-
-VitusOS Ares uses a **Unified Framework Architecture** that bridges the gap between the C-based Compositor (wlroots) and the C++ UI Shell.
-
-- **opensef-framework**: The central nervous system.
-  - **OSFEventBus**: Decoupled communication. Compositor publishes `window.created`, Shell subscribes to `window.created`.
-  - **OSFDesktop**: Singleton access to system state.
-- **opensef-compositor**: A pure C Wayland compositor that "speaks" Framework. It publishes events and registers windows.
-- **opensef-shell**: A C++ UI layer that consumes Framework events to update the Panel (active window title) and Dock (running apps).
-
-### Why Hybrid C/C++?
-
-**Problem:** wlroots uses C99-only syntax (`[static 4]`) that C++ compilers reject.
-
-**Solution:** 
-- Compositor core in **pure C** (8 files, ~1,300 lines)
-- UI shell as **C++ Wayland clients** (Cairo rendering)
-
-This is the same approach used by labwc, sway, and other production compositors.
+**Key Principle**: Everything uses `OSFDesktop::shared()` API - ONE unified system.
 
 ---
 
-## Current Status (January 8, 2026)
-
-| Component | Status |
-|-----------|--------|
-| **Framework Foundation** | ✅ Phase 1 Complete |
-| **Windowing Integration** | ✅ Phase 2 Complete |
-| **Window Decorations & Polish** | ✅ Phase 3 Complete |
-| **Compositor Core** | ✅ Working (Unified Framework Integration) |
-| **Panel** | ✅ Phase 4 Complete (Event-driven, active window tracking) |
-| **Dock** | ✅ Phase 4 Complete (Event-driven, dynamic width, autohide) |
-| **Wallpaper** | ✅ Working (image rendering) |
-| **Widget Library** | ⚠️ Basic (Button, Label, TextField - Phase 5 incomplete) |
-| **Layout + Responder** | ⚠️ Basic (Event loop, input handling) |
-| **Theming System** | ✅ Ares Palette Implemented |
-
-### Recent Improvements (January 8, 2026)
-
-**Window Decorations & Polish (Phase 3 Complete)**:
-- **Native CSD with Ares Palette**: Window traffic lights now use custom colors — Mars Orange (#D4622A) for close, Mars Gold (#D4A93E) for minimize, Vitus Blue (#4A9FD4) for maximize
-- **Interactive Feedback**: Subtle symbols (×, −, +) appear on hover for intuitive interaction
-- **Premium Light Theme**: Polished title bar design with #F5F5F5 background and crisp typography
-- **Perfect Rounded Corners**: 9px rounded corners with anti-aliased transparency
-
-**Dynamic Dock Enhancements**:
-- **Intelligent Width Calculation**: Dock dynamically resizes based on number of running apps
-- **Proximity-Based Autohide**: Automatically hides when windows overlap the bottom region, smoothly slides back when clear
-- **Enhanced Indicator Dots**: 3px active app indicator positioned below dock pill for perfect visibility
-
-**Global Menu Refinement**:
-- **Custom Corner Masking**: Dropdowns feature square top edges (matching panel) with smooth 8px rounded bottom corners
-- **Improved Glassmorphism**: Light opaque background for better legibility
-
-**Framework Architecture**:
-- **Unified Framework Integration**: Compositor, Panel, and Dock communicate entirely via `OSFEventBus` (no direct coupling)
-- **Event-Driven UI**: Panel subscribes to `window.focused` to update title; Dock subscribes to `application.launch` for app tracking
-- **State Management**: Centralized `OSFStateManager` holds single source of truth for window/app state
-- **Window Geometry Tracking**: Compositor reports real-time window positions to framework for spatial features like autohide
-
-> **Development Note**: We have successfully refactored the core Shell components (Panel/Dock) to use the new Unified Framework. The next phase (Phase 5) will focus on applying this same framework pattern to standard applications (Filer, Settings, Terminal).
-
----
-
-## Design System
-
-### Ares Color Palette
-
-| Color | Hex | Use |
-|-------|-----|-----|
-| **Space Orange** | `#E85D04` | Primary accent, close button |
-| **Mars Gold** | `#D4A93E` | Secondary accent, minimize button |
-| **Deep Space** | `#1A1A1A` | Dark backgrounds |
-| **Star White** | `#FFFFFF` | Window backgrounds, text |
-| **Lunar Gray** | `#F5F5F5` | Panels, title bars |
-
-### UI Dimensions
-
-| Element | Size |
-|---------|------|
-| Panel height | 28px |
-| Dock height (surface) | 120px |
-| Dock pill height | 64px |
-| Window corner radius | 9px |
-| Dock corner radius | 16px |
-| Traffic light buttons | 12px diameter |
-| Active indicator dot | 3px radius |
-
-### Traffic Light Colors (Ares Palette)
-
-| Button | Color | Hex | Symbol |
-|--------|-------|-----|--------|
-| **Close** | Mars Orange | `#D4622A` | × |
-| **Minimize** | Mars Gold | `#D4A93E` | − |
-| **Maximize** | Vitus Blue | `#4A9FD4` | + |
-
----
-
-## Getting Started
-
-### Requirements
-- NixOS (recommended) or Linux with Nix
-- wlroots 0.19+, Wayland, Cairo, Pango
-
-### Quick Start
-
-```bash
-# Clone repository
-git clone https://github.com/raven1zed/vitusos-ares.git
-cd vitusos-ares
-
-# Enter development environment
-nix develop
-
-# Build compositor
-cd opensef/opensef-compositor
-mkdir -p build && cd build
-cmake .. -G Ninja && ninja
-
-# Build shell (from project root)
-cd ../../opensef-shell
-mkdir -p build && cd build
-cmake .. -G Ninja && ninja
-
-# Run compositor (nested in existing Wayland session)
-WLR_BACKENDS=wayland ./opensef-compositor
-
-# Run panel (in separate terminal)
-./osf-panel
-
-# Run dock (in separate terminal)
-./osf-dock
-```
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Alt+Escape` | Quit compositor |
-| `Alt+F1` | Cycle window focus |
-
----
-
-### File Structure
+## Project Structure
 
 ```
-VitusOS Ares/
-├── opensef/
-│   ├── opensef-framework/      # Unified Event & Service Bus (The Core)
-│   │   ├── include/
-│   │   │   ├── OSFDesktop.h        # Main singleton entry point
-│   │   │   ├── OSFEventBus.h       # Event subscription system
-│   │   │   ├── OSFStateManager.h   # Central state repository
-│   │   │   ├── OSFResourceCache.h  # Shared assets
-│   │   │   └── OSFFrameworkC.h     # C bindings for Compositor
-│   │   └── src/
-│   │
-│   ├── opensef-compositor/     # Pure C Wayland Compositor
-│   │   ├── src/
-│   │   │   ├── main.c              # Entry point & Framework init
-│   │   │   ├── server.c            # wlroots backend setup
-│   │   │   ├── view.c              # Window management (tracks windows)
-│   │   │   ├── layer_shell.c       # Panel/Dock positioning
-│   │   │   └── ...
-│   │
-│   ├── opensef-shell/          # Native C++ UI Shell
-│   │   ├── src/
-│   │   │   ├── panel/OSFPanel.cpp  # Event-driven top bar
-│   │   │   ├── dock/OSFDock.cpp    # Event-driven dock
-│   │   │   └── render/OSFSurface.cpp
-│   │
-│   ├── opensef-base/           # Foundation Classes
-│   │   └── include/
-│   │       ├── OSFApplication.h    # App lifecycle base
-│   │       └── OSFNotification.h
-│   │
-│   ├── opensef-appkit/         # Widget Toolkit (Buttons, Labels)
-│   ├── opensef-core/           # Animation & Render Layers
-│   └── opensef-auth/           # Future Authentication (PAM)
+VitusOS-Ares/
+├── opensef/                    # Core framework
+│   ├── opensef-framework/      # Unified API (OSFDesktop, EventBus)
+│   ├── opensef-compositor/     # wlroots Wayland compositor
+│   ├── opensef-shell-qt/       # Qt Quick shell (Panel, Dock)
+│   ├── opensef-base/           # Foundation (geometry, views, layers)
+│   ├── opensef-core/           # Animation system
+│   └── opensef-appkit/         # Widget library (buttons, windows)
 │
-├── apps/                       # Standard Applications
-│   ├── osf-filer/
-│   ├── osf-settings/
-│   └── osf-terminal/
-│
-├── docs/                       # Documentation
-│   ├── DEVELOPER_GUIDE.md      # Comprehensive dev docs
-│   └── API.md                  # API reference
-│
-├── flake.nix                   # NixOS dev environment
-└── README.md                   # This file
+├── apps/                       # Native applications
+├── scripts/                    # Build & run scripts
+├── assets/                     # Icons, fonts, wallpapers
+└── docs/                       # Documentation
+```
+
+---
+
+## Current Phase
+
+**We are in Phase 4**: Controls & Integration (uptc release)
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1. Framework Foundation | ✅ Complete | OSFDesktop, EventBus, StateManager |
+| 2. Windowing Model | ✅ Complete | Compositor, window management |
+| 3. Shell & Layout | ✅ Complete | Panel, Dock, Wallpaper |
+| **4. Controls & Integration** | **🚧 Current** | **uptc release - Qt Quick shell functional** |
+| 5. System Services | 📋 Next | Boot manager, session, services |
+| 6. GNUstep AppKit Fork | 📋 Planned | Widget library (up1 goal) |
+| 7. Final Polish | 📋 Planned | Animations, accessibility |
+
+---
+
+## Tech Stack
+
+| Component | Technology | Why |
+|-----------|-----------|-----|
+| **Framework** | C++ (openSEF) | Unified API (like Cocoa) |
+| **Compositor** | C + wlroots + Vulkan | Wayland protocol, GPU rendering |
+| **Shell** | Qt Quick + QML | 600+ FPS, modern GPU pipeline |
+| **Widget Library** | C++ (transitioning to GNUstep) | macOS-like widgets |
+| **IPC** | C++ Event Bus (internal) | Unified pub/sub system |
+| **Future** | GNUstep AppKit fork | Native app framework (up1) |
+
+---
+
+## Release Channels
+
+### uptc (Upstream Color) - Current
+**Status**: Development / Early Access  
+**Goal**: Functional desktop with Qt Quick shell  
+**Paradigm**: Uses Linux protocols (DBusMenu, StatusNotifier) for compatibility  
+**Timeline**: Active development
+
+### up1 (Upstream One) - Future Stable
+**Status**: Planned  
+**Goal**: Pure openSEF unified framework  
+**Paradigm**: No Linux protocols, native openSEF APIs only  
+**Timeline**: After GNUstep AppKit integration
+
+---
+
+## What Makes This Different
+
+### Traditional Linux DE (GNOME/KDE)
+```
+❌ Fragmented components
+❌ D-Bus spaghetti
+❌ Each app loads own theme
+❌ Manual component configuration
+❌ Visible systemd logs on boot
+```
+
+### openSEF (VitusOS Ares)
+```
+✅ ONE unified framework
+✅ Central OSFDesktop API
+✅ Shared state & resources
+✅ Event-driven architecture
+✅ Smooth boot animation (no logs)
+✅ macOS-like experience
 ```
 
 ---
 
 ## Documentation
 
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** — Architecture, code walkthrough, contribution guide
-- **[API Reference](docs/API.md)** — OSFSurface, widgets, theme constants
-- **[Design Reference](openSEF%20Design%20Reference.md)** — UI/UX specifications
+- **[Architecture Overview](docs/VitusOS%20Ares.md)** - Complete technical architecture
+- **[Design Reference](docs/openSEF%20Design%20Reference.md)** - UI/UX guidelines
+- **[API Documentation](docs/API.md)** - Framework API reference
+- **[GNUstep Plan](docs/gnustep_architecture_plan.md.resolved)** - GNUstep AppKit integration
 
 ---
 
-## Roadmap
+## Development Status (uptc)
 
-**See [VitusOS Ares.md](VitusOS%20Ares.md) for the full 9-Phase Roadmap.**
+### ✅ Working
+- [x] Compositor (wlroots + Vulkan)
+- [x] Framework (OSFDesktop, EventBus)
+- [x] Shell rendering (Qt Quick + Vulkan)
+- [x] Panel (global menu stubs)
+- [x] Dock (app launcher)
+- [x] Window focus events
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| **1** | Framework Foundation | ✅ **Complete** |
-| **2** | Windowing Integration | ✅ **Complete** |
-| **3** | Window Decorations & Polish | ✅ **Complete** |
-| **4** | Shell Integration (Refactor) | ✅ **Complete** |
-| **5** | Application Integration | 📋 **Next Up** |
-| **6** | Service System | 📋 **Planned** |
-| **7** | Resource Management | 📋 **Planned** |
-| **8** | Testing & Verification | 📋 **Planned** |
-| **9** | Documentation | 📋 **Planned** |
+### 🚧 In Progress
+- [ ] Global menu (DBusMenu connection)
+- [ ] System tray (StatusNotifier functional)
+- [ ] Window title updates (just fixed!)
 
-> **Note**: Phase 4 involved refactoring the early prototype Shell (from Phase 7 original plan) to fully utilize the new Framework, ensuring a robust foundation before building more apps.
-
----
-
-## Design Inspiration
-
-- **OS1 (Her, 2013):** Warmth, minimalism, technology that recedes
-- **macOS Aqua:** Polish, animations, "lickable" UI
-- **The Martian:** Determination, "science the shit out of this"
+### 📋 Planned (up1)
+- [ ] GNUstep AppKit fork
+- [ ] Native openSEF menu/tray APIs
+- [ ] Boot splash (hide systemd)
+- [ ] Session management
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please see our [Developer Guide](docs/DEVELOPER_GUIDE.md) for:
-- Code style guidelines
-- Commit message format
-- Pull request process
-
-### Build & Test
-
-```bash
-nix develop
-cd opensef && mkdir -p build && cd build
-cmake .. -G Ninja -DBUILD_TESTING=ON
-ninja
-```
+See [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for:
+- Build instructions
+- Architecture deep-dive
+- Coding standards
+- Component communication patterns
 
 ---
 
 ## License
 
-MIT License © 2025-2026 VitusOS Project
+MIT License - See [LICENSE](LICENSE) file
 
 ---
 
-<div align="center">
+## Vision
 
-**VitusOS Ares** — *Reaching for Mars* 
+**"A desktop environment should feel like ONE system, not a collection of apps"**
+
+From the moment you power on until you shutdown, every component speaks the same language through openSEF. No fragmentation, no protocols - just a seamless experience.
+
+Inspired by: macOS Cocoa, NeXTSTEP, Her (OS1)
 
 ---
 
-<sub>
-Developed by <a href="https://github.com/raven1zed">@raven1zed</a> (Human Architect) with AI assistance from Claude (Anthropic) & Gemini (Google DeepMind)
-</sub>
-
-</div>
+**Current Focus**: Making uptc release functional and polished  
+**Next Milestone**: Fork GNUstep AppKit for up1 unified framework

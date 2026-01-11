@@ -31,7 +31,7 @@ VitusOS Ares combines three core aesthetics:
 - **Color**: `LunarGray` (#F5F5F5) at 95% opacity
 - **Shadow**: `0 1px 12px` soft shadow
 - **Layout**:
-  - **Left**: [Orange Accent Bar 8px] + [Global Menu]
+  - **Left**: [Orange Accent Box 20px+] + [Global Menu]
   - **Center**: [Active Window Title] (Bold)
   - **Right**: [Clock] (HH:mm)
 

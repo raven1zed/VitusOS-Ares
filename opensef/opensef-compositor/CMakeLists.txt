@@ -40,8 +40,8 @@ add_custom_command(OUTPUT ${XDG_SHELL_C}
     COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML})
 
-# Generate wlr-layer-shell protocol
-set(LAYER_SHELL_XML "${CMAKE_CURRENT_SOURCE_DIR}/../opensef-shell/protocols/wlr-layer-shell-unstable-v1.xml")
+# Generate wlr-layer-shell protocol (now in compositor/protocols)
+set(LAYER_SHELL_XML "${CMAKE_CURRENT_SOURCE_DIR}/protocols/wlr-layer-shell-unstable-v1.xml")
 set(LAYER_SHELL_H "${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.h")
 set(LAYER_SHELL_C "${CMAKE_CURRENT_BINARY_DIR}/wlr-layer-shell-unstable-v1-protocol.c")
 

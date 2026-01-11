@@ -11,7 +11,7 @@
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtGraphicalEffects 1.15
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: multitaskView
@@ -24,15 +24,7 @@ Rectangle {
         NumberAnimation { duration: 200 }
     }
     
-    // Blur background (placeholder - would use actual wallpaper)
-    FastBlur {
-        anchors.fill: parent
-        source: ShaderEffectSource {
-            sourceItem: parent.parent
-        }
-        radius: 32
-        visible: false  // Disabled for now
-    }
+    // Background blur placeholder removed - will be implemented with actual wallpaper integration
     
     // Title
     Text {

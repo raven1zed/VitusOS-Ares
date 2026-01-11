@@ -92,6 +92,13 @@ void osf_focus_view(struct osf_view *view, struct wlr_surface *surface) {
   wlr_xdg_toplevel_set_activated(view->xdg_toplevel, true);
   osf_view_update_borders(view, true);
 
+  /* Notify openSEF framework of window focus */
+  char window_id[64];
+  snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+  osf_window_focus(window_id);
+
+  wlr_log(WLR_DEBUG, "Framework notified: window focused - %s", window_id);
+
   /* Send keyboard focus */
   struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
   if (keyboard) {
@@ -114,17 +121,28 @@ static void view_map(struct wl_listener *listener, void *data) {
   view->mapped = true;
   wl_list_insert(&view->server->views, &view->link);
 
-  /* Initial position (avoid overlapping panel at Y=0) */
-  wlr_scene_node_set_position(&view->scene_tree->node, 50, 50);
+  const char *app_id =
+      view->xdg_toplevel->app_id ? view->xdg_toplevel->app_id : "unknown";
+
+  /* Position shell at (0,0) for fullscreen, regular apps offset to avoid panel
+   */
+  int x = 50, y = 50;
+  if (app_id && strcmp(app_id, "vitusos.shell") == 0) {
+    /* Shell window - position at (0,0) fullscreen no offset */
+    x = 0;
+    y = 0;
+    wlr_log(WLR_INFO, "Shell window detected - positioning at (0,0)");
+  }
+
+  wlr_scene_node_set_position(&view->scene_tree->node, x, y);
 
   osf_focus_view(view, view->xdg_toplevel->base->surface);
 
   const char *title =
       view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)";
-  const char *app_id =
-      view->xdg_toplevel->app_id ? view->xdg_toplevel->app_id : "unknown";
 
-  wlr_log(WLR_INFO, "View mapped: %s (app_id: %s)", title, app_id);
+  wlr_log(WLR_INFO, "View mapped: %s (app_id: %s) at (%d, %d)", title, app_id,
+          x, y);
 
   /* Register window with openSEF Framework */
   char window_id[64];
@@ -138,7 +156,7 @@ static void view_map(struct wl_listener *listener, void *data) {
 
   /* Report initial geometry */
   struct wlr_box geo = view->xdg_toplevel->base->current.geometry;
-  osf_window_set_geometry(window_id, 50, 50, geo.width, geo.height);
+  osf_window_set_geometry(window_id, x, y, geo.width, geo.height);
 
   wlr_log(WLR_INFO, "Window registered with framework: %s", window_id);
 }

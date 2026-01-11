@@ -45,7 +45,7 @@ public slots:
   // Actions from QML
   void toggleMultitask();
   void menuItemClicked(int menuIndex, int itemIndex);
-  void showMenu(int menuIndex);
+  void showMenu(int menuIndex, int x, int y);
   void hideMenu();
 
 signals:
@@ -54,6 +54,7 @@ signals:
   void globalMenuItemsChanged();
   void currentTimeChanged();
   void multitaskActiveChanged();
+  void menuRequested(int index, int x, int y);
 
 private slots:
   void updateClock();

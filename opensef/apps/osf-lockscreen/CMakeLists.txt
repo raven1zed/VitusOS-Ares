@@ -11,17 +11,16 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(WAYLAND REQUIRED wayland-client)
 
-# Source files
+# Source files (Cairo shell removed - lockscreen needs Qt Quick rewrite)
 set(SOURCES
     main.cpp
-    ../../opensef-shell/src/render/OSFSurface.cpp
+    # TODO: Rewrite lockscreen with Qt Quick instead of Cairo
 )
 
 # Create executable
 add_executable(osf-lockscreen ${SOURCES})
 
 target_include_directories(osf-lockscreen PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-shell/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-auth/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/include
     ${CAIRO_INCLUDE_DIRS}

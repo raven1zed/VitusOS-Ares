@@ -1,308 +1,124 @@
-# openSEF - Open SeagrEnv Framework
+# openSEF Framework Documentation
 
-## What is openSEF?
-
-**openSEF is NOT a Linux Desktop Environment.**
-
-openSEF is a **complete Desktop Experience framework** that provides seamless integration from the moment the machine boots until it shuts down. No systemd logs. No fragmented components. No Linux paradigms.
-
-Think **macOS**, not GNOME/KDE/XFCE.
+**Single source of truth for VitusOS Ares openSEF framework**
 
 ---
 
-## The Vision
+## Core Documents
 
-### What Users Experience
+### 1. **[Architecture Overview](VitusOS%20Ares.md)** 📐
+Complete technical architecture - how openSEF works as a unified framework.
 
-**Boot**:
-- Machine powers on
-- Beautiful boot animation (no systemd logs)
-- Smooth transition to login screen
-- No terminal, no text, no "Starting service..."
+**Read this to understand**:
+- Unified framework vs Linux DE paradigm
+- Tech stack (Qt Quick + Vulkan + GNUstep)
+- Boot-to-shutdown integration
+- Current vs future architecture
 
-**Login**:
-- Premium lockscreen with password field
-- Smooth fade-in animation
-- Instant transition to desktop
+### 2. **[Design Reference](openSEF%20Design%20Reference.md)** 🎨
+UI/UX guidelines and design language.
 
-**Desktop**:
-- Cohesive, integrated environment
-- Global menu bar (like macOS)
-- Dock with running applications
-- Everything feels like ONE system, not separate apps
+**Read this for**:
+- Ares aesthetic (macOS Aqua + OS1)
+- Color palette
+- Component sizes (panel 28px, dock 64px)
+- Typography (Inter font)
 
-**Shutdown**:
-- Smooth fade-out animation
-- Clean shutdown (no systemd logs)
-- Machine powers off gracefully
+### 3. **[API Documentation](API.md)** 💻
+Framework API reference for developers.
 
-### What Developers Get
+**Read this for**:
+- `OSFDesktop::shared()` usage
+- EventBus pub/sub patterns
+- WindowManager integration
+- Theme system
 
-**Unified API**:
-```cpp
-auto* desktop = OSFDesktop::shared();
-auto windows = desktop->windowManager()->allWindows();
-desktop->eventBus()->subscribe("window.created", handler);
-auto color = desktop->themeManager()->primaryColor();
-```
+### 4. **[GNUstep Integration Plan](gnustep_architecture_plan.md.resolved)** 🔧
+Complete plan for forking GNUstep AppKit.
 
-**Single Framework**:
-- One API for everything
-- Centralized state management
-- Event-driven architecture
-- Shared resources (icons, fonts, themes)
-- Service discovery
+**Read this for**:
+- Why GNUstep (widget architecture)
+- AppKitBridge design (Objective-C++)
+- Migration from Qt-only to Qt+AppKit
+- Implementation phases
 
-**No Fragmentation**:
-- Not "compositor + shell + apps"
-- ONE integrated system
-- Components communicate through framework
-- Shared state across all parts
+### 5. **[Known Limitations](KNOWN_LIMITATIONS.md)** ⚠️
+Current issues and workarounds.
 
----
+**Read this for**:
+- WSLg-specific issues (dropdowns, lockscreen)
+- Platform compatibility matrix
+- Temporary limitations
 
-## Architecture
+### 6. **[Cocoa Alignment Roadmap](COCOA_ALIGNMENT_ROADMAP.md)** 🗺️
+Phase tracking for Cocoa-like features.
 
-### The Old Way (Linux DE Paradigm) ❌
-
-```
-Compositor (Wayland/X11)
-    ↓ (protocols only)
-Window Manager
-    ↓ (D-Bus maybe?)
-Panel
-    ↓ (???)
-Applications
-    ↓ (each doing their own thing)
-```
-
-**Problems**:
-- Fragmented components
-- No shared state
-- Manual IPC
-- Each component loads own theme
-- No unified experience
-
-### The openSEF Way (Desktop Experience) ✅
-
-```
-┌─────────────────────────────────────────┐
-│         openSEF Framework               │
-│  ┌───────────────────────────────────┐  │
-│  │      OSFDesktop (Singleton)       │  │
-│  ├───────────────────────────────────┤  │
-│  │  • Event Bus                      │  │
-│  │  • State Manager                  │  │
-│  │  • Window Manager                 │  │
-│  │  • Service Registry               │  │
-│  │  • Resource Cache                 │  │
-│  │  • Theme Manager                  │  │
-│  └───────────────────────────────────┘  │
-└──────────┬──────────┬──────────┬────────┘
-           │          │          │
-      Compositor   Shell    Applications
-```
-
-**Benefits**:
-- Single source of truth
-- Unified API
-- Shared resources
-- Event-driven
-- Feels like ONE system
+**Read this for**:
+- What phase we're in (Phase 4)
+- Completed features (Phases 1-3)
+- Upcoming work (Phases 5-7)
 
 ---
 
-## Core Principles
+## Quick Reference
 
-### 1. **Seamless Integration**
-Everything works together. No visible seams between components.
+### Current Phase
+**Phase 4: Controls & Integration (uptc release)**
 
-### 2. **No Linux Paradigms**
-- No systemd logs visible to users
-- No fragmented "desktop environment"
-- No manual component configuration
-- No D-Bus spaghetti
+We are building the **uptc (Upstream Color)** development release with:
+- Qt Quick shell (functional)
+- Framework integration (OSFDesktop, EventBus)
+- Linux protocol compatibility (DBusMenu, StatusNotifier)
 
-### 3. **macOS-Style Experience**
-- Boot animation, not boot logs
-- Integrated UI, not separate apps
-- Unified theme, not per-app theming
-- Central API, not protocols
+### Next Phase
+**Phase 5: GNUstep AppKit Integration (up1 release)**
 
-### 4. **Developer-Friendly**
-- One API to learn
-- Clear documentation
-- Event-driven architecture
-- Easy to extend
-
-### 5. **User-Focused**
-- Beautiful from boot to shutdown
-- No technical details exposed
-- Smooth animations
-- Consistent experience
+Future work for **up1 (Upstream One)** stable release:
+- Fork GNUstep libs-gui
+- AppKitBridge (Objective-C++)
+- Replace Linux protocols with native openSEF APIs
 
 ---
 
-## Components
+## Documentation Standards
 
-### opensef-framework
-**The Core** - Unified Desktop Environment API
+### What Belongs Here
+✅ Architecture decisions  
+✅ API references  
+✅ Design guidelines  
+✅ Implementation plans  
+✅ Known limitations  
 
-Provides:
-- `OSFDesktop` - Central singleton
-- `OSFEventBus` - Event system
-- `OSFStateManager` - State management
-- `OSFWindowManager` - Window lifecycle
-- `OSFServiceRegistry` - Service discovery
-- `OSFResourceCache` - Shared resources
-- `OSFThemeManager` - Unified theming
-
-### opensef-compositor
-**Display Server** - Wayland compositor using wlroots
-
-Responsibilities:
-- Window rendering
-- Input handling
-- Output management
-- Registers windows with framework
-
-### opensef-shell
-**Desktop UI** - Panel, dock, wallpaper
-
-Components:
-- Global menu bar
-- Application dock
-- System tray
-- Wallpaper manager
-
-Uses framework for:
-- Window state queries
-- Event subscriptions
-- Theme consistency
-
-### opensef-appkit
-**Application Framework** - Widget library for apps
-
-Provides:
-- Buttons, labels, containers
-- Window management
-- Event handling
-- Theme integration
-
-### Applications
-**Built-in Apps** - Lockscreen, settings, file manager, etc.
-
-All apps:
-- Use opensef-framework API
-- Subscribe to desktop events
-- Share resources
-- Follow unified theme
+### What Doesn't Belong Here
+❌ Build logs (→ `logs/`)  
+❌ Temporary notes  
+❌ Outdated migration plans  
+❌ Implementation artifacts  
 
 ---
 
-## What Makes openSEF Different
+## Changelog
 
-### vs. GNOME/KDE/XFCE
+**2026-01-11**: Major cleanup
+- Removed outdated docs (BOOT_TO_SHUTDOWN, V1_READINESS, old DEVELOPER_GUIDE)
+- Created this index for clarity
+- Updated README.md with current phase
+- Consolidated architecture into `VitusOS Ares.md`
 
-| Aspect | Linux DEs | openSEF |
-|--------|-----------|---------|
-| Architecture | Fragmented components | Unified framework |
-| State | Each component maintains own | Centralized state manager |
-| Communication | D-Bus, protocols | Event bus + API |
-| Resources | Each loads own | Shared cache |
-| Theme | Per-app configuration | Unified theme manager |
-| Boot | systemd logs visible | Smooth boot animation |
-| Experience | Collection of apps | Integrated system |
-
-### vs. macOS
-
-| Aspect | macOS | openSEF |
-|--------|-------|---------|
-| Philosophy | ✅ Integrated experience | ✅ Integrated experience |
-| API | Cocoa/AppKit | openSEF Framework |
-| Open Source | ❌ Proprietary | ✅ Open Source |
-| Platform | macOS only | Linux |
-
-**openSEF is the open-source macOS-style experience for Linux.**
+**2026-01-07**: Cocoa alignment
+- Added `COCOA_ALIGNMENT_ROADMAP.md`
+- Updated `gnustep_architecture_plan.md.resolved`
 
 ---
 
-## Development Philosophy
+## Reading Order for New Contributors
 
-### What We Build
-
-✅ **Integrated systems** - Components work together seamlessly  
-✅ **Unified APIs** - One way to do things  
-✅ **Event-driven** - Loose coupling, high cohesion  
-✅ **User-focused** - Beautiful, smooth, polished  
-✅ **Developer-friendly** - Clear, documented, consistent  
-
-### What We DON'T Build
-
-❌ **Fragmented components** - No "compositor + shell + WM"  
-❌ **Protocol spaghetti** - No manual D-Bus/Wayland IPC  
-❌ **Per-app configuration** - No separate theme files  
-❌ **Visible systemd** - No boot logs for users  
-❌ **Linux DE paradigms** - We're building an experience, not a DE  
+1. **Start**: `../README.md` (Project overview)
+2. **Architecture**: `VitusOS Ares.md` (How it all works)
+3. **Design**: `openSEF Design Reference.md` (UI/UX)
+4. **API**: `API.md` (Code integration)
+5. **Deep Dive**: `gnustep_architecture_plan.md.resolved` (Future direction)
 
 ---
 
-## Getting Started
-
-### For Users
-
-1. Boot VitusOS
-2. See beautiful boot animation
-3. Login at lockscreen
-4. Enjoy integrated desktop
-5. Shutdown smoothly
-
-**No configuration needed. It just works.**
-
-### For Developers
-
-```cpp
-#include <OSFDesktop.h>
-
-int main() {
-  auto* desktop = OSFDesktop::shared();
-  desktop->initialize();
-  
-  // Subscribe to events
-  desktop->eventBus()->subscribe("window.created", [](auto& e) {
-    std::cout << "New window!" << std::endl;
-  });
-  
-  // Query state
-  auto windows = desktop->windowManager()->allWindows();
-  
-  // Use theme
-  auto color = desktop->themeManager()->primaryColor();
-  
-  desktop->run();
-}
-```
-
-**One API. One framework. One system.**
-
----
-
-## The Bottom Line
-
-**openSEF is not trying to be another Linux Desktop Environment.**
-
-**openSEF is building a complete Desktop Experience that happens to run on Linux.**
-
-The difference matters.
-
----
-
-## Learn More
-
-- [Developer Guide](DEVELOPER_GUIDE.md) - How to build with openSEF
-- [API Reference](API.md) - Complete API documentation
-- [Architecture](openSEF%20Architecture%20R%26D.md) - Technical deep dive
-
----
-
-**Welcome to the future of Linux desktop computing.**
+**Keep this folder clean**. If a document is outdated or duplicates another, remove it.
