@@ -5,16 +5,13 @@
 #include <QString>
 #include <QVariantList>
 
-// Forward declaration
-class DBusMenuImporter;
-
 /**
- * PanelController - Global menu panel controller
+ * PanelController - Native openSEF Panel Controller
  *
- * Manages the top panel including:
+ * NO KDE DBusMenu - Pure openSEF framework
+ * Manages:
  * - Active window title
- * - Global menu (DBusMenu integration)
- * - System tray icons
+ * - Global menu (native openSEF API)
  * - Clock
  */
 class PanelController : public QObject {
@@ -60,24 +57,16 @@ private slots:
   void updateClock();
   void onWindowFocused(const QString &windowId, const QString &title,
                        const QString &appId);
-  void onMenuUpdated();
 
 private:
   void connectToFramework();
-  void loadMenuForWindow(const QString &appId);
   void loadDefaultMenu();
-  void connectToDBusMenu(const QString &service, const QString &path);
 
   QString m_activeWindowTitle;
   QString m_activeAppId;
   QVariantList m_globalMenuItems;
   QString m_currentTime;
   bool m_multitaskActive = false;
-
-  // DBusMenu integration
-  DBusMenuImporter *m_menuImporter = nullptr;
-  QString m_currentMenuService;
-  QString m_currentMenuPath;
 };
 
 #endif // PANEL_CONTROLLER_H

@@ -1,8 +1,14 @@
 # VitusOS Ares
 
+<p align="center">
+  <img src="ui-design/VitusOS Logo 2.svg" alt="VitusOS Logo" width="200"/>
+</p>
+
 **openSEF**: Open Seamless Environment Framework  
 **Current Release**: Upstream Color (uptc) - Development Channel  
 **Next Release**: Upstream One (up1) - Stable
+
+**Developed with AI**: Google Gemini (Architecture & Implementation) + Anthropic Claude (Review & Enhancement)
 
 ---
 

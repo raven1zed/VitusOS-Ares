@@ -1,6 +1,7 @@
 /**
  * SystemTray.qml - macOS-style System Tray with Squircle containers
  * Aligned with Dock design language.
+ * Now with LIVE StatusNotifier icons!
  */
 
 import QtQuick 2.15
@@ -17,6 +18,7 @@ Row {
     component TrayIcon : Item {
         property alias iconSource: trayImg.source
         property color iconColor: "#1A1A1A"
+        property string iconId: ""
         
         width: 24
         height: 24
@@ -43,31 +45,45 @@ Row {
         ColorOverlay {
             anchors.fill: trayImg
             source: trayImg
-            color: iconColor
+            color: parent.iconColor
             opacity: 0.85
         }
-    }
-
-    // Network
-    TrayIcon {
-        iconSource: Qt.resolvedUrl("../../../assets/icons/network.svg")
+        
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                if (iconId) {
+                    systemTrayController.trayIconClicked(iconId)
+                }
+            }
+            onPressed: bg.color = Qt.rgba(1, 1, 1, 0.6)
+            onReleased: bg.color = Qt.rgba(1, 1, 1, 0.45)
+        }
     }
     
-    // Volume
-    TrayIcon {
-        iconSource: Qt.resolvedUrl("../../../assets/icons/volume.svg")
+    // Dynamic tray icons from StatusNotifier apps
+    Repeater {
+        model: systemTrayController.trayIcons
+        
+        delegate: TrayIcon {
+            iconSource: {
+                let iconName = modelData.iconName || "application-x-executable"
+                return "image://icon/" + iconName
+            }
+            iconId: modelData.id || ""
+        }
     }
-
-    // Battery
+    
+    // Hardcoded system status icons (always visible)
     TrayIcon {
         iconSource: Qt.resolvedUrl("../../../assets/icons/battery.svg")
     }
-
-    // Dynamic app icons - from framework
-    Repeater {
-        model: systemTrayController.trayIcons
-        delegate: TrayIcon {
-            iconSource: modelData.iconName ? "image://icon/" + modelData.iconName : ""
-        }
+    
+    TrayIcon {
+        iconSource: Qt.resolvedUrl("../../../assets/icons/volume.svg")
+    }
+    
+    TrayIcon {
+        iconSource: Qt.resolvedUrl("../../../assets/icons/network.svg")
     }
 }

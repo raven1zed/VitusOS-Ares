@@ -5,18 +5,11 @@
 #include <QString>
 #include <QVariantList>
 
-
-// Forward declaration
-class StatusNotifierWatcher;
-
 /**
- * SystemTrayController - macOS-style minimalist system tray
+ * SystemTrayController - Native openSEF System Tray
  *
- * Features:
- * - Icon-only display (no text labels)
- * - StatusNotifierItem protocol support
- * - Template icons (adapt to theme)
- * - Contextual icons (show only when active)
+ * NO KDE StatusNotifier - Pure openSEF framework
+ * Apps register icons directly via OSFDesktop API
  */
 class SystemTrayController : public QObject {
   Q_OBJECT
@@ -44,7 +37,6 @@ public:
 public slots:
   void toggleMute();
   void trayIconClicked(const QString &iconId);
-  void trayIconRightClicked(const QString &iconId);
   void refreshBattery();
 
 signals:
@@ -54,16 +46,10 @@ signals:
   void batteryLevelChanged();
   void isChargingChanged();
 
-private slots:
-  void onItemsChanged();
-
 private:
-  void initTrayIcons();
-  void connectToStatusNotifier();
-  void rebuildTrayIcons();
+  void connectToFramework();
 
-  StatusNotifierWatcher *m_notifierWatcher = nullptr;
-  QVariantList m_trayIcons;
+  QVariantList m_trayIcons; // Empty for now - will use OSF API later
   int m_volume = 75;
   bool m_isMuted = false;
   int m_batteryLevel = 85;

@@ -1,15 +1,13 @@
 #include "SystemTrayController.h"
-#include "StatusNotifierWatcher.h"
-#include <QDBusConnection>
-#include <QDBusInterface>
 #include <QDebug>
 #include <QFile>
 #include <QTimer>
 
-
 SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
-  // Connect to StatusNotifierWatcher for app icons
-  connectToStatusNotifier();
+  // Initialize with empty tray (no KDE dependencies)
+  // Future: Connect to OSFDesktop::shared()->systemTray()
+
+  connectToFramework();
 
   // Periodic battery refresh
   QTimer *batteryTimer = new QTimer(this);
@@ -19,61 +17,19 @@ SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
 
   // Initial battery check
   refreshBattery();
+
+  qDebug() << "[SystemTrayController] Initialized (native openSEF, no KDE)";
 }
 
-SystemTrayController::~SystemTrayController() { delete m_notifierWatcher; }
+SystemTrayController::~SystemTrayController() {}
 
-void SystemTrayController::connectToStatusNotifier() {
-  m_notifierWatcher = new StatusNotifierWatcher(this);
+void SystemTrayController::connectToFramework() {
+  // TODO: When OSFSystemTray API is ready:
+  // auto *tray = OpenSEF::OSFDesktop::shared()->systemTray();
+  // connect(tray, &OSFSystemTray::iconsChanged, this,
+  // &SystemTrayController::onIconsChanged);
 
-  if (m_notifierWatcher->isRunning()) {
-    connect(m_notifierWatcher, &StatusNotifierWatcher::itemsChanged, this,
-            &SystemTrayController::onItemsChanged);
-
-    // Initial rebuild
-    rebuildTrayIcons();
-
-    qDebug() << "[SystemTrayController] Connected to StatusNotifierWatcher";
-  } else {
-    qDebug() << "[SystemTrayController] StatusNotifierWatcher not available";
-    initTrayIcons();
-  }
-}
-
-void SystemTrayController::onItemsChanged() { rebuildTrayIcons(); }
-
-void SystemTrayController::rebuildTrayIcons() {
-  m_trayIcons.clear();
-
-  if (m_notifierWatcher && m_notifierWatcher->isRunning()) {
-    QStringList items = m_notifierWatcher->registeredItems();
-
-    for (const QString &service : items) {
-      QVariantMap info = m_notifierWatcher->getItemInfo(service);
-
-      if (!info.isEmpty()) {
-        QVariantMap icon;
-        icon["id"] = info["id"];
-        icon["iconName"] = info["iconName"];
-        icon["title"] = info["title"];
-        icon["category"] = info["category"];
-        icon["status"] = info["status"];
-
-        // Only show icons that are "Active" or "NeedsAttention"
-        QString status = info["status"].toString();
-        if (status != "Passive") {
-          m_trayIcons.append(icon);
-        }
-      }
-    }
-  }
-
-  emit trayIconsChanged();
-  qDebug() << "[SystemTrayController] Rebuilt tray icons:"
-           << m_trayIcons.size();
-}
-
-void SystemTrayController::initTrayIcons() {
+  // For now: Empty tray (system icons only)
   m_trayIcons.clear();
   emit trayIconsChanged();
 }
@@ -98,46 +54,12 @@ void SystemTrayController::toggleMute() {
 }
 
 void SystemTrayController::trayIconClicked(const QString &iconId) {
-  qDebug() << "[SystemTrayController] Tray icon clicked:" << iconId;
-
-  QString serviceName = iconId;
-  QString path = "/StatusNotifierItem";
-
-  if (iconId.contains('/')) {
-    QStringList parts = iconId.split('/');
-    serviceName = parts[0];
-    path = "/" + parts.mid(1).join('/');
-  }
-
-  QDBusInterface item(serviceName, path, "org.kde.StatusNotifierItem",
-                      QDBusConnection::sessionBus());
-
-  if (item.isValid()) {
-    item.call("Activate", 0, 0);
-  }
-}
-
-void SystemTrayController::trayIconRightClicked(const QString &iconId) {
-  qDebug() << "[SystemTrayController] Tray icon right-clicked:" << iconId;
-
-  QString serviceName = iconId;
-  QString path = "/StatusNotifierItem";
-
-  if (iconId.contains('/')) {
-    QStringList parts = iconId.split('/');
-    serviceName = parts[0];
-    path = "/" + parts.mid(1).join('/');
-  }
-
-  QDBusInterface item(serviceName, path, "org.kde.StatusNotifierItem",
-                      QDBusConnection::sessionBus());
-
-  if (item.isValid()) {
-    item.call("ContextMenu", 0, 0);
-  }
+  qDebug() << "[SystemTrayController] Icon clicked:" << iconId;
+  // TODO: Trigger native openSEF action
 }
 
 void SystemTrayController::refreshBattery() {
+  // Try to read battery status from sysfs
   QFile capacityFile("/sys/class/power_supply/BAT0/capacity");
   if (capacityFile.open(QIODevice::ReadOnly)) {
     QString content = capacityFile.readAll().trimmed();

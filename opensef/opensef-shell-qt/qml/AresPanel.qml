@@ -102,29 +102,15 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
         }
 
-        // Clock & Date Container
-        Column {
+        // Clock - Minimal (HH:mm only per Design Reference)
+        Text {
+            id: clock
+            text: panelController.currentTime
+            color: "#1A1A1A"
+            font.pixelSize: 13
+            font.family: "Inter"
+            font.weight: Font.DemiBold
             anchors.verticalCenter: parent.verticalCenter
-            spacing: -2
-            
-            Text {
-                id: clock
-                text: panelController.currentTime.split(",")[2].trim() // Extract time part: "h:mm:ss AP"
-                color: "#1A1A1A"
-                font.pixelSize: 13
-                font.family: "Inter"
-                font.weight: Font.Bold
-                anchors.right: parent.right
-            }
-            
-            Text {
-                id: dateLabel
-                text: panelController.currentTime.split(",")[0] + "," + panelController.currentTime.split(",")[1] // "Sunday, Jan 11"
-                color: "#555555"
-                font.pixelSize: 9
-                font.family: "Inter"
-                anchors.right: parent.right
-            }
         }
     }
 }
