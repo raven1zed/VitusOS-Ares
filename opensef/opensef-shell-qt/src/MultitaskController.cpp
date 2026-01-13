@@ -1,17 +1,39 @@
 #include "MultitaskController.h"
+#include <OSFDesktop.h>
+#include <OSFEventBus.h>
+#include <OSFStateManager.h>
 #include <QDebug>
+#include <QMetaObject>
+#include <algorithm>
 
 MultitaskController::MultitaskController(QObject *parent) : QObject(parent) {
   connectToFramework();
 }
 
 void MultitaskController::connectToFramework() {
-  // TODO: Connect to OSFEventBus for:
-  // - window.created
-  // - window.destroyed
-  // - window.focused
-
   qDebug() << "[MultitaskController] Connecting to framework...";
+
+  auto *eventBus = OpenSEF::OSFDesktop::shared()->eventBus();
+
+  eventBus->subscribe(
+      OpenSEF::OSFEventBus::WINDOW_CREATED, [this](const OpenSEF::OSFEvent &) {
+        QMetaObject::invokeMethod(this,
+                                  [this]() { refreshWindows(); });
+      });
+
+  eventBus->subscribe(OpenSEF::OSFEventBus::WINDOW_DESTROYED,
+                      [this](const OpenSEF::OSFEvent &) {
+                        QMetaObject::invokeMethod(
+                            this, [this]() { refreshWindows(); });
+                      });
+
+  eventBus->subscribe(OpenSEF::OSFEventBus::WINDOW_FOCUSED,
+                      [this](const OpenSEF::OSFEvent &) {
+                        QMetaObject::invokeMethod(
+                            this, [this]() { refreshWindows(); });
+                      });
+
+  qDebug() << "[MultitaskController] Success: Connected to OSF framework.";
 }
 
 void MultitaskController::setActive(bool active) {
@@ -31,34 +53,54 @@ void MultitaskController::setActive(bool active) {
 void MultitaskController::toggle() { setActive(!m_active); }
 
 void MultitaskController::refreshWindows() {
-  // TODO: Query StateManager for all windows
-  // For now, create mock data for testing
-
   m_windows.clear();
 
-  // Mock windows for UI development
-  QVariantMap win1;
-  win1["id"] = "window-1";
-  win1["title"] = "Filer - Documents";
-  win1["appId"] = "org.gnome.Nautilus";
-  win1["thumbnail"] = ""; // Placeholder
-  m_windows.append(win1);
+  auto *stateManager = OpenSEF::OSFDesktop::shared()->stateManager();
+  const auto windows = stateManager->allWindows();
 
-  QVariantMap win2;
-  win2["id"] = "window-2";
-  win2["title"] = "Firefox";
-  win2["appId"] = "firefox";
-  win2["thumbnail"] = "";
-  m_windows.append(win2);
+  QString activeWindowId;
+  if (auto *activeWindow = stateManager->activeWindow()) {
+    activeWindowId = QString::fromStdString(activeWindow->id());
+  }
 
-  QVariantMap win3;
-  win3["id"] = "window-3";
-  win3["title"] = "Terminal";
-  win3["appId"] = "org.gnome.Terminal";
-  win3["thumbnail"] = "";
-  m_windows.append(win3);
+  for (const auto *window : windows) {
+    if (!window) {
+      continue;
+    }
+
+    QVariantMap entry;
+    entry["id"] = QString::fromStdString(window->id());
+    entry["title"] = QString::fromStdString(window->title());
+    entry["appId"] = QString::fromStdString(window->appId());
+    entry["thumbnail"] = "";
+    m_windows.append(entry);
+  }
 
   emit windowsChanged();
+
+  int nextIndex = -1;
+  if (!activeWindowId.isEmpty()) {
+    for (int i = 0; i < m_windows.size(); ++i) {
+      const auto windowData = m_windows[i].toMap();
+      if (windowData.value("id").toString() == activeWindowId) {
+        nextIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (nextIndex == -1 && !m_windows.isEmpty()) {
+    nextIndex = std::min(m_selectedIndex, m_windows.size() - 1);
+  }
+
+  if (nextIndex < 0) {
+    nextIndex = 0;
+  }
+
+  if (nextIndex != m_selectedIndex) {
+    m_selectedIndex = nextIndex;
+    emit selectedIndexChanged();
+  }
 
   qDebug() << "[MultitaskController] Refreshed windows:" << m_windows.size();
 }
@@ -73,8 +115,8 @@ void MultitaskController::setSelectedIndex(int index) {
 void MultitaskController::focusWindow(const QString &windowId) {
   qDebug() << "[MultitaskController] Focus window:" << windowId;
 
-  // TODO: Tell compositor to focus window
-  // osf_window_focus(windowId.toStdString().c_str());
+  auto *windowManager = OpenSEF::OSFDesktop::shared()->windowManager();
+  windowManager->focusWindow(windowId.toStdString());
 
   setActive(false);
 }
@@ -82,10 +124,8 @@ void MultitaskController::focusWindow(const QString &windowId) {
 void MultitaskController::closeWindow(const QString &windowId) {
   qDebug() << "[MultitaskController] Close window:" << windowId;
 
-  // TODO: Tell compositor to close window
-  // osf_window_close(windowId.toStdString().c_str());
-
-  refreshWindows();
+  auto *windowManager = OpenSEF::OSFDesktop::shared()->windowManager();
+  windowManager->closeWindow(windowId.toStdString());
 }
 
 void MultitaskController::selectNext() {
