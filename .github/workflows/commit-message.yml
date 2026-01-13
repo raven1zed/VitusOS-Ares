@@ -1,0 +1,16 @@
+name: Commit Message Check
+
+on:
+  pull_request:
+
+jobs:
+  commit-message:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: scripts/check-commit-messages.sh

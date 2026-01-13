@@ -1,8 +1,8 @@
 # AGENTS.md — AI Assistant Context & Guidelines
 **VitusOS Ares Development**
 
-**Current Phase**: Phase 4 Complete (System Tray - StatusNotifierItem)  
-**Next Phase**: Phase 5 — Multitask View Redesign (Windows 8 tiles + thumbnails)
+**Current Phase**: Phase 4 — Controls & Integration (In Progress)  
+**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)
 
 ## Project Overview
 
@@ -12,8 +12,8 @@
 - **Qt Quick + Vulkan**: Shell UI (C++)
 - **Ares Design Language**: Mars-inspired warm aesthetic
 
-**Current Status**: Phase 3 Complete (Window Decorations & Polish)  
-**Next Phase**: Phase 4 — Qt-based Shell UI + Cross-Toolkit Support  
+**Current Status**: Phase 4 In Progress (Controls & Integration)  
+**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)  
 **Target**: v1.0 Stable Release in Q2 2026 (12-16 weeks)
 
 ---
@@ -107,7 +107,7 @@
 
 ## Active Implementation Plan
 
-**Location**: `docs/implementation_plan.md` (in artifacts folder)
+**Location**: `docs/CURRENT_PHASE.md` and `docs/COCOA_ALIGNMENT_ROADMAP.md`
 
 **Current Plan**: Qt-based Shell UI + Cross-Toolkit Support
 
@@ -133,8 +133,8 @@
 ### When Starting a New Session
 
 1. **Read this file first** to understand current state
-2. **Check `docs/V1_READINESS.md`** for progress tracking
-3. **Review `docs/implementation_plan.md`** for active plan
+2. **Check `docs/CURRENT_PHASE.md`** for progress tracking
+3. **Review `docs/CURRENT_PHASE.md`** for the active plan and milestones
 4. **Check `README.md`** for latest status updates
 
 ### Before Making Changes
@@ -220,9 +220,9 @@ bash scripts/run_vitus_ares.sh
 
 **Important Docs**:
 - `README.md`: Project overview, quick start
-- `docs/DEVELOPER_GUIDE.md`: Architecture walkthrough
-- `docs/V1_READINESS.md`: Progress tracking, timeline
-- `docs/implementation_plan.md`: Active implementation plan (in artifacts)
+- `docs/README.md`: Documentation index and reading order
+- `docs/CURRENT_PHASE.md`: Progress tracking and milestones
+- `docs/COCOA_ALIGNMENT_ROADMAP.md`: Phase roadmap and status markers
 
 ---
 
@@ -264,7 +264,7 @@ Phase 3 Progress: Dock autohide working
 ### When to Proceed Autonomously
 
 1. **Bug fixes**: Fixing obvious bugs (lint errors, crashes)
-2. **Implementation of approved plans**: Following `implementation_plan.md`
+2. **Implementation of approved plans**: Following `docs/CURRENT_PHASE.md`
 3. **Minor improvements**: Code cleanup, performance optimizations
 
 ### How to Report Progress
@@ -325,7 +325,7 @@ Phase 3 Progress: Dock autohide working
 ---
 
 **Last Updated**: January 8, 2026  
-**Next Review**: Before Phase 4 implementation begins
+**Next Review**: Before Phase 5 implementation begins
 
 ---
 

@@ -89,7 +89,7 @@ VitusOS-Ares/
 
 ## Current Phase
 
-**We are in Phase 4**: Controls & Integration (uptc release)
+**We are in Phase 4**: Controls & Integration (uptc release, in progress)
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -189,11 +189,35 @@ VitusOS-Ares/
 
 ## Contributing
 
-See [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for:
-- Build instructions
-- Architecture deep-dive
-- Coding standards
-- Component communication patterns
+See [docs/README.md](docs/README.md) for the documentation index, including:
+- Architecture deep-dive (`docs/VitusOS Ares.md`)
+- Design guidelines (`docs/openSEF Design Reference.md`)
+- API reference (`docs/API.md`)
+- Current phase status (`docs/CURRENT_PHASE.md`)
+
+### Commit Messages
+
+We enforce the following commit message format:
+
+```
+type: brief description
+
+- Detailed change 1
+- Detailed change 2
+
+Phase X Complete: [milestone name]
+```
+
+Allowed `type` values: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
+
+#### Setup (Template + Hook)
+
+```bash
+git config commit.template .gitmessage
+git config core.hooksPath .githooks
+```
+
+The commit template lives at `.gitmessage`, and the hook at `.githooks/commit-msg` enforces the `type: ...` subject line format locally. We also validate commit messages in CI on pull requests.
 
 ---
 

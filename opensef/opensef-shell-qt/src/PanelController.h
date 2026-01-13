@@ -8,7 +8,7 @@
 /**
  * PanelController - Native openSEF Panel Controller
  *
- * NO KDE DBusMenu - Pure openSEF framework
+ * DBusMenu importer + openSEF framework bridge
  * Manages:
  * - Active window title
  * - Global menu (native openSEF API)
@@ -56,17 +56,26 @@ signals:
 private slots:
   void updateClock();
   void onWindowFocused(const QString &windowId, const QString &title,
-                       const QString &appId);
+                       const QString &appId, const QString &menuService,
+                       const QString &menuPath);
 
 private:
   void connectToFramework();
-  void loadDefaultMenu();
+  void clearMenuItems();
+  void loadMenuForFocusedApp(const QString &windowId, const QString &appId,
+                             const QString &menuService,
+                             const QString &menuPath);
+  bool loadDbusMenu(const QString &service, const QString &path);
+  bool fetchMenuFromRegistrar(const QString &windowId, QString *service,
+                              QString *path) const;
 
   QString m_activeWindowTitle;
   QString m_activeAppId;
   QVariantList m_globalMenuItems;
   QString m_currentTime;
   bool m_multitaskActive = false;
+  QString m_menuService;
+  QString m_menuPath;
 };
 
 #endif // PANEL_CONTROLLER_H

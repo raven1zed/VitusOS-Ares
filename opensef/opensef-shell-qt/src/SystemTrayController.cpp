@@ -1,12 +1,14 @@
 #include "SystemTrayController.h"
+#include "StatusNotifierWatcher.h"
 #include <QDebug>
 #include <QFile>
 #include <QTimer>
+#include <QVariantMap>
+
+#include <OSFDesktop.h>
+#include <OSFEventBus.h>
 
 SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
-  // Initialize with empty tray (no KDE dependencies)
-  // Future: Connect to OSFDesktop::shared()->systemTray()
-
   connectToFramework();
 
   // Periodic battery refresh
@@ -18,20 +20,25 @@ SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
   // Initial battery check
   refreshBattery();
 
-  qDebug() << "[SystemTrayController] Initialized (native openSEF, no KDE)";
+  qDebug() << "[SystemTrayController] Initialized (StatusNotifier watcher)";
 }
 
 SystemTrayController::~SystemTrayController() {}
 
 void SystemTrayController::connectToFramework() {
-  // TODO: When OSFSystemTray API is ready:
-  // auto *tray = OpenSEF::OSFDesktop::shared()->systemTray();
-  // connect(tray, &OSFSystemTray::iconsChanged, this,
-  // &SystemTrayController::onIconsChanged);
+  m_statusNotifierWatcher = new StatusNotifierWatcher(this);
+  connect(m_statusNotifierWatcher, &StatusNotifierWatcher::itemsChanged, this,
+          &SystemTrayController::updateTrayIconsFromWatcher);
 
-  // For now: Empty tray (system icons only)
-  m_trayIcons.clear();
-  emit trayIconsChanged();
+  updateTrayIconsFromWatcher();
+
+  if (auto *desktop = OpenSEF::OSFDesktop::shared()) {
+    if (auto *eventBus = desktop->eventBus()) {
+      eventBus->subscribe("tray.refresh", [this](const OpenSEF::OSFEvent &) {
+        updateTrayIconsFromWatcher();
+      });
+    }
+  }
 }
 
 void SystemTrayController::setVolume(int volume) {
@@ -80,5 +87,32 @@ void SystemTrayController::refreshBattery() {
       emit isChargingChanged();
     }
     statusFile.close();
+  }
+}
+
+void SystemTrayController::updateTrayIconsFromWatcher() {
+  QVariantList icons;
+  if (m_statusNotifierWatcher) {
+    const auto items = m_statusNotifierWatcher->items();
+    icons.reserve(items.size());
+    for (const auto &item : items) {
+      QVariantMap entry;
+      entry.insert("id", item.service);
+      entry.insert("iconName", item.iconName);
+      icons.append(entry);
+    }
+  }
+
+  if (icons != m_trayIcons) {
+    m_trayIcons = icons;
+    emit trayIconsChanged();
+
+    if (auto *desktop = OpenSEF::OSFDesktop::shared()) {
+      if (auto *eventBus = desktop->eventBus()) {
+        OpenSEF::OSFEvent event;
+        event.set("count", static_cast<int>(m_trayIcons.size()));
+        eventBus->publish("tray.iconsChanged", event);
+      }
+    }
   }
 }
