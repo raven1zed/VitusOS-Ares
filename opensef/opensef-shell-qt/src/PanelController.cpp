@@ -1,10 +1,60 @@
 #include "PanelController.h"
 #include <OSFDesktop.h>
 #include <OSFEventBus.h>
+#include <OSFStateManager.h>
 #include <QDateTime>
 #include <QDebug>
+#include <QDBusArgument>
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusInterface>
+#include <QDBusMessage>
+#include <QDBusObjectPath>
+#include <QDBusVariant>
 #include <QMetaObject>
 #include <QTimer>
+
+namespace {
+
+struct DBusMenuNode {
+  int id = 0;
+  QVariantMap properties;
+  QList<DBusMenuNode> children;
+};
+
+DBusMenuNode parseMenuLayout(QDBusArgument &arg) {
+  DBusMenuNode node;
+  arg.beginStructure();
+  arg >> node.id;
+  arg >> node.properties;
+  arg.beginArray();
+  while (!arg.atEnd()) {
+    node.children.append(parseMenuLayout(arg));
+  }
+  arg.endArray();
+  arg.endStructure();
+  return node;
+}
+
+QVariantList buildMenuItems(const QList<DBusMenuNode> &nodes) {
+  QVariantList items;
+  for (const auto &node : nodes) {
+    const QString type = node.properties.value("type").toString();
+    const QString label = node.properties.value("label").toString();
+    if (type == "separator" || label.isEmpty()) {
+      continue;
+    }
+
+    QVariantMap item;
+    item["label"] = label;
+    item["enabled"] = node.properties.value("enabled", true).toBool();
+    item["dbusId"] = node.id;
+    items.append(item);
+  }
+  return items;
+}
+
+} // namespace
 
 PanelController::PanelController(QObject *parent) : QObject(parent) {
   // Initialize clock update timer
@@ -22,7 +72,7 @@ PanelController::PanelController(QObject *parent) : QObject(parent) {
   m_activeWindowTitle = "";
   emit activeWindowTitleChanged();
 
-  loadDefaultMenu();
+  clearMenuItems();
 }
 
 PanelController::~PanelController() {}
@@ -35,15 +85,34 @@ void PanelController::connectToFramework() {
   // Subscribe to window focus events
   eventBus->subscribe(
       OpenSEF::OSFEventBus::WINDOW_FOCUSED, [this](const OpenSEF::OSFEvent &e) {
-        QString title = QString::fromStdString(e.get<std::string>("title"));
-        QString appId = QString::fromStdString(e.get<std::string>("app_id"));
         QString windowId =
             QString::fromStdString(e.get<std::string>("window_id"));
+        QString title = QString::fromStdString(e.get<std::string>("title"));
+        QString appId = QString::fromStdString(e.get<std::string>("app_id"));
+        QString menuService =
+            QString::fromStdString(e.get<std::string>("menu_service"));
+        QString menuPath =
+            QString::fromStdString(e.get<std::string>("menu_path"));
+
+        if (title.isEmpty() || appId.isEmpty()) {
+          auto *window =
+              OpenSEF::OSFDesktop::shared()->stateManager()->windowById(
+                  windowId.toStdString());
+          if (window) {
+            if (title.isEmpty()) {
+              title = QString::fromStdString(window->title());
+            }
+            if (appId.isEmpty()) {
+              appId = QString::fromStdString(window->appId());
+            }
+          }
+        }
 
         // Update on UI thread
-        QMetaObject::invokeMethod(this, [this, title, appId, windowId]() {
-          onWindowFocused(windowId, title, appId);
-        });
+        QMetaObject::invokeMethod(
+            this, [this, title, appId, windowId, menuService, menuPath]() {
+              onWindowFocused(windowId, title, appId, menuService, menuPath);
+            });
       });
 
   qDebug() << "[PanelController] Success: Connected to OSF framework.";
@@ -69,9 +138,47 @@ void PanelController::toggleMultitask() {
 void PanelController::menuItemClicked(int menuIndex, int itemIndex) {
   qDebug() << "[PanelController] Menu item clicked:" << menuIndex << itemIndex;
 
-  // TODO: When native OSFMenuManager API is ready:
-  // auto *menuMgr = OpenSEF::OSFDesktop::shared()->menuManager();
-  // menuMgr->activateItem(menuIndex, itemIndex);
+  if (menuIndex < 0 || menuIndex >= m_globalMenuItems.size()) {
+    return;
+  }
+
+  const QVariantMap menuMap =
+      m_globalMenuItems.at(menuIndex).toMap();
+  const QVariantList itemList = menuMap.value("items").toList();
+  if (itemIndex < 0 || itemIndex >= itemList.size()) {
+    return;
+  }
+
+  const QVariantMap item = itemList.at(itemIndex).toMap();
+  const int dbusId = item.value("dbusId", -1).toInt();
+  if (dbusId <= 0) {
+    return;
+  }
+
+  if (m_menuService.isEmpty() || m_menuPath.isEmpty()) {
+    qDebug() << "[PanelController] No DBus menu target for activation.";
+    return;
+  }
+
+  QDBusInterface menuInterface(m_menuService, m_menuPath,
+                               "com.canonical.dbusmenu",
+                               QDBusConnection::sessionBus());
+  if (!menuInterface.isValid()) {
+    qDebug() << "[PanelController] DBus menu interface invalid for"
+             << m_menuService << m_menuPath;
+    return;
+  }
+
+  const quint32 timestamp =
+      static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xffffffff);
+  QDBusMessage reply =
+      menuInterface.call("Event", dbusId, QStringLiteral("clicked"),
+                         QVariant::fromValue(QDBusVariant(QVariant())),
+                         timestamp);
+  if (reply.type() == QDBusMessage::ErrorMessage) {
+    qDebug() << "[PanelController] DBus menu activation failed:"
+             << reply.errorMessage();
+  }
 }
 
 void PanelController::showMenu(int menuIndex, int x, int y) {
@@ -83,7 +190,9 @@ void PanelController::hideMenu() { qDebug() << "[PanelController] Hide menu"; }
 
 void PanelController::onWindowFocused(const QString &windowId,
                                       const QString &title,
-                                      const QString &appId) {
+                                      const QString &appId,
+                                      const QString &menuService,
+                                      const QString &menuPath) {
   qDebug() << "[PanelController] Window focused:" << title << "(" << appId
            << ")";
 
@@ -99,56 +208,144 @@ void PanelController::onWindowFocused(const QString &windowId,
     emit activeAppIdChanged();
   }
 
-  // TODO: Load menu for this app from native OSFMenuManager
-  // For now: keep default menu
+  loadMenuForFocusedApp(windowId, appId, menuService, menuPath);
 }
 
-void PanelController::loadDefaultMenu() {
-  // Default menu for VitusOS shell
+void PanelController::clearMenuItems() {
+  if (!m_globalMenuItems.isEmpty()) {
+    m_globalMenuItems.clear();
+    emit globalMenuItemsChanged();
+  }
+}
+
+void PanelController::loadMenuForFocusedApp(const QString &windowId,
+                                            const QString &appId,
+                                            const QString &menuService,
+                                            const QString &menuPath) {
+  Q_UNUSED(appId);
+
+  QString resolvedService = menuService;
+  QString resolvedPath = menuPath;
+
+  if (resolvedService.isEmpty() || resolvedPath.isEmpty()) {
+    fetchMenuFromRegistrar(windowId, &resolvedService, &resolvedPath);
+  }
+
+  if (!resolvedService.isEmpty() && !resolvedPath.isEmpty()) {
+    if (loadDbusMenu(resolvedService, resolvedPath)) {
+      return;
+    }
+  }
+
+  qDebug() << "[PanelController] No DBus menu available for focused app.";
+  clearMenuItems();
+}
+
+bool PanelController::loadDbusMenu(const QString &service,
+                                   const QString &path) {
+  QDBusInterface menuInterface(service, path, "com.canonical.dbusmenu",
+                               QDBusConnection::sessionBus());
+  if (!menuInterface.isValid()) {
+    qDebug() << "[PanelController] Invalid DBus menu interface:" << service
+             << path;
+    return false;
+  }
+
+  const QStringList properties = {"label", "enabled", "type",
+                                  "children-display"};
+  QDBusMessage reply =
+      menuInterface.call("GetLayout", 0, -1, properties);
+  if (reply.type() == QDBusMessage::ErrorMessage ||
+      reply.arguments().size() < 2) {
+    qDebug() << "[PanelController] Failed to fetch DBus menu layout:"
+             << reply.errorMessage();
+    return false;
+  }
+
+  QDBusArgument layoutArg =
+      qvariant_cast<QDBusArgument>(reply.arguments().at(1));
+  DBusMenuNode root = parseMenuLayout(layoutArg);
+
   QVariantList menus;
+  for (const auto &menuNode : root.children) {
+    const QString label = menuNode.properties.value("label").toString();
+    if (label.isEmpty()) {
+      continue;
+    }
 
-  // Filer menu
-  QVariantMap filerMenu;
-  filerMenu["label"] = "Filer";
-  QVariantList filerItems;
-  filerItems.append(QVariantMap{{"label", "New Window"}, {"id", 1}});
-  filerItems.append(QVariantMap{{"label", "New Folder"}, {"id", 2}});
-  filerItems.append(QVariantMap{{"separator", true}});
-  filerItems.append(QVariantMap{{"label", "Preferences"}, {"id", 3}});
-  filerMenu["items"] = filerItems;
-  menus.append(filerMenu);
+    QVariantMap menu;
+    menu["title"] = label;
+    menu["items"] = buildMenuItems(menuNode.children);
+    menus.append(menu);
+  }
 
-  // Menu menu
-  QVariantMap menuMenu;
-  menuMenu["label"] = "Menu";
-  QVariantList menuItems;
-  menuItems.append(QVariantMap{{"label", "About VitusOS"}, {"id", 10}});
-  menuItems.append(QVariantMap{{"separator", true}});
-  menuItems.append(QVariantMap{{"label", "Settings"}, {"id", 11}});
-  menuMenu["items"] = menuItems;
-  menus.append(menuMenu);
-
-  // Settings menu
-  QVariantMap settingsMenu;
-  settingsMenu["label"] = "Settings";
-  QVariantList settingsItems;
-  settingsItems.append(QVariantMap{{"label", "Display"}, {"id", 20}});
-  settingsItems.append(QVariantMap{{"label", "Network"}, {"id", 21}});
-  settingsItems.append(QVariantMap{{"label", "Sound"}, {"id", 22}});
-  settingsMenu["items"] = settingsItems;
-  menus.append(settingsMenu);
-
-  // Help menu
-  QVariantMap helpMenu;
-  helpMenu["label"] = "Help";
-  QVariantList helpItems;
-  helpItems.append(QVariantMap{{"label", "Documentation"}, {"id", 30}});
-  helpItems.append(QVariantMap{{"label", "Report Bug"}, {"id", 31}});
-  helpMenu["items"] = helpItems;
-  menus.append(helpMenu);
-
+  m_menuService = service;
+  m_menuPath = path;
   m_globalMenuItems = menus;
   emit globalMenuItemsChanged();
 
-  qDebug() << "[PanelController] Loaded default menu (no KDE dependencies)";
+  qDebug() << "[PanelController] Loaded DBus menu from" << service << path;
+  return true;
+}
+
+bool PanelController::fetchMenuFromRegistrar(const QString &windowId,
+                                             QString *service,
+                                             QString *path) const {
+  if (!service || !path) {
+    return false;
+  }
+
+  bool ok = false;
+  const quint64 windowHandle = windowId.toULongLong(&ok, 0);
+  if (!ok) {
+    return false;
+  }
+
+  struct RegistrarInfo {
+    const char *serviceName;
+    const char *objectPath;
+    const char *interfaceName;
+  };
+
+  const RegistrarInfo registrars[] = {
+      {"com.canonical.AppMenu.Registrar", "/com/canonical/AppMenu/Registrar",
+       "com.canonical.AppMenu.Registrar"},
+      {"org.kde.kappmenu", "/KAppMenu", "org.kde.kappmenu"}};
+
+  auto *busInterface = QDBusConnection::sessionBus().interface();
+  if (!busInterface) {
+    return false;
+  }
+
+  for (const auto &registrar : registrars) {
+    if (!busInterface->isServiceRegistered(registrar.serviceName)) {
+      continue;
+    }
+
+    QDBusMessage message =
+        QDBusMessage::createMethodCall(registrar.serviceName,
+                                       registrar.objectPath,
+                                       registrar.interfaceName,
+                                       "GetMenuForWindow");
+    message << QVariant::fromValue(windowHandle);
+    QDBusMessage reply = QDBusConnection::sessionBus().call(message);
+    if (reply.type() == QDBusMessage::ErrorMessage ||
+        reply.arguments().size() < 2) {
+      continue;
+    }
+
+    *service = reply.arguments().at(0).toString();
+    const QVariant pathVariant = reply.arguments().at(1);
+    if (pathVariant.canConvert<QDBusObjectPath>()) {
+      *path = pathVariant.value<QDBusObjectPath>().path();
+    } else {
+      *path = pathVariant.toString();
+    }
+
+    if (!service->isEmpty() && !path->isEmpty()) {
+      return true;
+    }
+  }
+
+  return false;
 }
