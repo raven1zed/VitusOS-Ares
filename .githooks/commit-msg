@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+commit_msg_file="$1"
+first_line=$(head -n 1 "$commit_msg_file")
+
+pattern='^(feat|fix|docs|refactor|test|chore): .+'
+
+if [[ ! "$first_line" =~ $pattern ]]; then
+  echo "Invalid commit message format." >&2
+  echo "Expected: type: brief description" >&2
+  echo "Allowed types: feat, fix, docs, refactor, test, chore" >&2
+  exit 1
+fi
