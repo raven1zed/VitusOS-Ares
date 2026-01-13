@@ -1,8 +1,8 @@
 # AGENTS.md — AI Assistant Context & Guidelines
 **VitusOS Ares Development**
 
-**Current Phase**: Phase 4 Complete (System Tray - StatusNotifierItem)  
-**Next Phase**: Phase 5 — Multitask View Redesign (Windows 8 tiles + thumbnails)
+**Current Phase**: Phase 4 — Controls & Integration (In Progress)  
+**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)
 
 ## Project Overview
 
@@ -12,8 +12,8 @@
 - **Qt Quick + Vulkan**: Shell UI (C++)
 - **Ares Design Language**: Mars-inspired warm aesthetic
 
-**Current Status**: Phase 3 Complete (Window Decorations & Polish)  
-**Next Phase**: Phase 4 — Qt-based Shell UI + Cross-Toolkit Support  
+**Current Status**: Phase 4 In Progress (Controls & Integration)  
+**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)  
 **Target**: v1.0 Stable Release in Q2 2026 (12-16 weeks)
 
 ---
@@ -325,7 +325,7 @@ Phase 3 Progress: Dock autohide working
 ---
 
 **Last Updated**: January 8, 2026  
-**Next Review**: Before Phase 4 implementation begins
+**Next Review**: Before Phase 5 implementation begins
 
 ---
 
