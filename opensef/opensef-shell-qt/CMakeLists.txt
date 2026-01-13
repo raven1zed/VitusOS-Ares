@@ -27,6 +27,7 @@ set(SOURCES
     src/DockController.cpp
     src/MultitaskController.cpp
     src/SystemTrayController.cpp
+    src/StatusNotifierWatcher.cpp
 )
 
 set(HEADERS
@@ -34,6 +35,7 @@ set(HEADERS
     src/DockController.h
     src/MultitaskController.h
     src/SystemTrayController.h
+    src/StatusNotifierWatcher.h
 )
 
 # QML resources - DISABLED to force filesystem loading
