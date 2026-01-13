@@ -89,7 +89,7 @@ VitusOS-Ares/
 
 ## Current Phase
 
-**We are in Phase 4**: Controls & Integration (uptc release)
+**We are in Phase 4**: Controls & Integration (uptc release, in progress)
 
 | Phase | Status | Description |
 |-------|--------|-------------|
