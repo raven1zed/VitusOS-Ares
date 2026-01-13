@@ -189,11 +189,11 @@ VitusOS-Ares/
 
 ## Contributing
 
-See [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) for:
-- Build instructions
-- Architecture deep-dive
-- Coding standards
-- Component communication patterns
+See [docs/README.md](docs/README.md) for the documentation index, including:
+- Architecture deep-dive (`docs/VitusOS Ares.md`)
+- Design guidelines (`docs/openSEF Design Reference.md`)
+- API reference (`docs/API.md`)
+- Current phase status (`docs/CURRENT_PHASE.md`)
 
 ---
 
