@@ -234,41 +234,103 @@ Rectangle {
                     }
                 }
                 
-                // Close button (Apple style - appears on hover)
-                Rectangle {
-                    width: 24
-                    height: 24
-                    radius: 12
-                    color: closeHover.hovered ? "#FF3B30" : Qt.rgba(0, 0, 0, 0.5)
+                // Mini Traffic Lights (appears on hover - Ares style)
+                Row {
                     anchors.top: parent.top
-                    anchors.right: parent.right
+                    anchors.left: parent.left
                     anchors.margins: 10
+                    spacing: 6
                     visible: hoverHandler.hovered
-                    opacity: closeHover.hovered ? 1.0 : 0.7
+                    opacity: hoverHandler.hovered ? 1.0 : 0.0
                     
-                    border.width: closeHover.hovered ? 0 : 0.5
-                    border.color: Qt.rgba(1, 1, 1, 0.1)
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: "×"
-                        color: "white"
-                        font.pixelSize: 18
-                        font.weight: Font.Bold
-                    }
-                    
-                    HoverHandler { id: closeHover }
-                    
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            multitaskController.closeWindow(modelData.id)
-                            mouse.accepted = true
-                        }
-                    }
-                    
-                    Behavior on color { ColorAnimation { duration: 120 } }
                     Behavior on opacity { NumberAnimation { duration: 120 } }
+                    
+                    // Close (Space Orange)
+                    Rectangle {
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: closeHover.containsMouse ? "#FF6347" : "#E85D04"
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: "×"
+                            color: "white"
+                            font.pixelSize: 11
+                            font.bold: true
+                            opacity: closeHover.containsMouse ? 1.0 : 0.0
+                        }
+                        
+                        MouseArea {
+                            id: closeHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                multitaskController.closeWindow(modelData.id)
+                            }
+                        }
+                        
+                        Behavior on color { ColorAnimation { duration: 100 } }
+                    }
+                    
+                    // Minimize (Mars Gold)
+                    Rectangle {
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: minHover.containsMouse ? "#FFE066" : "#D4A93E"
+                        
+                        Rectangle {
+                            width: 8
+                            height: 2
+                            anchors.centerIn: parent
+                            color: "white"
+                            opacity: minHover.containsMouse ? 1.0 : 0.0
+                        }
+                        
+                        MouseArea {
+                            id: minHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                multitaskController.minimizeWindow(modelData.id)
+                            }
+                        }
+                        
+                        Behavior on color { ColorAnimation { duration: 100 } }
+                    }
+                    
+                    // Maximize (Mission Blue)
+                    Rectangle {
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: maxHover.containsMouse ? "#3395FF" : "#3D5A80"
+                        
+                        Rectangle {
+                            width: 7
+                            height: 7
+                            anchors.centerIn: parent
+                            color: "transparent"
+                            border.width: 1.5
+                            border.color: "white"
+                            opacity: maxHover.containsMouse ? 1.0 : 0.0
+                        }
+                        
+                        MouseArea {
+                            id: maxHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                multitaskController.maximizeWindow(modelData.id)
+                            }
+                        }
+                        
+                        Behavior on color { ColorAnimation { duration: 100 } }
+                    }
                 }
                 
                 HoverHandler { id: hoverHandler }

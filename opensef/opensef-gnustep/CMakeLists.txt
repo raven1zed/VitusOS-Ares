@@ -16,6 +16,7 @@ add_library(opensef-gnustep STATIC
     src/NSView.cpp
     src/NSControl.cpp
     src/NSButton.cpp
+    src/NSWindowButton.cpp
 )
 
 target_include_directories(opensef-gnustep PUBLIC
@@ -35,6 +36,7 @@ target_compile_options(opensef-gnustep PRIVATE
 # Qt Quick rendering bridge
 add_library(opensef-gnustep-qtquick STATIC
     bridge/QQuickNSButton.cpp
+    bridge/QQuickWindowButton.cpp
 )
 
 target_include_directories(opensef-gnustep-qtquick PUBLIC

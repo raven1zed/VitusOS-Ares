@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(PANGO REQUIRED pango pangocairo)
+pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 
 # Framework library
 add_library(opensef-framework SHARED
@@ -19,17 +20,21 @@ add_library(opensef-framework SHARED
     src/OSFResourceCache.cpp
     src/OSFThemeManager.cpp
     src/OSFFrameworkC.cpp
+    src/OSFShortcutManager.cpp
+    src/OSFClipboard.cpp
 )
 
 target_include_directories(opensef-framework PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CAIRO_INCLUDE_DIRS}
     ${PANGO_INCLUDE_DIRS}
+    ${XKBCOMMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-framework PUBLIC
     ${CAIRO_LIBRARIES}
     ${PANGO_LIBRARIES}
+    ${XKBCOMMON_LIBRARIES}
     pthread
 )
 

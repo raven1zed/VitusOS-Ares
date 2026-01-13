@@ -16,6 +16,11 @@ OSFEventBus::OSFEventBus() : impl_(std::make_unique<Impl>()) {}
 
 OSFEventBus::~OSFEventBus() = default;
 
+OSFEventBus &OSFEventBus::shared() {
+  static OSFEventBus instance;
+  return instance;
+}
+
 void OSFEventBus::subscribe(const std::string &eventType,
                             EventHandler handler) {
   std::lock_guard<std::mutex> lock(impl_->mutex);

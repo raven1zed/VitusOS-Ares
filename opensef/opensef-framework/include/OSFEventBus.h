@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-
 namespace OpenSEF {
 
 /**
@@ -57,6 +56,9 @@ class OSFEventBus {
 public:
   using EventHandler = std::function<void(const OSFEvent &)>;
 
+  // Singleton access
+  static OSFEventBus &shared();
+
   OSFEventBus();
   ~OSFEventBus();
 
@@ -74,13 +76,33 @@ public:
   static constexpr const char *WINDOW_FOCUSED = "window.focused";
   static constexpr const char *WINDOW_MINIMIZED = "window.minimized";
   static constexpr const char *WINDOW_MAXIMIZED = "window.maximized";
+  static constexpr const char *WINDOW_CLOSE_REQUEST = "window.close_request";
+  static constexpr const char *WINDOW_MINIMIZE_REQUEST =
+      "window.minimize_request";
 
   static constexpr const char *MENU_CLICKED = "menu.clicked";
   static constexpr const char *APP_LAUNCHED = "application.launched";
   static constexpr const char *APP_TERMINATED = "application.closed";
+  static constexpr const char *APP_QUIT_REQUEST = "application.quit_request";
+  static constexpr const char *APP_HIDE_REQUEST = "application.hide_request";
 
   static constexpr const char *THEME_CHANGED = "theme.changed";
   static constexpr const char *WORKSPACE_CHANGED = "workspace.changed";
+
+  // Multitask & Spotlight
+  static constexpr const char *MULTITASK_TOGGLE = "multitask.toggle";
+  static constexpr const char *SPOTLIGHT_TOGGLE = "spotlight.toggle";
+
+  // Clipboard events
+  static constexpr const char *CLIPBOARD_COPY = "clipboard.copy";
+  static constexpr const char *CLIPBOARD_PASTE = "clipboard.paste";
+  static constexpr const char *CLIPBOARD_CUT = "clipboard.cut";
+  static constexpr const char *CLIPBOARD_CHANGED = "clipboard.changed";
+
+  // Edit events
+  static constexpr const char *EDIT_UNDO = "edit.undo";
+  static constexpr const char *EDIT_REDO = "edit.redo";
+  static constexpr const char *EDIT_SELECT_ALL = "edit.select_all";
 
 private:
   struct Impl;

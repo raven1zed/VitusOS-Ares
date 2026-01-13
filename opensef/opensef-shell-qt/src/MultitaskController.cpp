@@ -11,7 +11,6 @@
 #include <QProcess>
 #include <algorithm>
 
-
 MultitaskController::MultitaskController(QObject *parent)
     : QObject(parent), m_active(false), m_selectedIndex(0) {
   qDebug()
@@ -20,12 +19,21 @@ MultitaskController::MultitaskController(QObject *parent)
 }
 
 void MultitaskController::connectToFramework() {
-  // TODO: Connect to OSFEventBus for:
-  // - window.created
-  // - window.destroyed
-  // - window.focused
-
   qDebug() << "[MultitaskController] Connecting to framework...";
+
+  auto *desktop = OpenSEF::OSFDesktop::shared();
+  if (!desktop)
+    return;
+
+  desktop->eventBus()->subscribe(
+      OpenSEF::OSFEventBus::WINDOW_CREATED,
+      [this](const OpenSEF::OSFEvent &event) { refreshWindows(); });
+
+  desktop->eventBus()->subscribe(
+      OpenSEF::OSFEventBus::WINDOW_DESTROYED,
+      [this](const OpenSEF::OSFEvent &event) { refreshWindows(); });
+
+  qDebug() << "[MultitaskController] Connected to OSF framework.";
 }
 
 void MultitaskController::setActive(bool active) {
@@ -48,7 +56,8 @@ void MultitaskController::refreshWindows() {
   win1["id"] = "window-1";
   win1["title"] = "Filer - Documents";
   win1["appId"] = "org.gnome.Nautilus";
-  win1["thumbnail"] = ""; // Placeholder
+  win1["thumbnail"] = "";
+  win1["name"] = "Filer";
   m_windows.append(win1);
 
   QVariantMap win2;
@@ -56,6 +65,7 @@ void MultitaskController::refreshWindows() {
   win2["title"] = "Firefox";
   win2["appId"] = "firefox";
   win2["thumbnail"] = "";
+  win2["name"] = "Firefox";
   m_windows.append(win2);
 
   QVariantMap win3;
@@ -63,31 +73,15 @@ void MultitaskController::refreshWindows() {
   win3["title"] = "Terminal";
   win3["appId"] = "org.gnome.Terminal";
   win3["thumbnail"] = "";
+  win3["name"] = "Terminal";
   m_windows.append(win3);
 
   emit windowsChanged();
-
   qDebug() << "[MultitaskController] Refreshed windows:" << m_windows.size();
 
   if (m_selectedIndex >= m_windows.size()) {
     setSelectedIndex(qMax(0, m_windows.size() - 1));
   }
-}
-
-void MultitaskController::connectToFramework() {
-  auto *desktop = OpenSEF::OSFDesktop::shared();
-  if (!desktop)
-    return;
-
-  desktop->eventBus()->subscribe(
-      OpenSEF::OSFEventBus::WINDOW_CREATED,
-      [this](const OpenSEF::OSFEvent &event) { refreshWindows(); });
-
-  desktop->eventBus()->subscribe(
-      OpenSEF::OSFEventBus::WINDOW_DESTROYED,
-      [this](const OpenSEF::OSFEvent &event) { refreshWindows(); });
-
-  qDebug() << "[MultitaskController] Connected to OSF framework.";
 }
 
 void MultitaskController::setSelectedIndex(int index) {
@@ -106,13 +100,26 @@ void MultitaskController::focusWindow(const QString &windowId) {
   setActive(false);
 }
 
+void MultitaskController::activateWindow(const QString &windowId) {
+  focusWindow(windowId);
+}
+
 void MultitaskController::closeWindow(const QString &windowId) {
   qDebug() << "[MultitaskController] Close window:" << windowId;
-
   // TODO: Tell compositor to close window
-  // osf_window_close(windowId.toStdString().c_str());
-
   refreshWindows();
+}
+
+void MultitaskController::minimizeWindow(const QString &windowId) {
+  qDebug() << "[MultitaskController] Minimize window:" << windowId;
+  // TODO: Tell compositor to minimize window
+  setActive(false);
+}
+
+void MultitaskController::maximizeWindow(const QString &windowId) {
+  qDebug() << "[MultitaskController] Maximize window:" << windowId;
+  // TODO: Tell compositor to maximize/toggle window
+  setActive(false);
 }
 
 void MultitaskController::selectNext() {

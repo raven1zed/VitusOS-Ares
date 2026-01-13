@@ -38,6 +38,8 @@ public slots:
   void focusWindow(const QString &windowId);
   void activateWindow(const QString &windowId); // Alias for focusWindow
   void closeWindow(const QString &windowId);
+  void minimizeWindow(const QString &windowId);
+  void maximizeWindow(const QString &windowId);
 
   // Keyboard navigation
   void selectNext();
