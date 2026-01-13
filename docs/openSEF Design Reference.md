@@ -25,7 +25,7 @@ VitusOS Ares combines three core aesthetics:
 
 # 2. Implemented UI Components (Phase 4)
 
-## The Panel (`OSFPanel`)
+## The Panel (Qt Quick)
 - **Height**: 28px (Fixed)
 - **Position**: Top of screen
 - **Color**: `LunarGray` (#F5F5F5) at 95% opacity
@@ -34,6 +34,10 @@ VitusOS Ares combines three core aesthetics:
   - **Left**: [Orange Accent Box 20px+] + [Global Menu]
   - **Center**: [Active Window Title] (Bold)
   - **Right**: [Clock] (HH:mm)
+
+**Implementation**:
+- QML: `opensef/opensef-shell-qt/qml/AresPanel.qml`
+- Controller: `opensef/opensef-shell-qt/src/PanelController.cpp`
 
 ## The Dock (`OSFDock`)
 - **Height**: 64px (Fixed per item)

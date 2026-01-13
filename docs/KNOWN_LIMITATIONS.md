@@ -9,19 +9,21 @@
 **Platforms Affected**: WSLg only (native Linux works correctly)
 
 **Description**:
-Dropdown menus from the global menu bar are drawn directly on the panel's layer surface instead of using separate XDG popup windows. This causes rendering glitches in WSLg's RDP-Rail integration where content extending beyond the panel bounds may be clipped or not rendered properly.
+Dropdown menus from the global menu bar are rendered inside the same Qt Quick layer-shell surface as the panel. In WSLg's RDP-Rail integration, any QML content that extends beyond the surface bounds is clipped, so menu drop-downs can appear truncated.
 
 **Root Cause**:
-```cpp
-// Current implementation in OSFPanel.cpp
-void OSFPanel::drawDropdown(cairo_t *cr, int menuIndex) {
-  // Draws dropdown on same Cairo surface as panel
-  // WSLg clips content outside expected bounds
+```qml
+// opensef/opensef-shell-qt/qml/AresPanel.qml
+// DropdownMenu items are children of the panel surface and inherit its bounds.
+Item {
+  id: panelRoot
+  // Panel is a single layer-shell surface with fixed height.
+  // Dropdowns rendered here are clipped in WSLg when they overflow.
 }
 ```
 
 **Correct Solution** (deferred):
-Create separate XDG popup surfaces for dropdown menus using the `xdg_wm_base` protocol with proper positioning via `xdg_positioner`.
+Create separate popup surfaces for menus using Qt Quick `Window`/`Popup` with an xdg-popup backend (or a dedicated layer-shell popup surface). Position them via `xdg_positioner` so they are independent of the panel surface bounds.
 
 **Workaround**:
 None currently. Dropdowns are functional but may appear glitchy in WSLg. Use native Linux for development if this is problematic.
@@ -37,13 +39,13 @@ None currently. Dropdowns are functional but may appear glitchy in WSLg. Use nat
 **Platforms Affected**: WSLg only
 
 **Description**:
-The lockscreen creates a layer surface on the OVERLAY layer, but WSLg's RDP-Rail integration doesn't display it on the Windows desktop.
+The lockscreen uses a full-screen Qt Quick surface on the OVERLAY layer, but WSLg's RDP-Rail integration does not reliably display overlay-layer surfaces.
 
 **Root Cause**:
-WSLg's `weston_rdprail_shell` appears to have specific requirements or limitations for OVERLAY layer surfaces that we don't currently meet.
+WSLg's `weston_rdprail_shell` does not consistently map layer-shell overlay surfaces into the Windows desktop. Qt Quick renders correctly, but the surface is not forwarded to RDP in this layer.
 
 **Workaround**:
-Test lockscreen functionality on native Linux. For WSLg development, use compositor logs to verify lockscreen is being created and mapped correctly.
+Test lockscreen functionality on native Linux. For WSLg development, use compositor logs to verify the surface is created and mapped. Consider a temporary fallback to a fullscreen xdg-shell window for WSLg.
 
 **Timeline**: Low priority. Will investigate after XDG popup implementation.
 
@@ -54,22 +56,24 @@ Test lockscreen functionality on native Linux. For WSLg development, use composi
 ### Current Shell Architecture
 
 ```
-OSFPanel (C++)
-  └─ OSFSurface (layer shell wrapper)
-     └─ Cairo rendering
-        └─ Everything drawn on one surface
+opensef-shell-qt
+  ├─ qml/AresPanel.qml
+  ├─ qml/DropdownMenu.qml
+  └─ src/PanelController.cpp
+        ↓
+   Single layer-shell surface (Qt Quick)
 ```
 
-**Limitation**: Layer shell surfaces are designed for fixed UI elements (panels, docks), not dynamic popups.
+**Limitation**: Layer-shell surfaces are designed for fixed UI elements (panels, docks), not dynamic popups.
 
 ### Future Architecture (Planned)
 
 ```
-OSFPanel (C++)
-  ├─ OSFSurface (layer shell) - panel bar
-  └─ OSFPopupSurface (XDG popup) - dropdown menus
-     └─ Positioned relative to parent
-     └─ Separate rendering surface
+opensef-shell-qt
+  ├─ Panel layer-shell surface (Qt Quick)
+  └─ Popup surfaces (xdg-popup or layer-shell popup)
+        └─ Positioned via xdg_positioner
+        └─ Rendered by dedicated Qt Quick windows
 ```
 
 **Benefit**: Architecturally correct, works on all platforms including WSLg.
@@ -131,12 +135,12 @@ If you encounter issues:
 | Feature | Native Linux | WSLg | Notes |
 |---------|--------------|------|-------|
 | Compositor | ✅ Works | ✅ Works | Stable |
-| Panel | ✅ Works | ✅ Works | Fully functional |
-| Dock | ✅ Works | ✅ Works | Fully functional |
-| Wallpaper | ✅ Works | ✅ Works | Renders correctly |
+| Panel | ✅ Works | ✅ Works | Qt Quick layer-shell surface |
+| Dock | ✅ Works | ✅ Works | Qt Quick layer-shell surface |
+| Wallpaper | ✅ Works | ✅ Works | Qt Quick scene renders correctly |
 | Windows | ✅ Works | ✅ Works | XDG shell |
-| Dropdowns | ✅ Works | ⚠️ Glitches | Layer shell limitation |
-| Lockscreen | ✅ Works | ❌ Invisible | OVERLAY layer issue |
+| Dropdowns | ✅ Works | ⚠️ Glitches | Qt Quick menus clipped inside panel surface |
+| Lockscreen | ✅ Works | ❌ Invisible | Overlay layer surface not mapped in WSLg |
 | Input Events | ✅ Works | ✅ Works | Mouse & keyboard |
 
 **Legend**:
@@ -146,4 +150,4 @@ If you encounter issues:
 
 ---
 
-Last Updated: 2026-01-07
+Last Updated: 2026-01-11
