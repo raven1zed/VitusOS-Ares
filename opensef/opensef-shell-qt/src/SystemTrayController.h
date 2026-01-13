@@ -5,11 +5,12 @@
 #include <QString>
 #include <QVariantList>
 
+class StatusNotifierWatcher;
+
 /**
  * SystemTrayController - Native openSEF System Tray
  *
- * NO KDE StatusNotifier - Pure openSEF framework
- * Apps register icons directly via OSFDesktop API
+ * StatusNotifier-enabled tray backed by the openSEF framework
  */
 class SystemTrayController : public QObject {
   Q_OBJECT
@@ -48,8 +49,10 @@ signals:
 
 private:
   void connectToFramework();
+  void updateTrayIconsFromWatcher();
 
-  QVariantList m_trayIcons; // Empty for now - will use OSF API later
+  StatusNotifierWatcher *m_statusNotifierWatcher = nullptr;
+  QVariantList m_trayIcons;
   int m_volume = 75;
   bool m_isMuted = false;
   int m_batteryLevel = 85;
