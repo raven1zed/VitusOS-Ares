@@ -33,6 +33,7 @@ cmake-build-*/
 *.swp
 *.swo
 *~
+*OpenCode
 
 # Nix
 result

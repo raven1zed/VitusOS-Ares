@@ -51,8 +51,8 @@ void PanelController::connectToFramework() {
 
 void PanelController::updateClock() {
   QDateTime now = QDateTime::currentDateTime();
-  // Minimal clock per Design Reference: HH:mm only
-  QString time = now.toString("HH:mm");
+  // Standard Ares format: Monday, Jan 12 10:15 PM
+  QString time = now.toString("dddd, MMM d h:mm AP");
   if (time != m_currentTime) {
     m_currentTime = time;
     emit currentTimeChanged();

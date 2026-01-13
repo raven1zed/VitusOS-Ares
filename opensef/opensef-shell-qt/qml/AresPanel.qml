@@ -18,7 +18,9 @@ Rectangle {
     height: 28
     color: Qt.rgba(0.96, 0.96, 0.96, 0.95)  // Translucent Lunar Gray
     
-    layer.enabled: true
+    // Disable layer effects for software rendering stability
+    layer.enabled: false
+    /*
     layer.effect: DropShadow {
         transparentBorder: true
         color: "#20000000"
@@ -26,6 +28,7 @@ Rectangle {
         samples: 25
         verticalOffset: 1
     }
+    */
     
     // Orange Accent - FULL HEIGHT BOX (wider for prominence)
     Rectangle {
@@ -55,7 +58,7 @@ Rectangle {
             model: panelController.globalMenuItems
             
             delegate: Text {
-                text: modelData.title
+                text: modelData.label
                 color: "#1A1A1A"
                 font.pixelSize: 13
                 font.family: "Inter"
@@ -74,32 +77,19 @@ Rectangle {
         }
     }
 
-    // Active Window Title - REMOVED PER USER COMPLAINT (No "VitusOS Ares" in center)
+    // Active Window Title - REMOVED PER ARCHITECTURAL VISION
     
-    // Center: Active Window Title
-    Text {
-        anchors.centerIn: parent
-        text: panelController.activeWindowTitle
-        color: "#1A1A1A"
-        font.pixelSize: 13
-        font.family: "Inter"
-        font.weight: Font.Bold
-        elide: Text.ElideRight
-        maximumLineCount: 1
-        width: parent.width * 0.4
-        horizontalAlignment: Text.AlignHCenter
-    }
 
     // Right Side: System Tray + Clock
     Row {
         anchors.right: parent.right
         anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 16
+        spacing: 12 // Tighter spacing for tidiness
         
         SystemTray {
             id: systemTray
-            anchors.verticalCenter: parent.verticalCenter
+            // Alignment handled by parent Row
         }
 
         // Clock - Minimal (HH:mm only per Design Reference)

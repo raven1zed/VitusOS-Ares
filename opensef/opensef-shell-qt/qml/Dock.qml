@@ -9,33 +9,37 @@ import Qt5Compat.GraphicalEffects
 Item {
     id: dockRoot
     
-    width: Screen.width
-    height: 70 // Extreme compaction, enough for indicators
+    width: parent.width
+    height: 90 // Larger hit area
+
+
     
-    // Translucent background pill - COMPACT
+    // Shadow behind pill
+    Rectangle {
+        width: dockPill.width
+        height: dockPill.height
+        radius: 16
+        anchors.centerIn: dockPill
+        anchors.verticalCenterOffset: 3
+        color: "#20000000"
+        z: -1
+    }
+    
+    // CERAMIC DOCK PILL (16px radius per Ares Design Reference)
     Rectangle {
         id: dockPill
         
         width: Math.max(dockRow.width + 24, 160)
-        height: 48 // Thinner
-        radius: 14
+        height: 64
+        radius: 16 // Ares standard
         
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 4
         
-        color: Qt.rgba(1, 1, 1, 0.75)
+        color: "#FAFAF9" // Warm Ceramic
         border.width: 0.5
-        border.color: Qt.rgba(0, 0, 0, 0.1)
-        
-        layer.enabled: true
-        layer.effect: DropShadow {
-            transparentBorder: true
-            color: "#25000000"
-            radius: 12
-            samples: 25
-            verticalOffset: 2
-        }
+        border.color: "#E0E0E0"
     }
 
     // Icons
@@ -91,8 +95,9 @@ Item {
         id: dotsRow
         anchors.horizontalCenter: dockPill.horizontalCenter
         anchors.top: dockPill.bottom
-        anchors.topMargin: 2 // Tighter
+        anchors.topMargin: 4
         spacing: 6 // Match icons
+        z: 100 // Ensure visibility
         
         Repeater {
             model: dockController.dockItems
@@ -106,7 +111,7 @@ Item {
                     width: 4
                     height: 4
                     radius: 2
-                    color: "#333333"
+                    color: "#E85D04"
                     anchors.centerIn: parent
                 }
             }

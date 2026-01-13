@@ -222,7 +222,7 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
       wlr_log(WLR_ERROR, "Failed to create Wayland socket (auto)");
       goto error_backend;
     }
-    wlr_log(WLR_INFO, "Using auto socket name: %s", server->socket);
+    wlr_log(WLR_INFO, "Running on Wayland display: %s", server->socket);
   }
 
   /* Start backend */

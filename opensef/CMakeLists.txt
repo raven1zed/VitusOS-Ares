@@ -13,12 +13,13 @@ if(PkgConfig_FOUND)
     pkg_search_module(WLROOTS wlroots wlroots-0.19 wlroots-0.18 wlroots-0.17 wlroots-0.16)
 endif()
 
-# Components in dependency order
+# Add subdirectories in dependency order
 add_subdirectory(opensef-base)      # Foundation classes
 add_subdirectory(opensef-core)      # Animation & Layer framework
-add_subdirectory(opensef-appkit)    # Widget library (Buttons, Windows)
 add_subdirectory(opensef-auth)      # Authentication (PAM)
 add_subdirectory(opensef-framework) # Unified Desktop Environment Framework
+add_subdirectory(opensef-appkit)    # Widget library (Buttons, Windows)
+add_subdirectory(opensef-gnustep)  # C++ AppKit (new)
 
 # Compositor (only if wlroots found)
 if(WLROOTS_FOUND)

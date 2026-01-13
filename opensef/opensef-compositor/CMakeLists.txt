@@ -65,6 +65,7 @@ add_executable(opensef-compositor
     src/popup.c
     src/multitask.c
     src/tiling.c
+    src/titlebar.c
     ${XDG_SHELL_C}
     ${XDG_SHELL_H}
     ${LAYER_SHELL_C}
@@ -94,6 +95,7 @@ target_link_libraries(opensef-compositor PRIVATE
 
 target_compile_definitions(opensef-compositor PRIVATE
     WLR_USE_UNSTABLE
+    _POSIX_C_SOURCE=200809L
 )
 
 target_compile_options(opensef-compositor PRIVATE

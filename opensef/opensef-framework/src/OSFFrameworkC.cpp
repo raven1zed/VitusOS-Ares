@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <map>
+#include <string>
 
 using namespace OpenSEF;
 
@@ -22,10 +23,7 @@ void osf_framework_terminate() {
   auto *desktop = OSFDesktop::shared();
   desktop->terminate();
 
-  // Cleanup windows
-  for (auto &pair : window_map) {
-    delete pair.second;
-  }
+  // Map pointers are now dangling, just clear them
   window_map.clear();
 }
 
@@ -47,10 +45,9 @@ void osf_window_unregister(const char *id) {
   auto *desktop = OSFDesktop::shared();
   desktop->windowManager()->unregisterWindow(id);
 
-  // Remove from map
+  // Remove from map (OSFStateManager already deleted the object)
   auto it = window_map.find(id);
   if (it != window_map.end()) {
-    delete it->second;
     window_map.erase(it);
   }
 }
@@ -76,8 +73,11 @@ void osf_window_set_geometry(const char *id, int x, int y, int w, int h) {
 }
 
 void osf_window_destroy(OSFWindowC *window_c) {
+  if (!window_c)
+    return;
   auto *window = reinterpret_cast<OSFWindow *>(window_c);
-  osf_window_unregister(window->id().c_str());
+  std::string id = window->id();     // Extract ID while object is alive
+  osf_window_unregister(id.c_str()); // This deletes the 'window' object
 }
 
 // Window actions

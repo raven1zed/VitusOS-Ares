@@ -10,9 +10,9 @@ import QtQuick.Window 2.15
 Window {
     id: shellWindow
     
-    width: Screen.width > 0 ? Screen.width : 1280
-    height: Screen.height > 0 ? Screen.height : 720
-    visible: true
+    width: (Screen.width > 200 && Screen.width < 10000) ? Screen.width : 1280
+    height: (Screen.height > 200 && Screen.height < 10000) ? Screen.height : 720
+    visibility: Window.FullScreen
     flags: Qt.FramelessWindowHint
     title: "VitusOS Ares Shell"
     
@@ -61,8 +61,7 @@ Window {
     Multitask {
         id: multitask
         anchors.fill: parent
-        visible: multitaskController.active
-        z: 100
+        z: 1000
     }
     
     // Global Dropdown Menu

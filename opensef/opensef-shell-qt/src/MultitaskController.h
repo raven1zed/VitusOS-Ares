@@ -5,13 +5,13 @@
 #include <QVariantList>
 
 /**
- * MultitaskController - Windows 8-style multitask view controller
+ * MultitaskController - Ares Hybrid Mission Control controller
  *
  * Features:
- * - Grid layout of window tiles
- * - Live window thumbnails
- * - Keyboard navigation
- * - Click to focus window
+ * - Panoramic horizontal spread
+ * - Real-time window thumbnails via OSFEventBus
+ * - High-precision keyboard navigation
+ * - Spring-physics driven focus
  */
 class MultitaskController : public QObject {
   Q_OBJECT
@@ -36,6 +36,7 @@ public:
 public slots:
   void toggle();
   void focusWindow(const QString &windowId);
+  void activateWindow(const QString &windowId); // Alias for focusWindow
   void closeWindow(const QString &windowId);
 
   // Keyboard navigation

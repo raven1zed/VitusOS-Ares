@@ -1,8 +1,0 @@
-warning: Git tree '/mnt/c/Users/hp/Documents/VitusOS-Ares' is dirty
-╔════════════════════════════════════════════╗
-║     VitusOS Ares Dev Shell                 ║
-╚════════════════════════════════════════════╝
-Detecting wlroots version...
-✅ Found wlroots-0.19
-Using Clang compiler: clang version 21.1.7
-CMake Error: The source "/mnt/c/Users/hp/Documents/VitusOS-Ares/opensef/CMakeLists.txt" does not match the source "/mnt/c/Users/hp/Documents/VitusOS-Ares/CMakeLists.txt" used to generate cache.  Re-run cmake with a different source directory.

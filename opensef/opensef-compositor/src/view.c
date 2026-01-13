@@ -7,6 +7,7 @@
 #include "server.h"
 
 #include "tiling.h"
+#include "titlebar.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -112,7 +113,6 @@ void osf_focus_view(struct osf_view *view, struct wlr_surface *surface) {
  * View event handlers
  * ============================================================================
  */
-
 static void view_map(struct wl_listener *listener, void *data) {
   struct osf_view *view = wl_container_of(listener, view, map);
 
@@ -124,11 +124,8 @@ static void view_map(struct wl_listener *listener, void *data) {
   const char *app_id =
       view->xdg_toplevel->app_id ? view->xdg_toplevel->app_id : "unknown";
 
-  /* Position shell at (0,0) for fullscreen, regular apps offset to avoid panel
-   */
   int x = 50, y = 50;
   if (app_id && strcmp(app_id, "vitusos.shell") == 0) {
-    /* Shell window - position at (0,0) fullscreen no offset */
     x = 0;
     y = 0;
     wlr_log(WLR_INFO, "Shell window detected - positioning at (0,0)");
@@ -136,7 +133,9 @@ static void view_map(struct wl_listener *listener, void *data) {
 
   wlr_scene_node_set_position(&view->scene_tree->node, x, y);
 
-  osf_focus_view(view, view->xdg_toplevel->base->surface);
+  if (view->xdg_toplevel->base->surface) {
+    osf_focus_view(view, view->xdg_toplevel->base->surface);
+  }
 
   const char *title =
       view->xdg_toplevel->title ? view->xdg_toplevel->title : "(untitled)";
@@ -144,7 +143,12 @@ static void view_map(struct wl_listener *listener, void *data) {
   wlr_log(WLR_INFO, "View mapped: %s (app_id: %s) at (%d, %d)", title, app_id,
           x, y);
 
-  /* Register window with openSEF Framework */
+  /* Register window with openSEF Framework - unregister old if exists */
+  if (view->framework_window) {
+    osf_window_destroy(view->framework_window);
+    view->framework_window = NULL;
+  }
+
   char window_id[64];
   snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
 
@@ -165,6 +169,10 @@ static void view_unmap(struct wl_listener *listener, void *data) {
   struct osf_view *view = wl_container_of(listener, view, unmap);
 
   (void)data;
+
+  const char *app_id =
+      view->xdg_toplevel->app_id ? view->xdg_toplevel->app_id : "unknown";
+  wlr_log(WLR_INFO, "View unmapped: app_id='%s'", app_id);
 
   view->mapped = false;
   wl_list_remove(&view->link);
@@ -198,6 +206,12 @@ static void view_destroy(struct wl_listener *listener, void *data) {
     osf_window_destroy(view->framework_window);
     view->framework_window = NULL;
     wlr_log(WLR_INFO, "Window unregistered from framework");
+  }
+
+  /* Destroy custom titlebar */
+  if (view->titlebar) {
+    osf_titlebar_destroy(view->titlebar);
+    view->titlebar = NULL;
   }
 
   wl_list_remove(&view->map.link);
@@ -295,8 +309,27 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
       wl_container_of(listener, server, new_xdg_toplevel);
   struct wlr_xdg_toplevel *xdg_toplevel = data;
 
-  wlr_log(WLR_INFO, "New XDG toplevel: %s",
-          xdg_toplevel->title ? xdg_toplevel->title : "(untitled)");
+  const char *app_id = xdg_toplevel->app_id ? xdg_toplevel->app_id : "unknown";
+  const char *title = xdg_toplevel->title ? xdg_toplevel->title : "untitled";
+
+  wlr_log(WLR_INFO,
+          "New XDG toplevel request received: app_id='%s', title='%s'", app_id,
+          title);
+
+  // CRITICAL FIX: Schedule initial configure event so client can render
+  wlr_xdg_surface_schedule_configure(xdg_toplevel->base);
+
+  if (!xdg_toplevel || !xdg_toplevel->base || !xdg_toplevel->base->surface) {
+    wlr_log(WLR_ERROR, "CRITICAL: New XDG toplevel has INVALID surface state!");
+    return;
+  }
+
+  wlr_log(WLR_INFO, "New XDG toplevel: %s (app_id: %s)",
+          xdg_toplevel->title ? xdg_toplevel->title : "(untitled)",
+          xdg_toplevel->app_id ? xdg_toplevel->app_id : "(unknown)");
+
+  /* Add surface commit logger to debug buffer attachment */
+  // setup but we can trust view_commit will handle it once created.
 
   /* Create view */
   struct osf_view *view = calloc(1, sizeof(*view));
@@ -314,6 +347,18 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
       wlr_scene_xdg_surface_create(view->scene_tree, xdg_toplevel->base);
   view->scene_tree->node.data = view;
   xdg_toplevel->base->data = view;
+
+  /* Create custom titlebar (skip for shell window) */
+  const char *app_id_check = xdg_toplevel->app_id ? xdg_toplevel->app_id : "";
+  if (strcmp(app_id_check, "vitusos.shell") != 0) {
+    view->titlebar = osf_titlebar_create(view->scene_tree, view);
+    /* Position content below titlebar */
+    wlr_scene_node_set_position(&view->content_tree->node, 0,
+                                OSF_TITLEBAR_HEIGHT);
+    wlr_log(WLR_INFO, "Created custom titlebar for: %s", app_id_check);
+  } else {
+    view->titlebar = NULL;
+  }
 
   /* Set up listeners */
   view->map.notify = view_map;

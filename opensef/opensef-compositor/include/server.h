@@ -37,6 +37,7 @@ struct osf_server;
 struct osf_output;
 struct osf_view;
 struct osf_layer_surface;
+struct osf_titlebar;
 
 /* ============================================================================
  * Server State
@@ -174,6 +175,9 @@ struct osf_view {
   struct wlr_scene_rect *border_bottom;
   struct wlr_scene_rect *border_left;
   struct wlr_scene_rect *border_right;
+
+  /* Custom titlebar with traffic lights */
+  struct osf_titlebar *titlebar;
 
   /* Framework integration */
   void *framework_window; /* OSFWindowC* from framework */

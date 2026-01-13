@@ -1,9 +1,10 @@
-#ifndef DOCK_CONTROLLER_H
-#define DOCK_CONTROLLER_H
+#ifndef DOCKCONTROLLER_H
+#define DOCKCONTROLLER_H
 
+#include <QMap>
 #include <QObject>
-#include <QString>
-#include <QVariantList>
+#include <QProcess>
+#include <QVariant>
 
 /**
  * DockController - Application dock controller
@@ -24,15 +25,16 @@ class DockController : public QObject {
 
 public:
   explicit DockController(QObject *parent = nullptr);
-  ~DockController() override = default;
+  ~DockController() override;
 
-  QVariantList dockItems() const { return m_dockItems; }
-  bool isHidden() const { return m_isHidden; }
-  int hoveredIndex() const { return m_hoveredIndex; }
+  QVariantList dockItems() const;
+  bool isHidden() const;
+  int hoveredIndex() const;
   void setHoveredIndex(int index);
 
 public slots:
   void launchApp(int index);
+  void toggleAutoHide();
   void showDock();
   void hideDock();
   void checkOverlap();
@@ -43,12 +45,20 @@ signals:
   void hoveredIndexChanged();
 
 private:
+  // Process tracking for direct app launching
+  QMap<int, QProcess *> m_processes;
+
+private slots:
+  void onProcessFinished(int exitCode, int exitStatus);
+
+private:
   void initDockItems();
   void connectToFramework();
+  void refreshRunningStatus();
 
   QVariantList m_dockItems;
-  bool m_isHidden = false;
-  int m_hoveredIndex = -1;
+  bool m_isHidden;
+  int m_hoveredIndex;
 };
 
-#endif // DOCK_CONTROLLER_H
+#endif // DOCKCONTROLLER_H

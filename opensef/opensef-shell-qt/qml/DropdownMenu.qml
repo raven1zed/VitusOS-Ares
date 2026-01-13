@@ -22,7 +22,8 @@ Popup {
         border.color: Qt.rgba(0, 0, 0, 0.1)
         border.width: 0.5
         
-        layer.enabled: true
+        layer.enabled: false
+        /*
         layer.effect: DropShadow {
             transparentBorder: true
             color: "#35000000"
@@ -30,6 +31,7 @@ Popup {
             samples: 33
             verticalOffset: 6
         }
+        */
     }
     
     contentItem: Column {

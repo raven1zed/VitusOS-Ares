@@ -69,80 +69,39 @@ void osf_new_output(struct wl_listener *listener, void *data) {
     wlr_log(WLR_INFO, "  No preferred mode reported by backend");
   }
 
-  /* Initialize output with allocator (required for wlroots 0.16+) */
-  wlr_output_init_render(wlr_output, server->allocator, server->renderer);
-
-  /* Force sane dimensions for nested backends (Wayland/X11) */
-  int width = 1280;
-  int height = 720;
-
-  bool is_nested = (getenv("VITUS_BACKEND") != NULL);
-  if (!is_nested && wlr_output->make) {
-    if (strcmp(wlr_output->make, "wayland") == 0 ||
-        strcmp(wlr_output->make, "x11") == 0) {
-      is_nested = true;
-    }
-  }
+  /* Force sane dimensions (Workaround for WSLg reporting bogus 131072x1) */
+  bool bogus_mode =
+      (preferred && (preferred->width > 10000 || preferred->height < 10));
 
   struct wlr_output_state state;
   wlr_output_state_init(&state);
   wlr_output_state_set_enabled(&state, true);
 
   bool committed = false;
-  if (is_nested) {
-    wlr_log(WLR_INFO, "  Attempting nested mode negotiation...");
-
-    /* Strategy 1: Preferred mode (if not bogus) */
-    if (preferred && preferred->width < 10000) {
-      wlr_output_state_set_mode(&state, preferred);
-      if (wlr_output_commit_state(wlr_output, &state)) {
-        wlr_log(WLR_INFO, "  SUCCESS: Committed backend preferred mode");
-        committed = true;
-      }
-    }
-
-    /* Strategy 2: 720p @ 60Hz */
-    if (!committed) {
-      wlr_output_state_set_custom_mode(&state, 1280, 720, 60000);
-      if (wlr_output_commit_state(wlr_output, &state)) {
-        wlr_log(WLR_INFO, "  SUCCESS: Committed 1280x720 @ 60Hz");
-        committed = true;
-      }
-    }
-
-    /* Strategy 3: 720p @ 0Hz (WSLg special) */
-    if (!committed) {
-      wlr_output_state_set_custom_mode(&state, 1280, 720, 0);
-      if (wlr_output_commit_state(wlr_output, &state)) {
-        wlr_log(WLR_INFO, "  SUCCESS: Committed 1280x720 @ 0Hz");
-        committed = true;
-      }
-    }
-
-    /* Strategy 4: 800x600 @ 60Hz (Ultra-safe) */
-    if (!committed) {
-      wlr_output_state_set_custom_mode(&state, 800, 600, 60000);
-      if (wlr_output_commit_state(wlr_output, &state)) {
-        wlr_log(WLR_INFO, "  SUCCESS: Committed 800x600 @ 60Hz");
-        width = 800;
-        height = 600;
-        committed = true;
-      }
-    }
-  } else {
-    /* Native mode */
-    if (preferred) {
-      wlr_output_state_set_mode(&state, preferred);
-      width = preferred->width;
-      height = preferred->height;
-    } else {
-      wlr_output_state_set_custom_mode(&state, width, height, 60000);
-    }
+  if (bogus_mode || getenv("VITUS_BACKEND")) {
+    wlr_log(WLR_INFO,
+            "  Bogus or Nested mode detected - forcing 1280x720 fallback");
+    wlr_output_state_set_custom_mode(&state, 1280, 720, 60000);
     if (wlr_output_commit_state(wlr_output, &state)) {
       committed = true;
     }
   }
+
+  if (!committed) {
+    if (preferred) {
+      wlr_output_state_set_mode(&state, preferred);
+    } else {
+      wlr_output_state_set_custom_mode(&state, 1280, 720, 60000);
+    }
+    if (!wlr_output_commit_state(wlr_output, &state)) {
+      wlr_log(WLR_ERROR, "  Failed to commit initial mode for %s",
+              wlr_output->name);
+    }
+  }
   wlr_output_state_finish(&state);
+
+  /* Initialize output with allocator (REQUIRED AFTER MODE IS SET) */
+  wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
   /* Create output structure */
   struct osf_output *output = calloc(1, sizeof(*output));
