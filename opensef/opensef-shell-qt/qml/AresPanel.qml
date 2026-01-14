@@ -10,13 +10,19 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 
 Rectangle {
     id: panel
     
     height: 28
     color: Qt.rgba(0.96, 0.96, 0.96, 0.95)  // Translucent Lunar Gray
+    visible: true  // Explicitly visible
+    opacity: 1.0   // Explicitly opaque
+    
+    Component.onCompleted: {
+        console.log("AresPanel loaded! Width:", width, "Height:", height, "Visible:", visible)
+    }
     
     // Disable layer effects for software rendering stability
     layer.enabled: false
@@ -38,6 +44,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         color: "#D4622A"  // Mars Orange
+        visible: true
         
         MouseArea {
             anchors.fill: parent
@@ -58,7 +65,7 @@ Rectangle {
             model: panelController.globalMenuItems
             
             delegate: Text {
-                text: modelData.label
+                text: modelData.title
                 color: "#1A1A1A"
                 font.pixelSize: 13
                 font.family: "Inter"

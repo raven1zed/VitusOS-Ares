@@ -49,12 +49,13 @@ Window {
         z: 10
     }
     
-    // Dock - BOTTOM CENTER
+    // Dock - BOTTOM CENTER (Manual positioning to allow y-animation)
     Dock {
         id: dock
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        z: 10
+        width: parent.width
+        x: 0
+        y: parent.height - height
+        z: 100 
     }
     
     // Multitask Overlay
@@ -64,6 +65,17 @@ Window {
         z: 1000
     }
     
+    Connections {
+        target: multitaskController
+        function onActiveChanged() {
+            if (multitaskController.active) {
+                multitask.open()
+            } else {
+                multitask.close()
+            }
+        }
+    }
+    
     // Global Dropdown Menu
     DropdownMenu {
         id: globalMenu
@@ -71,7 +83,7 @@ Window {
     }
     
     Shortcut {
-        sequence: "Super+Tab"
+        sequence: "Ctrl+Tab"
         onActivated: multitaskController.toggle()
     }
     

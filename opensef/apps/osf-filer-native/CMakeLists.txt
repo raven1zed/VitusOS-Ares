@@ -6,7 +6,7 @@ project(osf-filer-native VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Core5Compat)
 
 add_executable(osf-filer-native
     main.cpp
@@ -21,6 +21,7 @@ target_include_directories(osf-filer-native PRIVATE
 target_link_libraries(osf-filer-native PRIVATE
     Qt6::Core
     Qt6::Quick
+    Qt6::Core5Compat
     opensef-gnustep
     opensef-gnustep-qtquick
     opensef-framework

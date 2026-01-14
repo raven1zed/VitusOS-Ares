@@ -4,6 +4,7 @@
  */
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import Qt5Compat.GraphicalEffects
 
 Item {
     id: systemTrayRoot
@@ -22,16 +23,26 @@ Item {
         z: -1
     }
     
-    // CERAMIC SYSTEM TRAY PILL (16px radius per design spec)
+    // CERAMIC SYSTEM TRAY PILL
     Rectangle {
         id: trayPill
         height: 24
-        width: trayRow.width + 24 // Tighter padding
-        radius: 12 // Half of height for perfect pill
+        width: trayRow.width + 24
+        radius: 12 
         color: "#FAFAF9"
         border.width: 0.5
         border.color: "#E0E0E0"
         anchors.verticalCenter: parent.verticalCenter
+        
+        // Ensure 4-corner rounding standard (even for simple pill)
+        layer.enabled: true
+        layer.effect: OpacityMask {
+            maskSource: Rectangle {
+                width: trayPill.width
+                height: trayPill.height
+                radius: trayPill.radius
+            }
+        }
     
         Row {
             id: trayRow
@@ -43,71 +54,83 @@ Item {
                 width: 20; height: 18
                 anchors.verticalCenter: parent.verticalCenter
                 
-                // Signal Bars
-                Row {
-                    anchors.bottom: parent.bottom
+                // Signal Arcs (Approximated with transparent circles and borders)
+                // Largest Arc
+                Rectangle {
+                    width: 16; height: 8
+                    radius: 8
+                    color: "transparent"
+                    border.color: "#333333"; border.width: 1.5
                     anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 2
-                    
-                    Rectangle { width: 3; height: 4; color: "#333333"; radius: 1 }
-                    Rectangle { width: 3; height: 8; color: "#333333"; radius: 1 }
-                    Rectangle { width: 3; height: 12; color: "#333333"; radius: 1 }
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+                    visible: true
+                    clip: true // Basic approximation
+                }
+                 // Dot
+                Rectangle {
+                    width: 3; height: 3
+                    radius: 1.5
+                    color: "#333333"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 2
                 }
             }
     
             // --- 2. BATTERY ICON (Procedural) ---
             Item {
-                width: 24; height: 12
+                width: 26; height: 12
                 anchors.verticalCenter: parent.verticalCenter
                 
                 // Body
                 Rectangle {
                     id: batBody
-                    width: 20; height: 12
-                    radius: 3
+                    width: 20; height: 10
+                    radius: 2.5
                     color: "transparent"
                     border.width: 1.5
                     border.color: "#333333"
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
                     
-                    // Level
+                    // Level (75%)
                     Rectangle {
-                        width: 12; height: 8
-                        radius: 1
+                        width: 12; height: 6
+                        radius: 1.5
                         color: "#333333"
-                        anchors.left: parent.left
-                        anchors.leftMargin: 2
+                        anchors.left: parent.left; anchors.leftMargin: 2
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
                 
-                // Nub
+                // Positive Terminal (Nub)
                 Rectangle {
                     width: 2; height: 4
                     radius: 1
                     color: "#333333"
-                    anchors.left: batBody.right
-                    anchors.leftMargin: 1
+                    anchors.left: batBody.right; anchors.leftMargin: 1
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
     
-            // --- 3. CONTROL CENTER (Procedural) ---
+            // --- 3. CONTROL CENTER (Switches) ---
             Item {
-                width: 20; height: 20
+                width: 18; height: 18
                 anchors.verticalCenter: parent.verticalCenter
                 
-                // Toggles look
                 Column {
                     anchors.centerIn: parent
-                    spacing: 2
+                    spacing: 3
                     
-                    Rectangle { width: 16; height: 2; color: "#333333"; radius: 1 }
-                    Rectangle { width: 16; height: 2; color: "#333333"; radius: 1 }
-                    Rectangle { width: 16; height: 2; color: "#333333"; radius: 1 }
+                    // Toggle 1
+                    Rectangle { width: 14; height: 2; color: "#333333"; radius: 1 }
+                    // Toggle 2 (Active)
+                    Rectangle { 
+                        width: 14; height: 2; color: "#333333"; radius: 1 
+                        Rectangle { width: 4; height: 4; radius: 2; color: "#333333"; anchors.verticalCenter: parent.verticalCenter; x: 8 }
+                    }
+                    // Toggle 3
+                    Rectangle { width: 14; height: 2; color: "#333333"; radius: 1 }
                 }
-                // Circle overlay to look like sliders
-                Rectangle { width: 5; height: 5; radius: 2.5; color: "#333333"; x: 4; y: 4 }
-                Rectangle { width: 5; height: 5; radius: 2.5; color: "#333333"; x: 10; y: 9 }
             }
         }
     }

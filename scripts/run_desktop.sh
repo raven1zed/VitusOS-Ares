@@ -21,8 +21,8 @@ export VITUS_BACKEND=wayland
 export QT_QPA_PLATFORM=wayland
 export WLR_RENDERER=pixman
 export WLR_NO_HARDWARE_CURSORS=1
-export LIBGL_ALWAYS_SOFTWARE=1
-export QT_QUICK_BACKEND=software
+# REMOVED: LIBGL_ALWAYS_SOFTWARE conflicts with Vulkan in Filer
+# REMOVED: QT_QUICK_BACKEND=software conflicts with Vulkan in Filer
 
 # Trap Ctrl+C for clean exit
 cleanup() {
@@ -46,7 +46,7 @@ if ! ps -p $COMP_PID > /dev/null; then
     exit 1
 fi
 
-WAYLAND_SOCK=$(grep -o "wayland-[0-9]*" "$LOG_DIR/comp.log" | head -n 1)
+WAYLAND_SOCK=$(grep -o "wayland-[0-9]*" "$LOG_DIR/comp.log" | head -n 1 | tr -d '\r')
 if [ -z "$WAYLAND_SOCK" ]; then
     echo "ERROR: Wayland socket not found"
     exit 1

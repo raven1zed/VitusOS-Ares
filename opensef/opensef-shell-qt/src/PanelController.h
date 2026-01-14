@@ -44,6 +44,8 @@ public slots:
   void menuItemClicked(int menuIndex, int itemIndex);
   void showMenu(int menuIndex, int x, int y);
   void hideMenu();
+  void reportWindowGeometry(const QString &idOrAppId, int x, int y, int w,
+                            int h);
 
 signals:
   void activeWindowTitleChanged();
@@ -55,12 +57,11 @@ signals:
 
 private slots:
   void updateClock();
-  void onWindowFocused(const QString &windowId, const QString &title,
-                       const QString &appId, const QString &menuService,
-                       const QString &menuPath);
+  void onWindowFocused(const QString &title, const QString &appId);
 
 private:
   void connectToFramework();
+  void initializeDefaultMenus();
   void clearMenuItems();
   void loadMenuForFocusedApp(const QString &windowId, const QString &appId,
                              const QString &menuService,

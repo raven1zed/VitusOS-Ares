@@ -4,12 +4,22 @@
 #include "OSFStateManager.h"
 #include <QDebug>
 #include <QDir>
+#include <QList>
+#include <QMap>
 #include <QProcess>
+#include <QString>
+#include <QTimer>
+#include <QVariantMap>
 
 DockController::DockController(QObject *parent)
     : QObject(parent), m_hoveredIndex(-1), m_isHidden(false) {
   initDockItems();
   connectToFramework();
+
+  // DISABLED: Polling causes flickering and erratic behavior
+  // QTimer *timer = new QTimer(this);
+  // connect(timer, &QTimer::timeout, this, &DockController::checkOverlap);
+  // timer->start(500);
 }
 
 void DockController::initDockItems() {
@@ -72,8 +82,8 @@ void DockController::connectToFramework() {
                  << QString::fromStdString(name);
 
         // Ensure state manager knows about it (if not already via window)
-        // This bridges the gap for "Native" apps that might start background
-        // first
+        // This bridges the gap for "Native" apps that might start
+        // background first
         if (desktop->stateManager()) {
           auto *win = new OpenSEF::OSFWindow(appId, name, appId);
           desktop->stateManager()->addWindow(win);
@@ -106,35 +116,30 @@ void DockController::refreshRunningStatus() {
   auto windows = desktop->stateManager()->allWindows();
   bool changed = false;
 
-  // Removed: Manual Process Polling (pgrep) - Now 100% Event Driven
-
   for (int i = 0; i < m_dockItems.size(); ++i) {
     QVariantMap item = m_dockItems[i].toMap();
     bool isRunning = false;
     QString cmdBasename = item["name"].toString().toLower();
 
-    // 1. Framework Check (Source of Truth)
-    for (auto *win : windows) {
-      if (!win)
-        continue;
-      QString appId = QString::fromStdString(win->appId()).toLower();
-      QString title = QString::fromStdString(win->title()).toLower();
+    // FORCE FILER ALWAYS ACTIVE (like macOS Finder)
+    if (cmdBasename == "filer") {
+      isRunning = true;
+    } else {
+      // Check if app has windows
+      for (auto *win : windows) {
+        if (!win)
+          continue;
+        QString appId = QString::fromStdString(win->appId()).toLower();
+        QString title = QString::fromStdString(win->title()).toLower();
 
-      // Improved matching: handle osf-filer-native, osf-terminal, etc.
-      // Match if appId contains the name OR name is in appId
-      if (appId.contains(cmdBasename) || cmdBasename.contains(appId) ||
-          title.contains(cmdBasename) ||
-          // Special case: "filer" matches "osf-filer-native"
-          (cmdBasename == "filer" && appId.contains("filer")) ||
-          (cmdBasename == "terminal" && appId.contains("terminal"))) {
-        isRunning = true;
-        qDebug() << "[DockController] Matched" << cmdBasename
-                 << "to appId:" << appId;
-        break;
+        if (appId.contains(cmdBasename) || cmdBasename.contains(appId) ||
+            title.contains(cmdBasename) ||
+            (cmdBasename == "terminal" && appId.contains("terminal"))) {
+          isRunning = true;
+          break;
+        }
       }
     }
-
-    // Removed: Hardcoded overrides. Native apps must report themselves.
 
     if (item["running"].toBool() != isRunning) {
       item["running"] = isRunning;
@@ -164,19 +169,30 @@ void DockController::launchApp(int index) {
 
   qDebug() << "[DockController] Launching:" << command;
 
-  // Environment pass-through for WSLg consistency
+  // Environment pass-through for WSLg consistency and Qt Loading
   const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
   const QByteArray runtimeDir = qgetenv("XDG_RUNTIME_DIR");
+  const QByteArray qtPluginPath = qgetenv("QT_PLUGIN_PATH");
+  const QByteArray qmlImportPath = qgetenv("QML2_IMPORT_PATH");
 
-  // Force software rendering for absolute stability in this environment
-  QString safeCommand = QString("env WAYLAND_DISPLAY=%1 XDG_RUNTIME_DIR=%2 "
-                                "LIBGL_ALWAYS_SOFTWARE=1 %3")
-                            .arg(QString::fromUtf8(waylandDisplay))
-                            .arg(QString::fromUtf8(runtimeDir))
-                            .arg(command);
+  // Force hardware rendering (remove software override)
+  // AND explicitly pass Qt paths that might be lost in shell transition
+  QString safeCommand =
+      QString("env WAYLAND_DISPLAY=%1 XDG_RUNTIME_DIR=%2 "
+              "QT_PLUGIN_PATH=%3 QML2_IMPORT_PATH=%4 QML_IMPORT_PATH=%4 "
+              "%5")
+          .arg(QString::fromUtf8(waylandDisplay))
+          .arg(QString::fromUtf8(runtimeDir))
+          .arg(QString::fromUtf8(qtPluginPath))
+          .arg(QString::fromUtf8(qmlImportPath))
+          .arg(command);
 
   // START PROCESS TRACKING AND SIMULATION
   QProcess *proc = new QProcess(this);
+
+  // CRITICAL DEBUGGING: Log output to file
+  proc->setStandardOutputFile("/tmp/vitus_child_out.log");
+  proc->setStandardErrorFile("/tmp/vitus_child_err.log");
 
   // Tag the process for identification
   proc->setProperty("appName", item["name"]);
@@ -203,11 +219,16 @@ void DockController::launchApp(int index) {
       );
 
       desktop->stateManager()->addWindow(win);
+      desktop->stateManager()->setActiveWindow(win);
 
       // Notify system
       OpenSEF::OSFEvent event;
-      event.set("id", appId.toStdString());
-      desktop->eventBus()->publish(OpenSEF::OSFEventBus::WINDOW_CREATED, event);
+      event.set("window_id", appId.toStdString());
+      event.set("title", title.toStdString());
+      event.set("app_id", appId.toStdString());
+      event.set("menu_service", std::string(""));
+      event.set("menu_path", std::string(""));
+      desktop->eventBus()->publish(OpenSEF::OSFEventBus::WINDOW_FOCUSED, event);
     }
   } else {
     qDebug() << "[DockController] Launch failed";
@@ -229,10 +250,19 @@ void DockController::onProcessFinished(int exitCode, int exitStatus) {
 
     desktop->stateManager()->removeWindow(appId.toStdString());
 
-    // Notify system
+    // Notify system (Restore Desktop Focus)
     OpenSEF::OSFEvent event;
-    event.set("id", appId.toStdString());
-    desktop->eventBus()->publish(OpenSEF::OSFEventBus::WINDOW_DESTROYED, event);
+    event.set("window_id", std::string("desktop"));
+    event.set("title", std::string("Ares Desktop"));
+    event.set("app_id", std::string(""));
+    event.set("menu_service", std::string(""));
+    event.set("menu_path", std::string(""));
+    desktop->eventBus()->publish(OpenSEF::OSFEventBus::WINDOW_FOCUSED, event);
+
+    OpenSEF::OSFEvent destroyEvent;
+    destroyEvent.set("id", appId.toStdString());
+    desktop->eventBus()->publish(OpenSEF::OSFEventBus::WINDOW_DESTROYED,
+                                 destroyEvent);
   }
 
   m_processes.remove(proc->processId());
@@ -254,7 +284,50 @@ void DockController::hideDock() {
 }
 
 void DockController::checkOverlap() {
-  // Autohide logic place holder
+  auto *desktop = OpenSEF::OSFDesktop::shared();
+  if (!desktop || !desktop->stateManager())
+    return;
+
+  auto windows = desktop->stateManager()->allWindows();
+  bool overlaps = false;
+
+  // Dock Area Definition (1920x1080)
+  const int SCREEN_HEIGHT = 1080;
+  const int DOCK_HEIGHT = 90;
+  const int DOCK_THRESHOLD_Y = SCREEN_HEIGHT - DOCK_HEIGHT - 20;
+
+  for (auto *win : windows) {
+    if (!win || win->isMinimized())
+      continue;
+
+    bool possiblyOverlaps = false;
+
+    // 1. Maximized windows always overlap
+    if (win->isMaximized())
+      possiblyOverlaps = true;
+
+    // 2. Focused Filer always overlaps (Assumed centered/large in Ares)
+    if (win->appId().find("filer") != std::string::npos && win->isFocused()) {
+      possiblyOverlaps = true;
+    }
+
+    // 3. Fallback: Any window in the bottom 20% of the screen
+    if (win->y() + win->height() > DOCK_THRESHOLD_Y) {
+      possiblyOverlaps = true;
+    }
+
+    if (possiblyOverlaps) {
+      overlaps = true;
+      break;
+    }
+  }
+
+  if (overlaps) {
+    hideDock();
+  } else {
+    // Reveal dock if NO overlaps
+    showDock();
+  }
 }
 
 DockController::~DockController() {}

@@ -1,4 +1,5 @@
 #include "OSFThemeManager.h"
+#include <cstdint>
 
 namespace OpenSEF {
 

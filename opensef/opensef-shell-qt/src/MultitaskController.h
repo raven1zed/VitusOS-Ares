@@ -41,6 +41,8 @@ public slots:
   void minimizeWindow(const QString &windowId);
   void maximizeWindow(const QString &windowId);
 
+  void refreshWindows();
+
   // Keyboard navigation
   void selectNext();
   void selectPrevious();
@@ -52,7 +54,6 @@ signals:
   void selectedIndexChanged();
 
 private:
-  void refreshWindows();
   void connectToFramework();
 
   bool m_active = false;

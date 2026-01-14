@@ -1,396 +1,296 @@
 /**
- * Multitask.qml - Apple Mission Control Level Polish
+ * Multitask.qml - Mission Control / Expose View
  * 
- * Refined to match Apple's attention to detail
+ * Fusion Design:
+ * - Fluid grid of live window previews
+ * - Large, centered tiles
+ * - Integrated decorations on tiles
+ * - Smooth entrance/exit animations
  */
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import Qt5Compat.GraphicalEffects
+import Qt5Compat.GraphicalEffects 
+import "./components"
 
-Rectangle {
-    id: multitaskRoot
+Item {
+    id: root
     anchors.fill: parent
+    visible: false
+    opacity: 0
     
-    // Refined warm gradient (more subtle)
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: "#1C1410" }
-        GradientStop { position: 0.6; color: "#241810" }
-        GradientStop { position: 1.0; color: "#2A1C10" }
-    }
-    
-    opacity: multitaskController.active ? 1 : 0
-    visible: opacity > 0
-    
-    Behavior on opacity {
-        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
-    }
-
-    // Subtle vignette
+    // Background Blur/Dim
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "transparent" }
-            GradientStop { position: 0.7; color: "transparent" }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.2) }
-        }
+        color: "#000000"
+        opacity: 0.4
     }
-
-    // Header - Apple style (minimal, elegant)
+    
+    // STAGE MANAGER SIDE STRIP (Fusion Left)
     Item {
-        id: header
-        anchors.top: parent.top
+        id: stageStripContainer
+        width: 120
         anchors.left: parent.left
-        anchors.right: parent.right
-        height: 80
-        
-        Text {
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: 50
-            anchors.bottomMargin: 15
-            text: "Activities"
-            font.pixelSize: 28
-            font.family: "Inter"
-            font.weight: Font.Light
-            color: "#FAFAF9"
-            opacity: 0.95
-        }
-        
-        // Window count (subtle)
-        Text {
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.rightMargin: 50
-            anchors.bottomMargin: 15
-            text: multitaskController.windows.length + (multitaskController.windows.length === 1 ? " window" : " windows")
-            font.pixelSize: 12
-            font.family: "Inter"
-            font.weight: Font.Medium
-            color: Qt.rgba(1, 1, 1, 0.4)
-            font.letterSpacing: 0.5
-        }
-    }
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.margins: 40
+        anchors.leftMargin: 20
+        visible: root.visible
 
-    // Empty State (Apple-minimal)
-    Column {
-        anchors.centerIn: parent
-        spacing: 16
-        visible: multitaskController.windows.length === 0
-        opacity: 0.6
-        
         Rectangle {
-            width: 64
-            height: 64
-            radius: 32
-            color: Qt.rgba(1, 1, 1, 0.03)
-            anchors.horizontalCenter: parent.horizontalCenter
-            border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.05)
+            id: stageStripMask
+            anchors.fill: parent
+            radius: 24
+            color: "black"
+            visible: false
+        }
+
+        Rectangle {
+            id: stageStrip
+            anchors.fill: parent
+            radius: 24
+            color: "#20FFFFFF"
             
-            Text {
-                anchors.centerIn: parent
-                text: "⊞"
-                font.pixelSize: 32
-                color: Qt.rgba(1, 1, 1, 0.15)
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: stageStripMask
+            }
+            
+            Column {
+                anchors.fill: parent
+                anchors.topMargin: 20
+                spacing: 20
+                
+                Repeater {
+                    model: Math.min(multitaskController.windows.length, 4)
+                    delegate: Item {
+                        width: 80; height: 60
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 12
+                            color: "#CCFAFAF9"
+                            border.width: 1
+                            border.color: "#30FFFFFF"
+                            
+                            // 4-corner Rounding for small icon previews
+                            layer.enabled: true
+                            layer.effect: OpacityMask {
+                                maskSource: Rectangle { width: 80; height: 60; radius: 12 }
+                            }
+
+                            Image {
+                                anchors.centerIn: parent
+                                width: 32; height: 32
+                                source: "image://icon/" + multitaskController.windows[index].appId
+                            }
+                        }
+                        
+                        rotation: -15
+                        scale: 0.8
+                    }
+                }
             }
         }
         
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "No Open Windows"
-            color: Qt.rgba(1, 1, 1, 0.3)
-            font.pixelSize: 16
-            font.family: "Inter"
-            font.weight: Font.Light
+        layer.enabled: true
+        layer.effect: DropShadow {
+            transparentBorder: true
+            radius: 16
+            samples: 24
+            color: "#40000000"
         }
+        
+        NumberAnimation on x { from: -140; to: 20; duration: 400; easing.type: Easing.OutBack }
     }
 
-    // GRID - Apple Mission Control style
-    GridView {
-        id: taskGrid
-        anchors.fill: parent
-        anchors.leftMargin: 50
-        anchors.rightMargin: 50
-        anchors.topMargin: 100
-        anchors.bottomMargin: 70
-        
-        cellWidth: 350
-        cellHeight: 250
-        
-        clip: true
+    // MISSION CONTROL HEADER
+    Text {
+        text: "Activities"
+        font.family: "Inter"
+        font.pixelSize: 42
+        font.weight: Font.ExtraBold
+        color: "white"
+        anchors.top: parent.top
+        anchors.left: stageStripContainer.right
+        anchors.leftMargin: 60
+        anchors.topMargin: 60
+        opacity: root.visible ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 500 } }
+    }
+    
+    // PANORAMIC WINDOW STRIP (Win8 Style)
+    ListView {
+        id: windowList
+        anchors.left: stageStripContainer.right
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: 180
+        orientation: ListView.Horizontal
+        spacing: 60
+        leftMargin: 60
+        rightMargin: 100
         model: multitaskController.windows
-        
-        // Smooth Apple-style scrolling
-        flickDeceleration: 4000
-        maximumFlickVelocity: 6000
+        snapMode: ListView.SnapToItem
+        highlightFollowsCurrentItem: true
         
         delegate: Item {
-            width: 330
-            height: 230
+            id: windowDelegate
+            width: 520; height: 380
             
-            // Tile with refined shadow (Apple-level)
+            property bool isHovered: mouseArea.containsMouse
+            scale: isHovered ? 1.05 : 1.0
+            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutBack } }
+            
+            // Mirror reflection effect (Fusion Polish)
             Rectangle {
-                id: tile
-                anchors.centerIn: parent
-                width: parent.width - 16
-                height: parent.height - 16
+                anchors.top: cardContainer.bottom
+                anchors.topMargin: 8
+                anchors.horizontalCenter: cardContainer.horizontalCenter
+                width: cardContainer.width
+                height: cardContainer.height * 0.25
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#60FFFFFF" }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+                opacity: 0.2
+                rotation: 180
+            }
+
+            // Window Preview Card (Standardized 20px Mask)
+            Item {
+                id: cardContainer
+                width: 520; height: 360
                 
-                radius: 12 // Apple uses ~12px for window previews
-                color: "#1E1E1E"
+                Rectangle {
+                    id: cardMask
+                    anchors.fill: parent
+                    radius: 20
+                    color: "black"
+                    visible: false
+                }
                 
-                // Subtle border
-                border.width: hoverHandler.hovered ? 1.5 : 0.5
-                border.color: hoverHandler.hovered ? "#E85D04" : Qt.rgba(1, 1, 1, 0.08)
+                Rectangle {
+                    id: card
+                    anchors.fill: parent
+                    radius: 20
+                    color: "#EEFAFAF9"
+                    
+                    layer.enabled: true
+                    layer.effect: OpacityMask {
+                        maskSource: cardMask
+                    }
+                    
+                    // Integrated Window Decorations (Fusion Style)
+                    WindowDecorations {
+                        id: deco
+                        height: 40
+                        radius: 20
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        windowTitle: modelData.title
+                        isActive: true
+                        showTrafficLights: true
+                        enabled: false
+                        z: 10
+                    }
+                    
+                    // Content Preview Area
+                    Rectangle {
+                        anchors.top: deco.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        color: "#F8FFFFFF"
+                        
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 32
+                            
+                            Image {
+                                width: 128; height: 128
+                                source: "image://icon/" + modelData.appId
+                                sourceSize: Qt.size(512, 512)
+                                fillMode: Image.PreserveAspectFit
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                smooth: true
+                            }
+                            
+                            Text {
+                                text: modelData.name
+                                font.family: "Inter"
+                                font.pixelSize: 22
+                                font.weight: Font.Bold
+                                color: "#1A1A1A"
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+    
+                            Text {
+                                text: modelData.appId
+                                font.family: "Inter"
+                                font.pixelSize: 14
+                                color: "#E85D04" // Space Orange highlight
+                                font.weight: Font.DemiBold
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+                        }
+                    }
+                }
                 
-                // Shadow (refined)
+                // Outer focus border (outside the mask)
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 20
+                    color: "transparent"
+                    border.width: isHovered ? 4 : 0
+                    border.color: "#E85D04"
+                    Behavior on border.width { NumberAnimation { duration: 150 } }
+                }
+                
                 layer.enabled: true
                 layer.effect: DropShadow {
                     transparentBorder: true
-                    color: hoverHandler.hovered ? "#60000000" : "#40000000"
-                    radius: hoverHandler.hovered ? 24 : 16
-                    samples: 25
-                    verticalOffset: hoverHandler.hovered ? 12 : 6
                     horizontalOffset: 0
-                }
-                
-                // Content
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 11
-                    color: "#2A2A2A"
-                    clip: true
-                    
-                    // Thumbnail
-                    Image {
-                        anchors.fill: parent
-                        anchors.margins: 3
-                        source: modelData.thumbnail || ""
-                        fillMode: Image.PreserveAspectCrop
-                        visible: source != ""
-                        opacity: 0.95
-                    }
-                    
-                    // Fallback - elegant letter
-                    Rectangle {
-                        width: 72
-                        height: 72
-                        radius: 36
-                        anchors.centerIn: parent
-                        color: Qt.rgba(1, 1, 1, 0.04)
-                        visible: modelData.thumbnail === ""
-                        border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, 0.06)
-                        
-                        Text {
-                            anchors.centerIn: parent
-                            text: (modelData.name || "A").charAt(0).toUpperCase()
-                            font.pixelSize: 40
-                            font.family: "Inter"
-                            font.weight: Font.Light
-                            color: Qt.rgba(1, 1, 1, 0.25)
-                        }
-                    }
-                }
-                
-                // Info bar (Apple style - subtle)
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 50
-                    radius: 12
-                    
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.4; color: Qt.rgba(0, 0, 0, 0.5) }
-                        GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.85) }
-                    }
-                    
-                    Column {
-                        anchors.left: parent.left
-                        anchors.bottom: parent.bottom
-                        anchors.margins: 14
-                        spacing: 3
-                        
-                        Text {
-                            text: modelData.name || "Application"
-                            color: "white"
-                            font.pixelSize: 14
-                            font.family: "Inter"
-                            font.weight: Font.DemiBold
-                        }
-                        
-                        Text {
-                            text: modelData.title || ""
-                            color: Qt.rgba(1, 1, 1, 0.6)
-                            font.pixelSize: 11
-                            font.family: "Inter"
-                            font.weight: Font.Normal
-                            elide: Text.ElideRight
-                            width: 270
-                        }
-                    }
-                }
-                
-                // Mini Traffic Lights (appears on hover - Ares style)
-                Row {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.margins: 10
-                    spacing: 6
-                    visible: hoverHandler.hovered
-                    opacity: hoverHandler.hovered ? 1.0 : 0.0
-                    
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
-                    
-                    // Close (Space Orange)
-                    Rectangle {
-                        width: 16
-                        height: 16
-                        radius: 8
-                        color: closeHover.containsMouse ? "#FF6347" : "#E85D04"
-                        
-                        Text {
-                            anchors.centerIn: parent
-                            text: "×"
-                            color: "white"
-                            font.pixelSize: 11
-                            font.bold: true
-                            opacity: closeHover.containsMouse ? 1.0 : 0.0
-                        }
-                        
-                        MouseArea {
-                            id: closeHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                multitaskController.closeWindow(modelData.id)
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                    }
-                    
-                    // Minimize (Mars Gold)
-                    Rectangle {
-                        width: 16
-                        height: 16
-                        radius: 8
-                        color: minHover.containsMouse ? "#FFE066" : "#D4A93E"
-                        
-                        Rectangle {
-                            width: 8
-                            height: 2
-                            anchors.centerIn: parent
-                            color: "white"
-                            opacity: minHover.containsMouse ? 1.0 : 0.0
-                        }
-                        
-                        MouseArea {
-                            id: minHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                multitaskController.minimizeWindow(modelData.id)
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                    }
-                    
-                    // Maximize (Mission Blue)
-                    Rectangle {
-                        width: 16
-                        height: 16
-                        radius: 8
-                        color: maxHover.containsMouse ? "#3395FF" : "#3D5A80"
-                        
-                        Rectangle {
-                            width: 7
-                            height: 7
-                            anchors.centerIn: parent
-                            color: "transparent"
-                            border.width: 1.5
-                            border.color: "white"
-                            opacity: maxHover.containsMouse ? 1.0 : 0.0
-                        }
-                        
-                        MouseArea {
-                            id: maxHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                multitaskController.maximizeWindow(modelData.id)
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 100 } }
-                    }
-                }
-                
-                HoverHandler { id: hoverHandler }
-                
-                // Apple-style subtle scale
-                scale: hoverHandler.hovered ? 1.02 : 1.0
-                Behavior on scale { 
-                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic } 
-                }
-                
-                Behavior on border.width {
-                    NumberAnimation { duration: 120 }
-                }
-                
-                Behavior on border.color {
-                    ColorAnimation { duration: 120 }
+                    verticalOffset: 24
+                    radius: 48
+                    samples: 40
+                    color: "#A0000000"
                 }
             }
             
             MouseArea {
-                anchors.fill: parent
+                id: mouseArea
+                anchors.fill: cardContainer
+                hoverEnabled: true
                 onClicked: {
-                    multitaskController.activateWindow(modelData.id)
+                    multitaskController.activateWindow(modelData.windowId)
+                    root.close()
                 }
             }
         }
         
-        // Apple-style entry animation
-        populate: Transition {
-            NumberAnimation { 
-                properties: "opacity,scale" 
-                from: 0 
-                to: 1 
-                duration: 350
-                easing.type: Easing.OutCubic
-            }
+        // Dynamic Entrance (Fluid Mission Control style)
+        add: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 600; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "scale"; from: 0.7; to: 1.0; duration: 600; easing.type: Easing.OutBack }
+            NumberAnimation { property: "x"; from: 800; duration: 600; easing.type: Easing.OutBack }
         }
     }
     
-    // Bottom hint (Apple-minimal)
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: 25
-        width: hintText.width + 32
-        height: 30
-        radius: 15
-        color: Qt.rgba(0, 0, 0, 0.25)
-        border.width: 0.5
-        border.color: Qt.rgba(1, 1, 1, 0.05)
-        
-        Text {
-            id: hintText
-            anchors.centerIn: parent
-            text: "Click to switch • ESC to close"
-            color: Qt.rgba(1, 1, 1, 0.4)
-            font.pixelSize: 11
-            font.family: "Inter"
-            font.weight: Font.Medium
-            font.letterSpacing: 0.3
-        }
+    // Show/Hide Logic
+    function open() {
+        visible = true
+        opacity = 1
+        multitaskController.refreshWindows()
     }
+    
+    function close() {
+        opacity = 0
+        visible = false
+    }
+    
+    Behavior on opacity { NumberAnimation { duration: 200 } }
 }

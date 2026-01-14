@@ -21,6 +21,17 @@
 #include "SystemTrayController.h"
 #include <OSFDesktop.h>
 
+// Import GNUstep Bridge
+#include <QQuickNSButton.h>
+#include <QQuickWindowButton.h>
+#include <opensef/NSButton.h>
+
+// Register types for QML
+void registerTypes() {
+  qmlRegisterType<QQuickNSButton>("OpenSEF.AppKit", 1, 0, "NSButton");
+  qmlRegisterType<QQuickWindowButton>("OpenSEF.AppKit", 1, 0, "NSWindowButton");
+}
+
 int main(int argc, char *argv[]) {
   // Enable Vulkan or OpenGL backend via Qt Quick
   // Qt automatically uses QRhi which selects Vulkan when available
@@ -64,6 +75,9 @@ int main(int argc, char *argv[]) {
   DockController dockController;
   MultitaskController multitaskController;
   SystemTrayController systemTrayController;
+
+  // Register C++ AppKit types (for WindowDecorations in Multitask view)
+  registerTypes();
 
   // Set up QML engine
   QQmlApplicationEngine engine;
