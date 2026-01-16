@@ -6,5 +6,10 @@
         <file>qml/SystemTray.qml</file>
         <file>qml/Multitask.qml</file>
         <file>qml/Wallpaper.qml</file>
+        <file>qml/DropdownMenu.qml</file>
+        <file>qml/components/SystemTrayDropdown.qml</file>
+        <file>qml/components/WindowDecorations.qml</file>
+        <file>qml/components/TrafficLightButton.qml</file>
+        <file>qml/components/MessageBox.qml</file>
     </qresource>
 </RCC>

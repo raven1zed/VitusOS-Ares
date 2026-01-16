@@ -68,6 +68,7 @@ private:
   bool loadDbusMenu(const QString &service, const QString &path);
   bool fetchMenuFromRegistrar(const QString &windowId, QString *service,
                               QString *path) const;
+  void initializeDefaultMenus(); // Filer menu for idle state
 
   QString m_activeWindowTitle;
   QString m_activeAppId;

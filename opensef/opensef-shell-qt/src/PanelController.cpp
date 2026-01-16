@@ -2,8 +2,6 @@
 #include <OSFDesktop.h>
 #include <OSFEventBus.h>
 #include <OSFStateManager.h>
-#include <QDateTime>
-#include <QDebug>
 #include <QDBusArgument>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -11,6 +9,8 @@
 #include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QDBusVariant>
+#include <QDateTime>
+#include <QDebug>
 #include <QMetaObject>
 #include <QTimer>
 
@@ -68,11 +68,11 @@ PanelController::PanelController(QObject *parent) : QObject(parent) {
   // Connect to framework for window events
   connectToFramework();
 
-  // Start with empty title (will update when window focused)
+  // Start with Filer menu (default idle state)
   m_activeWindowTitle = "";
   emit activeWindowTitleChanged();
 
-  clearMenuItems();
+  initializeDefaultMenus(); // Show Filer menu by default
 }
 
 PanelController::~PanelController() {}
@@ -142,8 +142,7 @@ void PanelController::menuItemClicked(int menuIndex, int itemIndex) {
     return;
   }
 
-  const QVariantMap menuMap =
-      m_globalMenuItems.at(menuIndex).toMap();
+  const QVariantMap menuMap = m_globalMenuItems.at(menuIndex).toMap();
   const QVariantList itemList = menuMap.value("items").toList();
   if (itemIndex < 0 || itemIndex >= itemList.size()) {
     return;
@@ -171,10 +170,9 @@ void PanelController::menuItemClicked(int menuIndex, int itemIndex) {
 
   const quint32 timestamp =
       static_cast<quint32>(QDateTime::currentMSecsSinceEpoch() & 0xffffffff);
-  QDBusMessage reply =
-      menuInterface.call("Event", dbusId, QStringLiteral("clicked"),
-                         QVariant::fromValue(QDBusVariant(QVariant())),
-                         timestamp);
+  QDBusMessage reply = menuInterface.call(
+      "Event", dbusId, QStringLiteral("clicked"),
+      QVariant::fromValue(QDBusVariant(QVariant())), timestamp);
   if (reply.type() == QDBusMessage::ErrorMessage) {
     qDebug() << "[PanelController] DBus menu activation failed:"
              << reply.errorMessage();
@@ -253,8 +251,7 @@ bool PanelController::loadDbusMenu(const QString &service,
 
   const QStringList properties = {"label", "enabled", "type",
                                   "children-display"};
-  QDBusMessage reply =
-      menuInterface.call("GetLayout", 0, -1, properties);
+  QDBusMessage reply = menuInterface.call("GetLayout", 0, -1, properties);
   if (reply.type() == QDBusMessage::ErrorMessage ||
       reply.arguments().size() < 2) {
     qDebug() << "[PanelController] Failed to fetch DBus menu layout:"
@@ -322,11 +319,9 @@ bool PanelController::fetchMenuFromRegistrar(const QString &windowId,
       continue;
     }
 
-    QDBusMessage message =
-        QDBusMessage::createMethodCall(registrar.serviceName,
-                                       registrar.objectPath,
-                                       registrar.interfaceName,
-                                       "GetMenuForWindow");
+    QDBusMessage message = QDBusMessage::createMethodCall(
+        registrar.serviceName, registrar.objectPath, registrar.interfaceName,
+        "GetMenuForWindow");
     message << QVariant::fromValue(windowHandle);
     QDBusMessage reply = QDBusConnection::sessionBus().call(message);
     if (reply.type() == QDBusMessage::ErrorMessage ||
@@ -348,4 +343,69 @@ bool PanelController::fetchMenuFromRegistrar(const QString &windowId,
   }
 
   return false;
+}
+
+void PanelController::initializeDefaultMenus() {
+  // Default Filer menu (shown when idle or when app has no menu)
+  m_globalMenuItems.clear();
+
+  auto addMenu = [this](const QString &title, const QVariantList &items) {
+    QVariantMap menu;
+    menu["title"] = title;
+    menu["items"] = items;
+    m_globalMenuItems.append(menu);
+  };
+
+  // Filer menu structure (like macOS Finder)
+  addMenu("Filer",
+          {QVariantMap{{"label", "New Window"}, {"id", "new_window"}},
+           QVariantMap{{"label", "New Folder"}, {"id", "new_folder"}},
+           QVariantMap{{"separator", true}},
+           QVariantMap{{"label", "Close Window"}, {"id", "close_window"}}});
+
+  addMenu("File", {QVariantMap{{"label", "New Tab"}, {"id", "new_tab"}},
+                   QVariantMap{{"separator", true}},
+                   QVariantMap{{"label", "Get Info"}, {"id", "get_info"}},
+                   QVariantMap{{"separator", true}},
+                   QVariantMap{{"label", "Move to Trash"}, {"id", "trash"}}});
+
+  addMenu("Edit", {QVariantMap{{"label", "Undo"}, {"id", "undo"}},
+                   QVariantMap{{"label", "Redo"}, {"id", "redo"}},
+                   QVariantMap{{"separator", true}},
+                   QVariantMap{{"label", "Cut"}, {"id", "cut"}},
+                   QVariantMap{{"label", "Copy"}, {"id", "copy"}},
+                   QVariantMap{{"label", "Paste"}, {"id", "paste"}},
+                   QVariantMap{{"separator", true}},
+                   QVariantMap{{"label", "Select All"}, {"id", "select_all"}}});
+
+  addMenu(
+      "View",
+      {QVariantMap{{"label", "as Icons"}, {"id", "view_icons"}},
+       QVariantMap{{"label", "as List"}, {"id", "view_list"}},
+       QVariantMap{{"label", "as Columns"}, {"id", "view_columns"}},
+       QVariantMap{{"separator", true}},
+       QVariantMap{{"label", "Show Path Bar"}, {"id", "show_path_bar"}},
+       QVariantMap{{"label", "Show Status Bar"}, {"id", "show_status_bar"}}});
+
+  addMenu("Go", {QVariantMap{{"label", "Back"}, {"id", "go_back"}},
+                 QVariantMap{{"label", "Forward"}, {"id", "go_forward"}},
+                 QVariantMap{{"separator", true}},
+                 QVariantMap{{"label", "Home"}, {"id", "go_home"}},
+                 QVariantMap{{"label", "Documents"}, {"id", "go_documents"}},
+                 QVariantMap{{"label", "Downloads"}, {"id", "go_downloads"}}});
+
+  addMenu("Window",
+          {QVariantMap{{"label", "Minimize"}, {"id", "minimize"}},
+           QVariantMap{{"label", "Zoom"}, {"id", "zoom"}},
+           QVariantMap{{"separator", true}},
+           QVariantMap{{"label", "Bring All to Front"}, {"id", "bring_all"}}});
+
+  addMenu("Help",
+          {QVariantMap{{"label", "Filer Help"}, {"id", "filer_help"}},
+           QVariantMap{{"separator", true}},
+           QVariantMap{{"label", "About Filer"}, {"id", "about_filer"}}});
+
+  emit globalMenuItemsChanged();
+
+  qDebug() << "[PanelController] Initialized default Filer menus";
 }

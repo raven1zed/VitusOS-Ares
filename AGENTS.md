@@ -1,342 +1,744 @@
-# AGENTS.md — AI Assistant Context & Guidelines
-**VitusOS Ares Development**
+# AGENTS.md - Guide for AI Assistants Working on VitusOS-Ares
 
-**Current Phase**: Phase 4 — Controls & Integration (In Progress)  
-**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)
-
-## Project Overview
-
-**VitusOS Ares** is a premium Linux desktop environment built on:
-- **openSEF Framework**: Unified event bus and state management
-- **wlroots 0.19**: Wayland compositor (Pure C)
-- **Qt Quick + Vulkan**: Shell UI (C++)
-- **Ares Design Language**: Mars-inspired warm aesthetic
-
-**Current Status**: Phase 4 In Progress (Controls & Integration)  
-**Next Phase**: Phase 5 — System Services (Boot-to-shutdown integration)  
-**Target**: v1.0 Stable Release in Q2 2026 (12-16 weeks)
+**Last Updated**: January 16, 2026  
+**Purpose**: Prevent AI instances from breaking this project with incorrect assumptions
 
 ---
 
-## Architecture at a Glance
+## ⚠️ CRITICAL: Read This First
+
+**This project has been broken multiple times by AI assistants who:**
+1. Assumed it's a traditional Linux DE (GNOME/KDE paradigm)
+2. Added Cairo/Pango dependencies when we use Qt Quick + Vulkan
+3. Implemented D-Bus for internal communication (wrong - only for legacy app compat)
+4. Treated components as independent services (wrong - unified framework)
+5. Assumed server-side window decorations (wrong - custom QML client-side)
+6. Made up APIs that don't exist
+7. Didn't read the vision document
+
+**If you don't understand something, ASK THE USER. Don't assume. Don't hallucinate.**
+
+---
+
+## 1. What VitusOS-Ares Actually Is
+
+### The Vision
+
+VitusOS-Ares is a **unified desktop environment** inspired by macOS, NOT a collection of independent Linux components.
+
+**Think**: macOS (unified, cohesive)  
+**NOT**: GNOME/KDE (fragmented, protocol soup)
+
+### Core Philosophy
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Shell UI (Qt Quick)                            │
-│  • Panel (global menu + system tray)            │
-│  • Dock (app launcher, autohide)                │
-│  • DBusMenu integration (Qt/GTK apps)           │
-├─────────────────────────────────────────────────┤
-│  Compositor (wlroots + Vulkan)                  │
-│  • Window management                            │
-│  • xdg-decoration (SSD for Electron/GTK)        │
-│  • Direct DRM for games                         │
-├─────────────────────────────────────────────────┤
-│  openSEF Framework                              │
-│  • OSFEventBus (pub/sub)                        │
-│  • OSFStateManager (single source of truth)     │
-│  • OSFDesktop (singleton access)                │
-└─────────────────────────────────────────────────┘
+ONE unified system (openSEF)
+    ↓
+Controls everything through OSFDesktop::shared()
+    ↓
+All communication via EventBus
+    ↓
+Consistent behavior across all components
 ```
 
----
-
-## Current Codebase State
-
-### ✅ Completed (Phase 1-3)
-
-**Compositor** (`opensef-compositor/`):
-- Pure C Wayland compositor using wlroots 0.19
-- Window management, input handling, layer shell
-- Framework integration via C bindings (`OSFFrameworkC.h`)
-- Window geometry tracking for spatial features
-
-**Framework** (`opensef-framework/`):
-- `OSFEventBus`: Decoupled pub/sub communication
-- `OSFStateManager`: Centralized window/app state
-- `OSFDesktop`: Singleton access to services
-- C/C++ bridge for compositor integration
-
-**Shell** (`opensef-shell/`):
-- **Panel**: Global menu bar (28px height, light theme)
-  - Multitask button (currently 20px wide — needs to be 80px)
-  - Active window title display
-  - Clock widget
-  - Dropdown menus with rounded bottom corners
-  
-- **Dock**: Dynamic app launcher (120px surface, 64px pill)
-  - SVG icon rendering
-  - Dynamic width based on running apps
-  - 3px active indicator dots
-  - **Autohide**: Implemented but NOT WORKING (needs fix)
-  
-- **Wallpaper**: Full-screen image rendering
-
-**Window System** (`opensef-base/`):
-- Native CSD with 9px rounded corners
-- Ares-palette traffic lights:
-  - Mars Orange (#D4622A) — Close
-  - Mars Gold (#D4A93E) — Minimize
-  - Vitus Blue (#4A9FD4) — Maximize
-- Interactive hover symbols (×, −, +)
-
-### ⚠️ Known Issues
-
-1. ~~**Dock autohide not working**: Window geometry events not triggering `checkOverlap()`~~ **FIXED** (Jan 8, 2026)
-2. ~~**Multitask button too narrow**: 20px instead of 80px~~ **FIXED** (Jan 8, 2026)
-3. **Multitask view**: Shows orange strip instead of Windows 8-style tiles
-4. **Deprecated librsvg functions**: Using `rsvg_handle_render_cairo` instead of `rsvg_handle_render_document`
-5. **Lint errors**: Missing includes, undeclared types (systematic cleanup needed)
-
-### 📋 Missing for v1
-
-**Critical (Blockers)**:
-- File Manager (`osf-filer`)
-- Settings App (`osf-settings`)
-- Notification system
-- System tray (StatusNotifierItem)
-- Application launcher
-
-**Important (Quality)**:
-- Terminal emulator
-- Keyboard layout switcher
-- Audio/brightness controls
-- Session management
+**Key Document**: [`vitusos_complete_vision.md`](file:///C:/Users/hp/Documents/VitusOS-Ares/docs/vitusos_complete_vision.md)  
+**READ IT COMPLETELY** before making any changes.
 
 ---
 
-## Active Implementation Plan
+## 2. Architecture - The Truth
 
-**Location**: `docs/CURRENT_PHASE.md` and `docs/COCOA_ALIGNMENT_ROADMAP.md`
+### What openSEF Is
 
-**Current Plan**: Qt-based Shell UI + Cross-Toolkit Support
+openSEF is **THREE things in ONE**:
 
-**Key Decisions**:
-1. **Rendering**: Qt Quick with Vulkan backend (via QRhi)
-   - NOT Skia (mobile-focused, hard to build)
-   - NOT Cairo (maintenance-only, poor performance)
-   - Qt chosen for: 600+ FPS, desktop ecosystem, gaming support
+1. **Desktop Environment** - The visual shell users interact with
+2. **API Layer** - Unified C++ framework (OSFDesktop, EventBus, etc.)
+3. **Application Framework** - GNUstep C++ fork for native apps
 
-2. **Cross-Toolkit Support**:
-   - Qt apps: Native DBusMenu
-   - GTK apps: `appmenu-gtk-module` + `gmenu-dbusmenu-proxy`
-   - Electron apps: Wrapper script with `--enable-features=WaylandWindowDecorations`
+### Technology Stack
 
-3. **System Tray**: macOS-style minimalist (icon-only, contextual)
+```
+┌─────────────────────────────────────────┐
+│  Shell (Qt Quick + Vulkan)              │  ← GPU-accelerated UI
+│  - Panel, Dock, SystemTray, Wallpaper   │
+│  - QML components, NO Cairo/Pango       │
+└─────────────────────────────────────────┘
+              ↓ uses ↓
+┌─────────────────────────────────────────┐
+│  Framework (Pure C++)                   │  ← NO external deps
+│  - OSFDesktop::shared()                 │     except pthread
+│  - EventBus, StateManager, etc.         │
+│  - NO Cairo, NO Pango, NO xkbcommon     │
+└─────────────────────────────────────────┘
+              ↓ controls ↓
+┌─────────────────────────────────────────┐
+│  Compositor (wlroots + Vulkan)          │  ← Pure C
+│  - Window management                    │
+│  - Wayland protocol                     │
+└─────────────────────────────────────────┘
+```
 
-4. **Gaming**: Direct DRM scanout for Proton/Steam games
+### What We DON'T Use
+
+❌ **Cairo/Pango** - We use Qt Quick for rendering  
+❌ **D-Bus for internal comms** - We use EventBus (D-Bus only for legacy GTK/Qt/Electron apps)  
+❌ **Server-side decorations** - We use custom QML client-side decorations  
+❌ **systemd for desktop** - openSEF dominates systemd  
+❌ **Traditional Linux DE patterns** - We follow macOS patterns
 
 ---
 
-## Development Guidelines
+## 3. The Unified Framework (OSFDesktop)
 
-### When Starting a New Session
+### The Single Source of Truth
 
-1. **Read this file first** to understand current state
-2. **Check `docs/CURRENT_PHASE.md`** for progress tracking
-3. **Review `docs/CURRENT_PHASE.md`** for the active plan and milestones
-4. **Check `README.md`** for latest status updates
+**EVERY component** must use:
 
-### Before Making Changes
+```cpp
+auto* desktop = OpenSEF::OSFDesktop::shared();
+```
 
-1. **Understand the architecture**: Don't break the unified framework pattern
-2. **Check existing code**: Reuse `OSFAresTheme.h` constants, don't hardcode
-3. **Follow naming conventions**: 
-   - Classes: `OSFClassName`
-   - Files: `OSFClassName.cpp/h`
-   - Events: `category.action` (e.g., `window.focused`)
+This is the **ONLY** way to access framework services.
 
-### Code Style
+### Available Services
 
-**C++ (Shell/Framework)**:
-- Use `std::` prefix for STL
-- Smart pointers: `std::unique_ptr`, `std::shared_ptr`
-- Events: Publish via `OSFDesktop::instance()->eventBus()->publish()`
-- State: Query via `OSFDesktop::instance()->stateManager()`
+```cpp
+// Event system (ALL internal communication)
+desktop->eventBus()->subscribe(OSFEventBus::WINDOW_FOCUSED, handler);
+desktop->eventBus()->publish(OSFEventBus::APP_LAUNCHED, event);
 
-**C (Compositor)**:
-- Pure C99, no C++ features
-- wlroots naming: `osf_server`, `osf_view`, `osf_output`
-- Framework integration: Use `OSFFrameworkC.h` C bindings
+// State management
+desktop->stateManager()->setState("key", value);
+desktop->stateManager()->getState("key");
 
-**Qt Quick (Future Shell)**:
-- QML for UI, C++ for controllers
-- Use `Qt6::Quick`, `Qt6::DBus`
-- Follow Qt naming: `camelCase` for properties, `PascalCase` for types
+// Window management
+desktop->windowManager()->allWindows();
+desktop->windowManager()->focusWindow(id);
 
-### Testing
+// Other services
+desktop->serviceRegistry()  // Service discovery
+desktop->resourceCache()    // Resource caching
+desktop->themeManager()     // Theme/colors
+desktop->clipboardManager() // Universal clipboard
+desktop->shortcutManager()  // Keyboard shortcuts
+```
 
-**Before committing**:
+### Event Types (Pre-Defined)
+
+**Use these constants, don't make up your own:**
+
+```cpp
+// Window events
+OSFEventBus::WINDOW_CREATED
+OSFEventBus::WINDOW_DESTROYED
+OSFEventBus::WINDOW_FOCUSED
+OSFEventBus::WINDOW_MINIMIZED
+OSFEventBus::WINDOW_MAXIMIZED
+
+// App events
+OSFEventBus::APP_LAUNCHED
+OSFEventBus::APP_TERMINATED
+
+// UI events
+OSFEventBus::MULTITASK_TOGGLE
+OSFEventBus::THEME_CHANGED
+OSFEventBus::WORKSPACE_CHANGED
+
+// Clipboard events
+OSFEventBus::CLIPBOARD_COPY
+OSFEventBus::CLIPBOARD_PASTE
+OSFEventBus::CLIPBOARD_CHANGED
+```
+
+**Location**: [`opensef-framework/include/OSFEventBus.h`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-framework/include/OSFEventBus.h)
+
+---
+
+## 4. Component Details
+
+### Panel (Global Menu Bar)
+
+**File**: [`opensef-shell-qt/qml/AresPanel.qml`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/qml/AresPanel.qml)  
+**Controller**: [`opensef-shell-qt/src/PanelController.cpp`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/src/PanelController.cpp)
+
+**Behavior**:
+- Shows **Filer menu** when desktop is idle (no windows focused)
+- Dynamically switches to focused app's menu
+- Like macOS menu bar (NOT static like GNOME)
+
+**WRONG Assumptions**:
+- ❌ "Panel should always show the same menu"
+- ❌ "Use DBusMenu for native apps" (only for legacy apps in up1)
+- ❌ "Hardcode menu items" (use initializeDefaultMenus() for Filer, load dynamically for others)
+
+### Dock
+
+**File**: [`opensef-shell-qt/qml/Dock.qml`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/qml/Dock.qml)  
+**Controller**: [`opensef-shell-qt/src/DockController.cpp`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/src/DockController.cpp)
+
+**Behavior**:
+- **Filer ALWAYS shows orange dot** (like macOS Finder - always running)
+- Other apps show dots when running
+- Auto-hides when windows overlap
+- Subscribes to `APP_LAUNCHED` and `APP_TERMINATED` events
+
+**WRONG Assumptions**:
+- ❌ "Filer is just another app" (NO - it's always running, provides default menu)
+- ❌ "Dots are just visual indicators" (they reflect actual running state via EventBus)
+
+### SystemTray
+
+**File**: [`opensef-shell-qt/qml/SystemTray.qml`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/qml/SystemTray.qml)  
+**Dropdown**: [`opensef-shell-qt/qml/components/SystemTrayDropdown.qml`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/opensef-shell-qt/qml/components/SystemTrayDropdown.qml)
+
+**Behavior**:
+- Procedural icons (QML shapes, NO image assets)
+- Click opens dropdown with Network/Sound/Battery controls
+- Connects to OSFDesktop services (NOT D-Bus directly)
+
+### Filer (File Manager)
+
+**File**: [`opensef/apps/osf-filer-native/Filer.qml`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/apps/osf-filer-native/Filer.qml)  
+**Main**: [`opensef/apps/osf-filer-native/main.cpp`](file:///C:/Users/hp/Documents/VitusOS-Ares/opensef/apps/osf-filer-native/main.cpp)
+
+**Behavior**:
+- Always running (like macOS Finder)
+- Uses GNUstep C++ AppKit components (NSButton, NSView, etc.)
+- Custom QML window decorations (traffic lights in titlebar)
+- Publishes `APP_LAUNCHED` on start
+
+**WRONG Assumptions**:
+- ❌ "Use Qt widgets" (NO - use GNUstep AppKit + Qt Quick bridge)
+- ❌ "Filer can be quit" (NO - it's always running)
+
+---
+
+## 5. Dependencies - What's Actually Used
+
+### Framework (opensef-framework)
+
+**CMakeLists.txt should have**:
+```cmake
+# NO external dependencies except pthread
+target_link_libraries(opensef-framework PUBLIC pthread)
+```
+
+**DO NOT ADD**:
+- ❌ Cairo
+- ❌ Pango
+- ❌ xkbcommon (compositor uses this, not framework)
+- ❌ Any GUI libraries
+
+**Framework is PURE C++** - just data structures and event handling.
+
+### Shell (opensef-shell-qt)
+
+**Dependencies**:
+- Qt6 (qtbase, qtwayland, qtdeclarative, qtsvg, qt5compat)
+- Vulkan (for GPU acceleration)
+- wlroots (for Wayland compositor integration)
+
+**Rendering**: Qt Quick QML + Vulkan, **NOT** Cairo/Pango
+
+### Compositor (opensef-compositor)
+
+**Dependencies**:
+- wlroots
+- Wayland
+- Vulkan
+- libxkbcommon (for keyboard)
+- libinput (for input devices)
+
+**Language**: Pure C (for wlroots compatibility)
+
+### GNUstep AppKit (opensef-gnustep)
+
+**Purpose**: macOS-like AppKit API in C++
+
+**Components**:
+- NSObject, NSView, NSControl, NSButton, NSWindow
+- Qt Quick bridges (QQuickNSButton, etc.)
+
+**Usage**: Native apps use this, NOT Qt widgets
+
+---
+
+## 6. Build System
+
+### Environment
+
+**NixOS WSL2** with packages from `flake.nix`
+
+**DO NOT**:
+- ❌ Assume tools are in PATH without nix shell
+- ❌ Add Cairo/Pango to system packages
+- ❌ Use `apt` or other package managers
+
+### Build Order (CRITICAL)
+
 ```bash
-# Build everything
-cd opensef
-rm -rf build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
-
-# Run desktop
-bash scripts/run_vitus_ares.sh
+1. opensef-framework    # Pure C++, no deps
+2. opensef-compositor   # wlroots + Vulkan
+3. opensef-gnustep      # GNUstep C++ AppKit
+4. opensef-shell-qt     # Qt Quick shell (needs framework)
+5. apps/*               # Native apps (need framework + gnustep)
 ```
 
-**Verify**:
-- Compositor starts (check `logs/compositor.log`)
-- Shell renders (check `logs/shell.log`)
-- No crashes in first 30 seconds
-- Window decorations visible
-- Dock appears at bottom
-
----
-
-## Common Pitfalls
-
-### ❌ Don't Do This
-
-1. **Don't bypass the framework**: Always use `OSFEventBus` for communication
-2. **Don't hardcode colors**: Use `AresTheme::MarsOrange`, not `#D4622A`
-3. **Don't use polling**: Subscribe to events instead
-4. **Don't break Cairo rendering yet**: Wait for Qt migration plan approval
-5. **Don't assume 1080p**: Query actual screen dimensions
-
-### ✅ Do This Instead
-
-1. **Publish events**: `osf_event_publish("window.moved", window_id)`
-2. **Use theme constants**: `AresTheme::PanelHeight`, `AresTheme::DockCornerRadius`
-3. **Subscribe to events**: `eventBus->subscribe("window.focused", callback)`
-4. **Plan migrations**: Create implementation plan, get user approval
-5. **Query screen size**: Use `wlr_output_layout_get_box()` or Qt `Screen.width`
-
----
-
-## File Locations
-
-**Key Files**:
-- Compositor: `opensef/opensef-compositor/src/`
-- Framework: `opensef/opensef-framework/include/` and `src/`
-- Shell: `opensef/opensef-shell/src/`
-- Theme: `opensef/opensef-base/include/opensef/OSFAresTheme.h`
-- Docs: `docs/`
-- Scripts: `scripts/`
-- Logs: `logs/` (all logs go here, NOT repo root)
-
-**Important Docs**:
-- `README.md`: Project overview, quick start
-- `docs/README.md`: Documentation index and reading order
-- `docs/CURRENT_PHASE.md`: Progress tracking and milestones
-- `docs/COCOA_ALIGNMENT_ROADMAP.md`: Phase roadmap and status markers
-
----
-
-## Git Workflow
-
-**Commit Message Format**:
-```
-type: brief description
-
-- Detailed change 1
-- Detailed change 2
-
-Phase X Complete: [milestone name]
+**Build each with**:
+```bash
+mkdir -p build && cd build
+cmake .. -G Ninja
+ninja
 ```
 
-**Types**: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+### Scripts
 
-**Example**:
+**Location**: [`scripts/`](file:///C:/Users/hp/Documents/VitusOS-Ares/scripts/)
+
+- `setup.sh` - One-time environment setup
+- `build.sh` - Build all components in order
+- `run.sh` - Launch compositor + shell
+- `test.sh` - Verify everything built correctly
+
+---
+
+## 7. Common Mistakes & How to Avoid Them
+
+### Mistake #1: Adding Cairo/Pango
+
+**WRONG**:
+```cmake
+pkg_check_modules(CAIRO REQUIRED cairo)
+pkg_check_modules(PANGO REQUIRED pango)
 ```
-feat: implement dock autohide functionality
 
-- Subscribe dock to window.moved and window.resized events
-- Add checkOverlap() method to detect window proximity
-- Fix hardcoded 1080p screen height assumption
+**RIGHT**:
+```cmake
+# Framework has NO external dependencies
+target_link_libraries(opensef-framework PUBLIC pthread)
+```
 
-Phase 3 Progress: Dock autohide working
+**Why**: We use Qt Quick for all rendering, not Cairo/Pango.
+
+### Mistake #2: Using D-Bus for Internal Communication
+
+**WRONG**:
+```cpp
+QDBusConnection::sessionBus().send(message);
+```
+
+**RIGHT**:
+```cpp
+auto* desktop = OSFDesktop::shared();
+desktop->eventBus()->publish(OSFEventBus::APP_LAUNCHED, event);
+```
+
+**Why**: D-Bus is ONLY for legacy app compatibility (GTK/Qt/Electron), not internal comms.
+
+### Mistake #3: Treating Components as Independent
+
+**WRONG**:
+```cpp
+// DockController managing its own state
+m_runningApps.append(appId);
+```
+
+**RIGHT**:
+```cpp
+// DockController subscribing to framework events
+desktop->eventBus()->subscribe(
+    OSFEventBus::APP_LAUNCHED,
+    [this](const OSFEvent& e) {
+        updateDockState();
+    }
+);
+```
+
+**Why**: Unified framework - all state managed centrally.
+
+### Mistake #4: Server-Side Window Decorations
+
+**WRONG**:
+```c
+// In compositor
+draw_titlebar(view);
+draw_traffic_lights(view);
+```
+
+**RIGHT**:
+```qml
+// In Filer.qml (client-side)
+Rectangle {
+    // Custom titlebar
+    Row {
+        // Traffic light buttons
+        Rectangle { color: "#E85D04" } // Close
+        Rectangle { color: "#D4A93E" } // Minimize
+        Rectangle { color: "#3D5A80" } // Maximize
+    }
+}
+```
+
+**Why**: Apps control their own decorations for flexibility.
+
+### Mistake #5: Assuming APIs Exist
+
+**WRONG**:
+```cpp
+// Making up an API
+desktop->menuManager()->registerMenu(menu);
+```
+
+**RIGHT**:
+```cpp
+// Check OSFDesktop.h first
+// If it doesn't exist, ASK THE USER
+```
+
+**Why**: Don't hallucinate APIs. Use what exists or ask user to add it.
+
+---
+
+## 8. Design System (Ares)
+
+### Colors
+
+```cpp
+// Primary (Mars Mission)
+#define SPACE_ORANGE  0xE85D04  // Close button, accents
+#define MARS_DUST     0xFB8500
+#define MARS_GOLD     0xD4A93E  // Minimize button
+#define MISSION_BLUE  0x3D5A80  // Maximize button border
+#define LUNAR_GRAY    0xF0F0F0  // Backgrounds
+
+// Warm Ceramic
+#define WARM_CERAMIC  0xFAFAF9  // Panel, tray background
+#define SOFT_CREAM    0xFBFBFB
+
+// Text
+#define TEXT_PRIMARY    0x2D2D2D
+#define TEXT_SECONDARY  0x6B6B6B
+```
+
+### Typography
+
+**Font**: Inter (for everything except Terminow)
+
+```qml
+Text {
+    font.family: "Inter"
+    font.pixelSize: 13  // Standard
+    font.weight: Font.Normal
+}
+```
+
+### Animations
+
+**Timings**:
+- 150ms - Micro-interactions (hover, click)
+- 250ms - Standard transitions (fade, slide)
+- 350ms - Page transitions
+- 500ms - Emphasis animations
+
+**Easing**: `Easing.OutCubic` (most common)
+
+```qml
+Behavior on opacity {
+    NumberAnimation {
+        duration: 250
+        easing.type: Easing.OutCubic
+    }
+}
+```
+
+### Dimensions
+
+```qml
+// Panel
+height: 28
+
+// Dock
+height: 90  // Visible
+height: 4   // Hidden (auto-hide)
+
+// Corner radius
+radius: 8   // Windows
+radius: 12  // UI elements
+radius: 16  // Dropdowns
+
+// Shadows
+blur: 24
+offset: 8
 ```
 
 ---
 
-## Communication with User
+## 9. Release Channels
 
-### When to Ask for Approval
+### uptc (Current Development)
 
-1. **Architecture changes**: Switching rendering libraries, major refactors
-2. **Breaking changes**: Removing features, changing APIs
-3. **Uncertain decisions**: Multiple valid approaches, need user preference
+**What it is**: Hybrid approach using existing protocols
 
-### When to Proceed Autonomously
+**Characteristics**:
+- Qt Quick shell
+- GNUstep C++ AppKit (started, not complete)
+- D-Bus for legacy app compatibility
+- Custom protocols being developed
+- **NOT production-ready**
 
-1. **Bug fixes**: Fixing obvious bugs (lint errors, crashes)
-2. **Implementation of approved plans**: Following `docs/CURRENT_PHASE.md`
-3. **Minor improvements**: Code cleanup, performance optimizations
+### up1 (Future Stable)
 
-### How to Report Progress
+**What it is**: Fully native, daily-drivable OS
 
-1. **Use task boundaries**: Update `TaskSummary` with accomplishments
-2. **Create walkthroughs**: Document major milestones
-3. **Update README**: Reflect completed phases
-4. **Commit regularly**: Small, focused commits
+**Characteristics**:
+- Complete GNUstep C++ AppKit
+- All native apps
+- Custom protocols (no D-Bus for native apps)
+- Boot-to-shutdown openSEF experience
+- .iso distribution
+- **Production target**
 
----
-
-## Current Priorities (January 2026)
-
-### Immediate (This Week)
-1. Fix dock autohide (window geometry events)
-2. Fix multitask button width (80px)
-3. Enable Vulkan renderer in compositor
-
-### Short-term (Next 2 Weeks)
-1. Create Qt Quick panel prototype
-2. Implement DBusMenu integration
-3. Design Windows 8-style multitask view
-
-### Medium-term (Next Month)
-1. Migrate shell to Qt Quick
-2. Implement system tray (StatusNotifierItem)
-3. Create native app template (using SeaDrop)
-
-### Long-term (Q1-Q2 2026)
-1. Build essential apps (Filer, Settings, Terminal)
-2. Gaming optimizations (direct scanout)
-3. Testing, documentation, v1.0 release
+**Current work is for uptc, building towards up1.**
 
 ---
 
-## Resources
+## 10. Critical Rules
 
-**Documentation**:
-- wlroots: https://gitlab.freedesktop.org/wlroots/wlroots
-- Qt Quick: https://doc.qt.io/qt-6/qtquick-index.html
-- DBusMenu: https://github.com/KDE/libdbusmenu-qt
-- Wayland: https://wayland.freedesktop.org/
+### Rule #1: Read the Vision Document
 
-**Design Inspiration**:
-- macOS: System tray, global menu
-- Windows 8: Start menu tiles (for multitask view)
-- KDE Plasma: DBusMenu integration
-- Gamescope: Direct rendering for games
+**Before making ANY changes**, read:
+- [`vitusos_complete_vision.md`](file:///C:/Users/hp/Documents/VitusOS-Ares/vitusos_complete_vision.md)
+
+If you don't understand something, **ASK THE USER**.
+
+### Rule #2: Use OSFDesktop::shared()
+
+**EVERY component** must use the unified framework:
+
+```cpp
+auto* desktop = OpenSEF::OSFDesktop::shared();
+desktop->eventBus()->...
+desktop->stateManager()->...
+desktop->windowManager()->...
+```
+
+**NO exceptions**.
+
+### Rule #3: No Cairo/Pango in Framework
+
+Framework is **pure C++**. Only dependency: `pthread`.
+
+If you see Cairo/Pango in framework code, **it's a bug from previous AI instances**.
+
+### Rule #4: EventBus for All Internal Communication
+
+**Use**:
+```cpp
+desktop->eventBus()->publish(OSFEventBus::APP_LAUNCHED, event);
+```
+
+**NOT**:
+```cpp
+QDBusConnection::sessionBus().send(...);
+```
+
+D-Bus is ONLY for legacy app compatibility.
+
+### Rule #5: Don't Hallucinate
+
+If an API doesn't exist:
+1. Check the header files
+2. If not there, **ASK THE USER**
+3. Don't make it up
+
+### Rule #6: Test Your Changes
+
+Before claiming something works:
+1. Actually build it in WSL2
+2. Run it
+3. Verify windows appear
+4. Check for errors
+
+**Don't assume it works**.
+
+### Rule #7: Custom Window Decorations
+
+Apps draw their own decorations in QML.
+
+**NOT** server-side from compositor.
+
+### Rule #8: Filer is Special
+
+- Always running (can't be quit)
+- Always shows orange dot in Dock
+- Provides default menu when desktop idle
+- Like macOS Finder
+
+### Rule #9: Inter Font Everywhere
+
+```qml
+font.family: "Inter"
+```
+
+Exception: Terminow uses monospace.
+
+### Rule #10: When in Doubt, Ask
+
+**Better to ask** than to break the project with wrong assumptions.
 
 ---
 
-## Version History
+## 11. How Previous AIs Broke This Project
 
-- **v0.3** (Jan 8, 2026): Phase 3 complete, planning Qt migration
-- **v0.2** (Jan 7, 2026): Phase 2 complete, framework integration
-- **v0.1** (Dec 2025): Phase 1 complete, basic compositor
+### Instance #1: Linux DE Paradigm
+
+**What they did**:
+- Implemented D-Bus for all communication
+- Made components independent services
+- Added systemd units for each component
+
+**Result**: Fragmented mess, not unified system
+
+**Fix**: Removed D-Bus, implemented EventBus, unified via OSFDesktop
+
+### Instance #2: Cairo/Pango Dependencies
+
+**What they did**:
+- Added Cairo/Pango to framework CMakeLists
+- Wrote rendering code using Cairo
+- Added includes to header files
+
+**Result**: Framework depends on GUI libraries (wrong)
+
+**Fix**: Remove all Cairo/Pango, use Qt Quick in shell
+
+### Instance #3: Server-Side Decorations
+
+**What they did**:
+- Implemented titlebar rendering in compositor
+- Drew traffic lights server-side
+
+**Result**: Inflexible, not app-controlled
+
+**Fix**: Custom QML decorations in each app
+
+### Instance #4: Made Up APIs
+
+**What they did**:
+- Created `OSFMenuManager` (doesn't exist)
+- Implemented `OSFAnimationEngine` incorrectly
+- Added methods to OSFDesktop that weren't there
+
+**Result**: Code doesn't compile
+
+**Fix**: Use actual APIs, ask user before adding new ones
 
 ---
 
-**Last Updated**: January 8, 2026  
-**Next Review**: Before Phase 5 implementation begins
+## 12. Quick Reference
+
+### File Locations
+
+```
+VitusOS-Ares/
+├── vitusos_complete_vision.md  ← READ THIS FIRST
+├── flake.nix                   ← Nix environment
+├── scripts/                    ← Build scripts
+│   ├── setup.sh
+│   ├── build.sh
+│   ├── run.sh
+│   └── test.sh
+└── opensef/
+    ├── opensef-framework/      ← Pure C++ (NO GUI deps)
+    │   ├── include/
+    │   │   ├── OSFDesktop.h
+    │   │   ├── OSFEventBus.h
+    │   │   └── ...
+    │   └── src/
+    ├── opensef-compositor/     ← Pure C, wlroots
+    ├── opensef-gnustep/        ← GNUstep C++ AppKit
+    ├── opensef-shell-qt/       ← Qt Quick shell
+    │   ├── qml/
+    │   │   ├── AresPanel.qml
+    │   │   ├── Dock.qml
+    │   │   ├── SystemTray.qml
+    │   │   └── components/
+    │   └── src/
+    │       ├── PanelController.cpp
+    │       └── DockController.cpp
+    └── apps/
+        ├── osf-filer-native/   ← File manager
+        ├── osf-terminal/       ← Terminal
+        └── osf-settings/       ← Settings
+```
+
+### Key Headers
+
+```cpp
+#include <OSFDesktop.h>      // Main framework entry
+#include <OSFEventBus.h>     // Event system
+#include <OSFStateManager.h> // State management
+#include <OSFWindowManager.h> // Window management
+```
+
+### Build Commands
+
+```bash
+# Enter nix shell (in WSL2)
+cd /mnt/c/Users/hp/Documents/VitusOS-Ares
+nix develop
+
+# Build all
+bash scripts/build.sh
+
+# Run
+bash scripts/run.sh
+
+# Test
+bash scripts/test.sh
+```
 
 ---
 
-## Quick Reference
+## 13. When You're Stuck
 
-**Build**: `cmake -S opensef -B opensef/build && cmake --build opensef/build`  
-**Run**: `bash scripts/run_vitus_ares.sh`  
-**Logs**: `logs/compositor.log`, `logs/shell.log`, `logs/phase3.log`  
-**Theme**: `opensef/opensef-base/include/opensef/OSFAresTheme.h`  
-**Framework**: `opensef/opensef-framework/include/OSFDesktop.h`
+1. **Read the vision document** again
+2. **Check existing code** in similar components
+3. **Look at header files** to see what APIs exist
+4. **Ask the user** - don't assume or hallucinate
+5. **Test your changes** before claiming they work
 
 ---
 
-**Remember**: This is a desktop OS, not a mobile app. Prioritize performance, gaming support, and cross-toolkit compatibility. The goal is to surpass existing Linux DEs in polish and usability while maintaining the warm, human-centered Ares aesthetic.
+## 14. Success Criteria
+
+You've succeeded if:
+
+✅ Code compiles without errors  
+✅ Uses OSFDesktop::shared() for all framework access  
+✅ No Cairo/Pango in framework  
+✅ EventBus for internal communication  
+✅ Custom QML window decorations  
+✅ Follows Ares design system  
+✅ Actually tested and verified working  
+✅ Didn't break existing functionality  
+
+---
+
+## Final Words
+
+**This project is not a traditional Linux DE.**
+
+It's a unified system like macOS. If you approach it with GNOME/KDE assumptions, you WILL break it.
+
+**Read the vision document. Use the existing APIs. Ask when unsure. Test your changes.**
+
+**Good luck, and please don't break this again.**
+
+---
+
+**Document Version**: 1.0  
+**Maintained by**: Human architect + AI assistants  
+**Last Broken by AI**: January 2026 (multiple instances)  
+**Last Fixed**: January 16, 2026

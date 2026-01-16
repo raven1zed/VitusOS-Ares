@@ -134,7 +134,10 @@ void DockController::refreshRunningStatus() {
       }
     }
 
-    // Removed: Hardcoded overrides. Native apps must report themselves.
+    // Special case: Filer is ALWAYS running (like macOS Finder)
+    if (cmdBasename == "filer") {
+      isRunning = true;
+    }
 
     if (item["running"].toBool() != isRunning) {
       item["running"] = isRunning;

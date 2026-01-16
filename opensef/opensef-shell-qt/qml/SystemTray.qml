@@ -4,6 +4,7 @@
  */
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
+import "components"
 
 Item {
     id: systemTrayRoot
@@ -110,5 +111,30 @@ Item {
                 Rectangle { width: 5; height: 5; radius: 2.5; color: "#333333"; x: 10; y: 9 }
             }
         }
+        
+        // Make entire pill clickable
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            hoverEnabled: true
+            
+            onClicked: {
+                systemTrayDropdown.visible = !systemTrayDropdown.visible
+            }
+            
+            onEntered: {
+                trayPill.color = "#F5F5F5"  // Slightly darker on hover
+            }
+            
+            onExited: {
+                trayPill.color = "#FAFAF9"  // Back to Warm Ceramic
+            }
+        }
+    }
+    
+    // Dropdown popup
+    SystemTrayDropdown {
+        id: systemTrayDropdown
+        parent: systemTrayRoot
     }
 }

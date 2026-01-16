@@ -4,11 +4,8 @@ project(opensef-framework VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Dependencies
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(CAIRO REQUIRED cairo)
-pkg_check_modules(PANGO REQUIRED pango pangocairo)
-pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
+# No external dependencies - pure C++ framework
+# Qt and Vulkan are used by shell, not framework
 
 # Framework library
 add_library(opensef-framework SHARED
@@ -26,15 +23,9 @@ add_library(opensef-framework SHARED
 
 target_include_directories(opensef-framework PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CAIRO_INCLUDE_DIRS}
-    ${PANGO_INCLUDE_DIRS}
-    ${XKBCOMMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(opensef-framework PUBLIC
-    ${CAIRO_LIBRARIES}
-    ${PANGO_LIBRARIES}
-    ${XKBCOMMON_LIBRARIES}
     pthread
 )
 

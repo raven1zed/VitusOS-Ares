@@ -199,21 +199,11 @@ Window {
                     width: 20; color: "#F2F2F7" // Patch right side to be square
                 }
                 
+                
                 // Content Layer
                 Item {
                     anchors.fill: parent
                     
-                    // Traffic Lights
-                    Row {
-                        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 16
-                        spacing: 8
-                        Rectangle { width: 12; height: 12; radius: 6; color: "#FF5F57" 
-                             MouseArea { anchors.fill: parent; onClicked: window.hide() }
-                        }
-                        Rectangle { width: 12; height: 12; radius: 6; color: "#FEBC2E" }
-                        Rectangle { width: 12; height: 12; radius: 6; color: "#28C840" }
-                    }
-
                     // Navigation
                     Column {
                         anchors.top: parent.top; anchors.topMargin: 50
