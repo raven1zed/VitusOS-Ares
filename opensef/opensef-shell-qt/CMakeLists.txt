@@ -43,14 +43,14 @@ set(HEADERS
     src/StatusNotifierWatcher.h
 )
 
-# QML resources - DISABLED to force filesystem loading
-# qt_add_resources(QML_RESOURCES resources.qrc)
+# QML resources - compiled into binary
+qt_add_resources(QML_RESOURCES resources.qrc)
 
 # Executable
 add_executable(osf-shell-qt-v2
     ${SOURCES}
     ${HEADERS}
-    # ${QML_RESOURCES}
+    ${QML_RESOURCES}
 )
 
 # Include paths

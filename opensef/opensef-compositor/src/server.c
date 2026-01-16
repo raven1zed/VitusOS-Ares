@@ -100,11 +100,15 @@ bool osf_server_init(struct osf_server *server, const char *socket_name) {
     goto error_display;
   }
 
-  /* Create renderer */
-  if (backend_type) {
-    wlr_log(WLR_INFO, "Nested mode detected, disabling hardware cursors");
-    setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+  /* Create renderer - force GPU even in nested mode */
+  const char *renderer_env = getenv("WLR_RENDERER");
+  if (!renderer_env && backend_type) {
+    /* In nested mode, try to use parent compositor's GPU */
+    wlr_log(WLR_INFO, "Nested mode: attempting GPU-accelerated renderer");
+    /* Try gles2 first (most compatible), fallback to auto */
+    setenv("WLR_RENDERER", "gles2", 0);
   }
+
   server->renderer = wlr_renderer_autocreate(server->backend);
   if (!server->renderer) {
     wlr_log(WLR_ERROR, "Failed to create renderer");

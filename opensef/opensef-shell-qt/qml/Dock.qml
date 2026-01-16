@@ -58,31 +58,19 @@ Item {
                 
                 delegate: Item {
                     id: iconDelegate
-                    width: baseSize * currentScale
-                    height: baseSize * currentScale
+                    width: baseSize * targetScale
+                    height: baseSize * targetScale
                     
                     property real baseSize: 48
-                    property real currentScale: 1.0
+                    property real targetScale: iconMA.containsMouse ? 1.4 : 1.0
                     
-                    // FISHEYE MAGNIFICATION LOGIC
-                    readonly property real distance: {
-                        if (!globalMouseArea.containsMouse) return 1000
-                        var mouseX = globalMouseArea.mouseX
-                        var itemSceneX = iconDelegate.mapToItem(globalMouseArea, 0, 0).x + width/2
-                        return Math.abs(mouseX - itemSceneX)
+                    // Smooth scale animation
+                    Behavior on targetScale { 
+                        NumberAnimation { 
+                            duration: 150
+                            easing.type: Easing.OutCubic 
+                        } 
                     }
-                    
-                    onDistanceChanged: {
-                        var maxScale = 1.5
-                        var range = 150
-                        if (distance < range) {
-                            currentScale = 1.0 + (maxScale - 1.0) * (1.0 - distance / range)
-                        } else {
-                            currentScale = 1.0
-                        }
-                    }
-                    
-                    Behavior on currentScale { NumberAnimation { duration: 100; easing.type: Easing.OutSine } }
 
                     // ICON IMAGE
                     Image {
@@ -123,10 +111,7 @@ Item {
                         color: "#E85D04" // Space Orange
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.bottom // Attach to bottom of ICON (which is centered in pill)
-                        anchors.topMargin: 24 // Push 24px down (Clear of the background pill: 16px internal padding + 8px gap)
-                        
-                        // Inverse scale to keep dot small while icon grows
-                        scale: 1.0 / iconDelegate.currentScale 
+                        anchors.topMargin: 24
                     }
 
                     MouseArea {

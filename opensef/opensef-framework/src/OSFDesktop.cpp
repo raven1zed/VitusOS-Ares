@@ -1,3 +1,4 @@
+#include <opensef/OSFAnimationEngine.h>
 #include <opensef/OSFDesktop.h>
 #include <opensef/OSFEventBus.h>
 #include <opensef/OSFResourceCache.h>
@@ -5,7 +6,6 @@
 #include <opensef/OSFStateManager.h>
 #include <opensef/OSFThemeManager.h>
 #include <opensef/OSFWindowManager.h>
-
 
 namespace OpenSEF {
 
@@ -20,6 +20,9 @@ OSFDesktop::OSFDesktop() : initialized_(false) {
   serviceRegistry_ = std::make_unique<OSFServiceRegistry>();
   resourceCache_ = std::make_unique<OSFResourceCache>();
   themeManager_ = std::make_unique<OSFThemeManager>();
+  // AnimationEngine has private constructor - use direct new (friend class has
+  // access)
+  animationEngine_ = std::unique_ptr<AnimationEngine>(new AnimationEngine());
 }
 
 OSFDesktop::~OSFDesktop() { terminate(); }
@@ -45,6 +48,10 @@ OSFResourceCache *OSFDesktop::resourceCache() { return resourceCache_.get(); }
 
 OSFThemeManager *OSFDesktop::themeManager() { return themeManager_.get(); }
 
+AnimationEngine *OSFDesktop::animationEngine() {
+  return animationEngine_.get();
+}
+
 void OSFDesktop::initialize() {
   if (initialized_) {
     return;
@@ -67,6 +74,7 @@ void OSFDesktop::terminate() {
   }
 
   // Cleanup all services
+  animationEngine_.reset();
   themeManager_.reset();
   resourceCache_.reset();
   serviceRegistry_.reset();

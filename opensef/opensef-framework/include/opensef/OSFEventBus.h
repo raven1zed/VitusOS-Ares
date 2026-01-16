@@ -26,6 +26,11 @@ public:
     return T{};
   }
 
+  // Convenience helper for strings
+  std::string getString(const std::string &key) const {
+    return get<std::string>(key);
+  }
+
   void set(const std::string &key, const std::any &value) {
     data_[key] = value;
   }
@@ -62,15 +67,18 @@ public:
   OSFEventBus();
   ~OSFEventBus();
 
-  // Subscribe to events
+  // Subscribe to events with owner for cleanup
   void subscribe(const std::string &eventType, EventHandler handler);
+  void subscribe(const std::string &eventType, EventHandler handler,
+                 void *owner);
   void unsubscribe(const std::string &eventType, EventHandler *handler);
+  void unsubscribeAll(void *owner);
 
   // Publish events
   void publish(const std::string &eventType, const OSFEvent &event);
   void publishAsync(const std::string &eventType, const OSFEvent &event);
 
-  // Standard event types
+  // Standard event types - Windows
   static constexpr const char *WINDOW_CREATED = "window.created";
   static constexpr const char *WINDOW_DESTROYED = "window.destroyed";
   static constexpr const char *WINDOW_FOCUSED = "window.focused";
@@ -82,18 +90,29 @@ public:
   static constexpr const char *WINDOW_GEOMETRY_CHANGED =
       "window.geometry_changed";
 
+  // Application events
   static constexpr const char *MENU_CLICKED = "menu.clicked";
   static constexpr const char *APP_LAUNCHED = "application.launched";
   static constexpr const char *APP_TERMINATED = "application.closed";
   static constexpr const char *APP_QUIT_REQUEST = "application.quit_request";
   static constexpr const char *APP_HIDE_REQUEST = "application.hide_request";
+  static constexpr const char *APP_ACTIVATED = "application.activated";
+
+  // Service events (for always-running services like Filer)
+  static constexpr const char *SERVICE_STARTED = "service.started";
+  static constexpr const char *SERVICE_STOPPED = "service.stopped";
+  static constexpr const char *SERVICE_ACTIVATED = "service.activated";
+
+  // Shortcut events
+  static constexpr const char *SHORTCUT_ACTIVATED = "shortcut.activated";
 
   static constexpr const char *THEME_CHANGED = "theme.changed";
   static constexpr const char *WORKSPACE_CHANGED = "workspace.changed";
 
-  // Multitask & Spotlight
+  // Multitask & Pathfinder
   static constexpr const char *MULTITASK_TOGGLE = "multitask.toggle";
   static constexpr const char *SPOTLIGHT_TOGGLE = "spotlight.toggle";
+  static constexpr const char *PATHFINDER_TOGGLE = "pathfinder.toggle";
 
   // Clipboard events
   static constexpr const char *CLIPBOARD_COPY = "clipboard.copy";

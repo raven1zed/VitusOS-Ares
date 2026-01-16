@@ -1,10 +1,10 @@
 #include "DockController.h"
-#include <opensef/OSFDesktop.h>
-#include <opensef/OSFEventBus.h>
-#include <opensef/OSFStateManager.h>
 #include <QDebug>
 #include <QDir>
 #include <QProcess>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
+#include <opensef/OSFStateManager.h>
 
 DockController::DockController(QObject *parent)
     : QObject(parent), m_hoveredIndex(-1), m_isHidden(false) {
@@ -23,16 +23,19 @@ void DockController::initDockItems() {
     bool running;
   };
 
-  QString buildRoot = "/mnt/c/Users/hp/Documents/VitusOS-Ares/opensef/build";
+  QString projectRoot = "/mnt/c/Users/hp/Documents/VitusOS-Ares";
 
   QList<AppDef> apps = {
       {"Filer", "system-file-manager",
-       buildRoot + "/apps/osf-filer-native/osf-filer-native", "#4A9FD4", false},
+       projectRoot + "/opensef/apps/osf-filer-native/build/osf-filer-native",
+       "#4A9FD4", false},
       {"Terminal", "utilities-terminal",
-       buildRoot + "/apps/osf-terminal/osf-terminal", "#333333", false},
+       projectRoot + "/opensef/apps/osf-terminal/build/osf-terminal", "#333333",
+       false},
       {"Firefox", "firefox", "firefox", "#E66000", false},
       {"Settings", "preferences-system",
-       buildRoot + "/apps/osf-settings/osf-settings", "#666666", false}};
+       projectRoot + "/opensef/apps/osf-settings/build/osf-settings", "#666666",
+       false}};
 
   for (const auto &app : apps) {
     QVariantMap item;

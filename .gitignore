@@ -26,6 +26,7 @@ Thumbs.db
 build/
 cmake-build-*/
 .cache/
+cmake-build-debug
 
 # IDE
 .idea/

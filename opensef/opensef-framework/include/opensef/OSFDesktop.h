@@ -12,6 +12,7 @@ class OSFWindowManager;
 class OSFServiceRegistry;
 class OSFResourceCache;
 class OSFThemeManager;
+class AnimationEngine;
 
 /**
  * OSFDesktop - Central Desktop Environment API
@@ -37,6 +38,9 @@ public:
   OSFResourceCache *resourceCache();
   OSFThemeManager *themeManager();
 
+  // Boot-to-Shutdown Visual System
+  AnimationEngine *animationEngine();
+
   // Lifecycle
   void initialize();
   void run();
@@ -58,6 +62,7 @@ private:
   std::unique_ptr<OSFServiceRegistry> serviceRegistry_;
   std::unique_ptr<OSFResourceCache> resourceCache_;
   std::unique_ptr<OSFThemeManager> themeManager_;
+  std::unique_ptr<AnimationEngine> animationEngine_;
 
   bool initialized_;
 };

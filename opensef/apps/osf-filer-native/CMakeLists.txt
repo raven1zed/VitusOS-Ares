@@ -1,4 +1,5 @@
 # osf-filer-native - Native File Manager (C++ AppKit)
+# Always-running service that hosts Pathfinder
 
 cmake_minimum_required(VERSION 3.16)
 project(osf-filer-native VERSION 0.1.0 LANGUAGES CXX)
@@ -23,17 +24,18 @@ target_include_directories(osf-filer-native PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/include
 )
 
+# Link to CMake targets (built in current build directory)
 target_link_libraries(osf-filer-native PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::Core5Compat
     -Wl,--whole-archive
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-gnustep/build/libopensef-gnustep-qtquick.a
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-gnustep/build/libopensef-gnustep.a
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-core/build/libopensef-core.a
+    opensef-gnustep-qtquick
+    opensef-gnustep
+    opensef-core
     -Wl,--no-whole-archive
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-framework/build/libopensef-framework.so
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/build/libopensef-base.so
+    opensef-framework
+    opensef-base
     ${CAIRO_LIBRARIES}
 )
 

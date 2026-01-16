@@ -1,7 +1,13 @@
 /**
- * Filer - Native openSEF File Manager
+ * Filer - Native openSEF File Manager (Always-Running Service)
  *
  * First native app using C++ NSButton API (no Cairo, pure Qt Quick rendering)
+ *
+ * Key Features:
+ * - Always running (like macOS Finder)
+ * - Hosts Pathfinder (universal search)
+ * - Responds to activation requests
+ * - Template for future native openSEF apps
  */
 
 #include <QDebug>
@@ -18,6 +24,7 @@
 // OpenSEF Native Framework
 #include <opensef/OSFDesktop.h>
 #include <opensef/OSFEventBus.h>
+#include <opensef/OSFPathfinder.h>
 
 using namespace OpenSEF;
 
@@ -27,7 +34,14 @@ void registerTypes() {
   qmlRegisterType<QQuickWindowButton>("OpenSEF.AppKit", 1, 0, "NSWindowButton");
 }
 
-// OpenSEF AppKit Application Class (GNUstep C++ Fork pattern)
+/**
+ * FilerApplication - GNUstep NSApplication Pattern (C++ Port)
+ *
+ * This is the always-running service that hosts:
+ * - File management windows
+ * - Pathfinder (universal search)
+ * - Clipboard history integration
+ */
 class FilerApplication : public QObject {
   Q_OBJECT
 public:
@@ -36,18 +50,92 @@ public:
   int run() {
     // Enforce Alpha Buffer for Transparent Windows (Rounded Corners)
     QQuickWindow::setDefaultAlphaBuffer(true);
-    // qputenv("QSG_RHI_BACKEND", "vulkan"); // Let Qt decide (fixes WSL2 black
-    // screen)
 
     app.setApplicationName("Filer");
     app.setOrganizationName("VitusOS");
+
+    // CRITICAL: Do NOT quit when last window closes - Filer is always running
     app.setQuitOnLastWindowClosed(false);
 
     // Load Inter Font (Ares Design Standard)
-    // From build/apps/osf-filer-native/osf-filer-native -> ../../../../assets
-    QString fontPath =
-        QDir::cleanPath(QCoreApplication::applicationDirPath() +
-                        "/../../../../assets/fonts/Inter-Regular.ttf");
+    loadInterFont();
+
+    // --- OpenSEF Native Integration ---
+    auto *desktop = OSFDesktop::shared();
+    desktop->initialize();
+
+    // Announce Service Startup (not just app launch)
+    OSFEvent startEvent;
+    startEvent.set("serviceId", std::string("filer"));
+    startEvent.set("name", std::string("Filer Service"));
+    startEvent.set("type", std::string("always-running"));
+    desktop->eventBus()->publish(OSFEventBus::SERVICE_STARTED, startEvent);
+
+    // Subscribe to activation requests
+    subscribeToEvents(desktop);
+
+    registerTypes();
+    applicationDidFinishLaunching();
+
+    int ret = app.exec();
+
+    // Announce Service Shutdown
+    OSFEvent stopEvent;
+    stopEvent.set("serviceId", std::string("filer"));
+    desktop->eventBus()->publish(OSFEventBus::SERVICE_STOPPED, stopEvent);
+
+    return ret;
+  }
+
+  // Open new Filer window (can be called via EventBus)
+  Q_INVOKABLE void openNewWindow() {
+    qDebug() << "[Filer] Opening new window";
+    applicationDidFinishLaunching();
+  }
+
+  // Show Pathfinder (Cmd+Space handler delegates here)
+  Q_INVOKABLE void showPathfinder() {
+    qDebug() << "[Filer] Showing Pathfinder";
+    Pathfinder::shared().show();
+  }
+
+  Q_INVOKABLE void hidePathfinder() { Pathfinder::shared().hide(); }
+
+  Q_INVOKABLE void togglePathfinder() { Pathfinder::shared().toggle(); }
+
+protected:
+  void subscribeToEvents(OSFDesktop *desktop) {
+    // Listen for Filer activation requests
+    desktop->eventBus()->subscribe(
+        OSFEventBus::APP_ACTIVATED,
+        [this](const OSFEvent &event) {
+          auto appId = event.getString("appId");
+          if (appId == "filer" || appId == "osf-filer-native") {
+            qDebug() << "[Filer] Received activation request";
+            QMetaObject::invokeMethod(this, "openNewWindow",
+                                      Qt::QueuedConnection);
+          }
+        },
+        this);
+
+    // Listen for Pathfinder toggle (Cmd+Space)
+    desktop->eventBus()->subscribe(
+        OSFEventBus::SHORTCUT_ACTIVATED,
+        [this](const OSFEvent &event) {
+          auto shortcut = event.getString("shortcut");
+          if (shortcut == "cmd+space" || shortcut == "meta+space") {
+            qDebug() << "[Filer] Pathfinder shortcut triggered";
+            QMetaObject::invokeMethod(this, "togglePathfinder",
+                                      Qt::QueuedConnection);
+          }
+        },
+        this);
+  }
+
+  void loadInterFont() {
+    QString buildDir = QCoreApplication::applicationDirPath();
+    QString fontPath = QDir::cleanPath(
+        buildDir + "/../../../../assets/fonts/Inter-Regular.ttf");
     if (!QFile::exists(fontPath)) {
       fontPath = "/mnt/c/Users/hp/Documents/VitusOS-Ares/assets/fonts/"
                  "Inter-Regular.ttf";
@@ -56,36 +144,12 @@ public:
     if (fontId != -1) {
       QFont font("Inter");
       app.setFont(font);
-      qDebug() << "[Filer] Successfully loaded Inter font from" << fontPath;
+      qDebug() << "[Filer] Loaded Inter font from" << fontPath;
     } else {
-      qCritical() << "[Filer] CRITICAL: Failed to load Inter font from"
-                  << fontPath;
+      qWarning() << "[Filer] Failed to load Inter font from" << fontPath;
     }
-
-    // --- OpenSEF Native Integration ---
-    auto *desktop = OSFDesktop::shared();
-    desktop->initialize();
-
-    // Announce Launch
-    OSFEvent launchEvent;
-    launchEvent.set("appId", std::string("osf-filer-native"));
-    launchEvent.set("name", std::string("Filer"));
-    desktop->eventBus()->publish(OSFEventBus::APP_LAUNCHED, launchEvent);
-
-    registerTypes();
-    applicationDidFinishLaunching();
-
-    int ret = app.exec();
-
-    // Announce Termination
-    OSFEvent closeEvent;
-    closeEvent.set("appId", std::string("osf-filer-native"));
-    desktop->eventBus()->publish(OSFEventBus::APP_TERMINATED, closeEvent);
-
-    return ret;
   }
 
-protected:
   void applicationDidFinishLaunching() {
     qDebug() << "[Filer] NSApplication-style initialization started.";
 
@@ -120,13 +184,16 @@ protected:
       return;
     }
 
+    // Expose FilerApplication to QML for Pathfinder integration
+    engine.rootContext()->setContextProperty("FilerApp", this);
+
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated, &app,
         [url](QObject *obj, const QUrl &objUrl) {
           if (!obj && url == objUrl)
             QCoreApplication::exit(-1);
           else
-            qDebug() << "[Filer] SUCCESS: QML Window created.";
+            qDebug() << "[Filer] SUCCESS: Window created.";
         },
         Qt::QueuedConnection);
 
@@ -139,6 +206,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
+  qDebug() << "[Filer] Starting as always-running service...";
   FilerApplication filer(argc, argv);
   return filer.run();
 }

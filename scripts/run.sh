@@ -26,8 +26,20 @@ echo "This will launch in nested Wayland mode (for testing)"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Set library path for shared components
-export LD_LIBRARY_PATH="$(pwd)/opensef/opensef-framework/build:$(pwd)/opensef/opensef-core/build:$(pwd)/opensef/opensef-base/build:$(pwd)/opensef/opensef-gnustep/build:$LD_LIBRARY_PATH"
+# Add build directories and WSL drivers to LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/opensef/opensef-framework/build:$(pwd)/opensef/opensef-core/build:$(pwd)/opensef/opensef-base/build:$(pwd)/opensef/opensef-gnustep/build:/usr/lib/wsl/lib:$LD_LIBRARY_PATH
+
+# Force D3D12 Driver for WSL2 Hardware Acceleration
+# Dynamically find the path to d3d12_dri.so (preferring the version matching the system mesa) using fast lookup
+D3D12_DRIVER_DIR=$(ls -d /nix/store/*mesa-25.0.7*/lib/dri 2>/dev/null | head -n 1)
+if [ -n "$D3D12_DRIVER_DIR" ]; then
+    export LIBGL_DRIVERS_PATH=$D3D12_DRIVER_DIR
+    export MESA_LOADER_DRIVER_OVERRIDE=d3d12
+    export GALLIUM_DRIVER=d3d12
+    echo "GPU Acceleration Enabled: Using d3d12 driver from $D3D12_DRIVER_DIR"
+else
+    echo "WARNING: d3d12_dri.so not found! Falling back to software rendering."
+fi
 
 # Create cleanup function
 cleanup() {
@@ -45,9 +57,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "1️⃣  Starting Compositor..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Run in nested Wayland mode
+# Nested Wayland mode - compositor will attempt GPU rendering
 WLR_BACKENDS=wayland \
-WLR_DEBUG=1 \
+WLR_NO_HARDWARE_CURSORS=1 \
 ./opensef/opensef-compositor/build/opensef-compositor &
 
 COMPOSITOR_PID=$!

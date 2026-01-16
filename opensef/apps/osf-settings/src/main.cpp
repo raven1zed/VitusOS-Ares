@@ -1,4 +1,4 @@
-#include <OSFDesktop.h>
+#include <opensef/OSFDesktop.h>
 #include <OSFEventBus.h>
 #include <iostream>
 #include <opensef/OSFWindow.h>

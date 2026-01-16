@@ -4,8 +4,8 @@ project(opensef-framework VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# No external dependencies - pure C++ framework
-# Qt and Vulkan are used by shell, not framework
+# Pure C++ framework - no Qt dependency
+# Qt Quick rendering is handled by shell, not framework
 
 # Framework library
 add_library(opensef-framework SHARED
@@ -16,6 +16,8 @@ add_library(opensef-framework SHARED
     src/OSFServiceRegistry.cpp
     src/OSFResourceCache.cpp
     src/OSFThemeManager.cpp
+    src/OSFAnimationEngine.cpp
+    src/OSFPathfinder.cpp
     src/OSFFrameworkC.cpp
     src/OSFShortcutManager.cpp
     src/OSFClipboard.cpp
