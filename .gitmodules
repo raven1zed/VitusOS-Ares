@@ -1,4 +1,0 @@
-[submodule "external/SeagrEnv"]
-	path = external/SeagrEnv
-	url = https://github.com/raven1zed/VitusOS-Ares.git
-	branch = main
