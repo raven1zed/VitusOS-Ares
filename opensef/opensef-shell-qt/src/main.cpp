@@ -19,7 +19,7 @@
 #include "MultitaskController.h"
 #include "PanelController.h"
 #include "SystemTrayController.h"
-#include <OSFDesktop.h>
+#include <opensef/OSFDesktop.h>
 
 // Import GNUstep Bridge
 #include <QQuickNSButton.h>

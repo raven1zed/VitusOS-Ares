@@ -18,7 +18,7 @@
 
 #include <wlr/util/log.h>
 
-#include "OSFFrameworkC.h" /* Unified framework integration */
+#include <opensef/OSFFrameworkC.h> /* Unified framework integration */
 #include "server.h"
 
 static void print_usage(const char *name) {

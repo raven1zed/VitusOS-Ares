@@ -6,6 +6,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import Qt5Compat.GraphicalEffects
 
 Popup {
     id: dropdown
@@ -29,10 +30,10 @@ Popup {
         layer.enabled: true
         layer.effect: DropShadow {
             transparentBorder: true
-            color: "#30000000"
-            radius: 24
-            samples: 49
-            verticalOffset: 8
+            radius: 8
+            samples: 12
+            color: "#40000000"
+            verticalOffset: 2
         }
     }
     

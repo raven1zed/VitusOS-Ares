@@ -57,7 +57,9 @@ signals:
 
 private slots:
   void updateClock();
-  void onWindowFocused(const QString &title, const QString &appId);
+  void onWindowFocused(const QString &windowId, const QString &title,
+                       const QString &appId, const QString &menuService,
+                       const QString &menuPath);
 
 private:
   void connectToFramework();
@@ -69,7 +71,6 @@ private:
   bool loadDbusMenu(const QString &service, const QString &path);
   bool fetchMenuFromRegistrar(const QString &windowId, QString *service,
                               QString *path) const;
-  void initializeDefaultMenus(); // Filer menu for idle state
 
   QString m_activeWindowTitle;
   QString m_activeAppId;

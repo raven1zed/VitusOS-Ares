@@ -1,7 +1,7 @@
 #include "PanelController.h"
-#include <OSFDesktop.h>
-#include <OSFEventBus.h>
-#include <OSFStateManager.h>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
+#include <opensef/OSFStateManager.h>
 #include <QDBusArgument>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -185,6 +185,18 @@ void PanelController::showMenu(int menuIndex, int x, int y) {
 }
 
 void PanelController::hideMenu() { qDebug() << "[PanelController] Hide menu"; }
+
+void PanelController::reportWindowGeometry(const QString &windowId, int x,
+                                           int y, int w, int h) {
+  auto *desktop = OpenSEF::OSFDesktop::shared();
+  auto *window = desktop->stateManager()->windowById(windowId.toStdString());
+
+  if (window) {
+    window->setGeometry(x, y, w, h);
+    qDebug() << "[PanelController] Window geometry updated:" << windowId << "to"
+             << x << "," << y << w << "x" << h;
+  }
+}
 
 void PanelController::onWindowFocused(const QString &windowId,
                                       const QString &title,

@@ -6,7 +6,7 @@
 
 #include "server.h"
 
-#include "OSFFrameworkC.h"
+#include <opensef/OSFFrameworkC.h>
 #include "multitask.h"
 #include "tiling.h"
 #include <stdlib.h>

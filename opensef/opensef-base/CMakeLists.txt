@@ -30,13 +30,13 @@ add_custom_command(OUTPUT ${XDG_SHELL_H}
 )
 
 add_custom_command(OUTPUT ${XDG_SHELL_C}
-    COMMAND ${WAYLAND_SCANNER} private-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
+    COMMAND ${WAYLAND_SCANNER} public-code ${XDG_SHELL_XML} ${XDG_SHELL_C}
     DEPENDS ${XDG_SHELL_XML}
     COMMENT "Generating XDG shell protocol code"
 )
 
 # === Library ===
-add_library(opensef-base SHARED
+set(OSF_BASE_SOURCES
     # Foundation classes (no Wayland dependency)
     src/OSFApplication.cpp
     src/OSFBundle.cpp
@@ -49,8 +49,10 @@ add_library(opensef-base SHARED
     src/OSFAresTheme.cpp
     # Windowing (Wayland dependency)
     src/OSFWindow.cpp
-    ${XDG_SHELL_C}
-    ${XDG_SHELL_H}
+)
+
+add_library(opensef-base SHARED
+    ${OSF_BASE_SOURCES}
 )
 
 target_include_directories(opensef-base PUBLIC
@@ -62,7 +64,7 @@ target_include_directories(opensef-base PUBLIC
 )
 
 target_link_libraries(opensef-base PUBLIC
-    opensef-core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-core/build/libopensef-core.a
     ${WAYLAND_LIBRARIES}
     ${CAIRO_LIBRARIES}
     ${XKBCOMMON_LIBRARIES}

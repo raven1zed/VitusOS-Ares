@@ -7,7 +7,7 @@
 #include "server.h"
 
 #include "tiling.h"
-#include "titlebar.h"
+// #include "titlebar.h" // Server-side decorations disabled
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +16,7 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
-#include "OSFFrameworkC.h" /* Unified framework integration */
+#include <opensef/OSFFrameworkC.h> /* Unified framework integration */
 
 /* ============================================================================
  * View at position (for click handling)
@@ -187,12 +187,22 @@ static void view_unmap(struct wl_listener *listener, void *data) {
 
 static void view_commit(struct wl_listener *listener, void *data) {
   struct osf_view *view = wl_container_of(listener, view, commit);
-
   (void)data;
 
   if (view->xdg_toplevel->base->initial_commit) {
-    /* Set initial size */
     wlr_xdg_toplevel_set_size(view->xdg_toplevel, 0, 0);
+  }
+
+  /* Report geometry changes if mapped to support intelligent shell features
+   * like autohide */
+  if (view->mapped && view->framework_window) {
+    struct wlr_box geo = view->xdg_toplevel->base->current.geometry;
+    int x = view->scene_tree->node.x;
+    int y = view->scene_tree->node.y;
+
+    char window_id[64];
+    snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+    osf_window_set_geometry(window_id, x, y, geo.width, geo.height);
   }
 }
 
@@ -209,10 +219,13 @@ static void view_destroy(struct wl_listener *listener, void *data) {
   }
 
   /* Destroy custom titlebar */
+  /* NO-OP: Server-side titlebars disabled */
+  /*
   if (view->titlebar) {
     osf_titlebar_destroy(view->titlebar);
     view->titlebar = NULL;
   }
+  */
 
   wl_list_remove(&view->map.link);
   wl_list_remove(&view->unmap.link);
@@ -323,6 +336,10 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
   struct osf_server *server =
       wl_container_of(listener, server, new_xdg_toplevel);
   struct wlr_xdg_toplevel *xdg_toplevel = data;
+  if (!xdg_toplevel || !xdg_toplevel->base) {
+    wlr_log(WLR_ERROR, "CRITICAL: New XDG toplevel has INVALID state!");
+    return;
+  }
 
   const char *app_id = xdg_toplevel->app_id ? xdg_toplevel->app_id : "unknown";
   const char *title = xdg_toplevel->title ? xdg_toplevel->title : "untitled";
@@ -330,14 +347,6 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
   wlr_log(WLR_INFO,
           "New XDG toplevel request received: app_id='%s', title='%s'", app_id,
           title);
-
-  // CRITICAL FIX: Schedule initial configure event so client can render
-  wlr_xdg_surface_schedule_configure(xdg_toplevel->base);
-
-  if (!xdg_toplevel || !xdg_toplevel->base || !xdg_toplevel->base->surface) {
-    wlr_log(WLR_ERROR, "CRITICAL: New XDG toplevel has INVALID surface state!");
-    return;
-  }
 
   wlr_log(WLR_INFO, "New XDG toplevel: %s (app_id: %s)",
           xdg_toplevel->title ? xdg_toplevel->title : "(untitled)",
@@ -364,16 +373,21 @@ void osf_new_xdg_toplevel(struct wl_listener *listener, void *data) {
   xdg_toplevel->base->data = view;
 
   /* Create custom titlebar (skip for shell window) */
+  /* NO-OP: Server-side titlebars disabled per AGENTS.md */
+  view->titlebar = NULL;
+
+  /*
   const char *app_id_check = xdg_toplevel->app_id ? xdg_toplevel->app_id : "";
   if (strcmp(app_id_check, "vitusos.shell") != 0) {
     view->titlebar = osf_titlebar_create(view->scene_tree, view);
-    /* Position content below titlebar */
+    // Position content below titlebar
     wlr_scene_node_set_position(&view->content_tree->node, 0,
                                 OSF_TITLEBAR_HEIGHT);
     wlr_log(WLR_INFO, "Created custom titlebar for: %s", app_id_check);
   } else {
     view->titlebar = NULL;
   }
+  */
 
   /* Set up listeners */
   view->map.notify = view_map;

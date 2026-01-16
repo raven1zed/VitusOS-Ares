@@ -12,6 +12,7 @@ pkgs.mkShell {
     gdb
     gnumake
     git
+    sysprof # Add sysprof to nativeBuildInputs for pkg-config
   ];
   
   buildInputs = with pkgs; [
@@ -62,7 +63,8 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.cairo.dev}/lib/pkgconfig:${pkgs.pango.dev}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig:${pkgs.mesa}/lib/pkgconfig:${pkgs.pam}/lib/pkgconfig:${pkgs.sysprof.dev}/lib/pkgconfig:${pkgs.libxml2.dev}/lib/pkgconfig:${pkgs.pcre2.dev}/lib/pkgconfig:${pkgs.util-linux.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.harfbuzz.dev}/lib/pkgconfig:${pkgs.fontconfig.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
+    # Ensure all dev outputs are in PKG_CONFIG_PATH
+    export PKG_CONFIG_PATH="${pkgs.wlroots}/lib/pkgconfig:${pkgs.wayland.dev}/lib/pkgconfig:${pkgs.wayland-protocols}/share/pkgconfig:${pkgs.cairo.dev}/lib/pkgconfig:${pkgs.pango.dev}/lib/pkgconfig:${pkgs.libxkbcommon.dev}/lib/pkgconfig:${pkgs.mesa}/lib/pkgconfig:${pkgs.pam}/lib/pkgconfig:${pkgs.sysprof.dev}/lib/pkgconfig:${pkgs.sysprof.lib}/lib/pkgconfig:${pkgs.libxml2.dev}/lib/pkgconfig:${pkgs.pcre2.dev}/lib/pkgconfig:${pkgs.util-linux.dev}/lib/pkgconfig:${pkgs.glib.dev}/lib/pkgconfig:${pkgs.harfbuzz.dev}/lib/pkgconfig:${pkgs.fontconfig.dev}/lib/pkgconfig:$PKG_CONFIG_PATH"
     export CC=clang
     export CXX=clang++
     export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=1"

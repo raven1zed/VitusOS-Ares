@@ -54,10 +54,10 @@ Item {
     DropShadow {
         anchors.fill: body
         horizontalOffset: 0
-        verticalOffset: 10
-        radius: 30
-        samples: 60
-        color: "#40000000"
+        verticalOffset: 12        // More depth
+        radius: 24                // Softer
+        samples: 32               // Optimized for performance
+        color: "#30000000"        // Muted shadow
         source: body
         z: -1
     }

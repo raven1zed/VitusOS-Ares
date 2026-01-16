@@ -25,8 +25,8 @@ Rectangle {
     height: 32
     color: isActive ? "#FAFAF9" : "#F5F5F5"  // Warm Ceramic / Slight gray when inactive
     
-    // Rounded top corners standardized to 20
-    radius: 20
+    // Rounded top corners standardized to 16 (Ares Design)
+    radius: 16
     
     // Cover bottom rounded corners to join perfectly with content
     Rectangle {

@@ -79,6 +79,8 @@ public:
   static constexpr const char *WINDOW_CLOSE_REQUEST = "window.close_request";
   static constexpr const char *WINDOW_MINIMIZE_REQUEST =
       "window.minimize_request";
+  static constexpr const char *WINDOW_GEOMETRY_CHANGED =
+      "window.geometry_changed";
 
   static constexpr const char *MENU_CLICKED = "menu.clicked";
   static constexpr const char *APP_LAUNCHED = "application.launched";

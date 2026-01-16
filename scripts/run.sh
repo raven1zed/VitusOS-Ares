@@ -15,7 +15,7 @@ if [ ! -f "opensef/opensef-compositor/build/opensef-compositor" ]; then
     exit 1
 fi
 
-if [ ! -f "opensef/opensef-shell-qt/build/opensef-shell-qt" ]; then
+if [ ! -f "opensef/opensef-shell-qt/build/osf-shell-qt-v2" ]; then
     echo "❌ Shell not built! Run ./scripts/build.sh first"
     exit 1
 fi
@@ -25,6 +25,9 @@ echo ""
 echo "This will launch in nested Wayland mode (for testing)"
 echo "Press Ctrl+C to stop"
 echo ""
+
+# Set library path for shared components
+export LD_LIBRARY_PATH="$(pwd)/opensef/opensef-framework/build:$(pwd)/opensef/opensef-core/build:$(pwd)/opensef/opensef-base/build:$(pwd)/opensef/opensef-gnustep/build:$LD_LIBRARY_PATH"
 
 # Create cleanup function
 cleanup() {
@@ -42,13 +45,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "1️⃣  Starting Compositor..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cd opensef/opensef-compositor/build
-
 # Run in nested Wayland mode
 WLR_BACKENDS=wayland \
-WLR_RENDERER=vulkan \
 WLR_DEBUG=1 \
-./opensef-compositor &
+./opensef/opensef-compositor/build/opensef-compositor &
 
 COMPOSITOR_PID=$!
 echo "✅ Compositor started (PID: $COMPOSITOR_PID)"
@@ -69,12 +69,10 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "2️⃣  Starting Shell..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cd ../../opensef-shell-qt/build
-
 QT_QPA_PLATFORM=wayland \
-QT_LOGGING_RULES="*.debug=true" \
+QSG_RHI_BACKEND=opengl \
 QT_WAYLAND_DISABLE_WINDOWDECORATION=1 \
-./opensef-shell-qt &
+./opensef/opensef-shell-qt/build/osf-shell-qt-v2 &
 
 SHELL_PID=$!
 echo "✅ Shell started (PID: $SHELL_PID)"
@@ -91,10 +89,7 @@ echo "  • SystemTray on right (clickable dropdown)"
 echo "  • Wallpaper background"
 echo ""
 echo "To launch Filer:"
-echo "  Click Filer icon in dock"
-echo ""
-echo "To open Cockpit View:"
-echo "  Click orange box (top-left corner)"
+echo "  ./opensef/build/apps/osf-filer-native/osf-filer-native"
 echo ""
 echo "Press Ctrl+C to stop"
 echo ""

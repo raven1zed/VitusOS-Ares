@@ -2,10 +2,10 @@
  * OSFShortcutManager.cpp - Universal Shortcut System Implementation
  */
 
-#include "OSFShortcutManager.h"
-#include "OSFEventBus.h"
+#include <opensef/OSFShortcutManager.h>
+#include <opensef/OSFEventBus.h>
+#include <opensef/OSFKeys.h> // Use internal keys instead of xkbcommon
 #include <cstdint>
-#include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace OpenSEF {
 
@@ -98,7 +98,7 @@ uint64_t OSFShortcutManager::makeKey(uint32_t keycode,
 void OSFShortcutManager::registerSystemShortcuts() {
   // Multitask View: Super+Tab (or Cmd+Tab)
   registerShortcut(
-      "multitask", XKB_KEY_Tab, OSFModifier::Super,
+      "multitask", Key::Tab, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::MULTITASK_TOGGLE,
                                       OSFEvent());
@@ -107,7 +107,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Quit Application: Super+Q
   registerShortcut(
-      "quit_app", XKB_KEY_q, OSFModifier::Super,
+      "quit_app", Key::Q, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::APP_QUIT_REQUEST,
                                       OSFEvent());
@@ -116,7 +116,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Close Window: Super+W
   registerShortcut(
-      "close_window", XKB_KEY_w, OSFModifier::Super,
+      "close_window", Key::W, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::WINDOW_CLOSE_REQUEST,
                                       OSFEvent());
@@ -125,7 +125,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Minimize Window: Super+M
   registerShortcut(
-      "minimize_window", XKB_KEY_m, OSFModifier::Super,
+      "minimize_window", Key::M, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::WINDOW_MINIMIZE_REQUEST,
                                       OSFEvent());
@@ -134,7 +134,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Hide Application: Super+H
   registerShortcut(
-      "hide_app", XKB_KEY_h, OSFModifier::Super,
+      "hide_app", Key::H, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::APP_HIDE_REQUEST,
                                       OSFEvent());
@@ -143,7 +143,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Spotlight/Search: Super+Space
   registerShortcut(
-      "spotlight", XKB_KEY_space, OSFModifier::Super,
+      "spotlight", Key::Space, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::SPOTLIGHT_TOGGLE,
                                       OSFEvent());
@@ -152,7 +152,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Copy: Super+C
   registerShortcut(
-      "copy", XKB_KEY_c, OSFModifier::Super,
+      "copy", Key::C, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::CLIPBOARD_COPY, OSFEvent());
       },
@@ -160,7 +160,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Paste: Super+V
   registerShortcut(
-      "paste", XKB_KEY_v, OSFModifier::Super,
+      "paste", Key::V, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::CLIPBOARD_PASTE, OSFEvent());
       },
@@ -168,7 +168,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Cut: Super+X
   registerShortcut(
-      "cut", XKB_KEY_x, OSFModifier::Super,
+      "cut", Key::X, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::CLIPBOARD_CUT, OSFEvent());
       },
@@ -176,7 +176,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Undo: Super+Z
   registerShortcut(
-      "undo", XKB_KEY_z, OSFModifier::Super,
+      "undo", Key::Z, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::EDIT_UNDO, OSFEvent());
       },
@@ -184,7 +184,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Redo: Super+Shift+Z
   registerShortcut(
-      "redo", XKB_KEY_z, OSFModifier::Super | OSFModifier::Shift,
+      "redo", Key::Z, OSFModifier::Super | OSFModifier::Shift,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::EDIT_REDO, OSFEvent());
       },
@@ -192,7 +192,7 @@ void OSFShortcutManager::registerSystemShortcuts() {
 
   // Select All: Super+A
   registerShortcut(
-      "select_all", XKB_KEY_a, OSFModifier::Super,
+      "select_all", Key::A, OSFModifier::Super,
       []() {
         OSFEventBus::shared().publish(OSFEventBus::EDIT_SELECT_ALL, OSFEvent());
       },

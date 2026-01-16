@@ -1,8 +1,8 @@
-#include "OSFFrameworkC.h"
-#include "OSFDesktop.h"
-#include "OSFEventBus.h"
-#include "OSFStateManager.h"
-#include "OSFWindowManager.h"
+#include <opensef/OSFFrameworkC.h>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
+#include <opensef/OSFStateManager.h>
+#include <opensef/OSFWindowManager.h>
 
 #include <cstring>
 #include <map>

@@ -1,6 +1,6 @@
-#include "OSFWindowManager.h"
-#include "OSFDesktop.h"
-#include "OSFEventBus.h"
+#include <opensef/OSFWindowManager.h>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
 #include <algorithm>
 
 namespace OpenSEF {

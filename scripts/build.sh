@@ -5,7 +5,7 @@
 set -e  # Exit on error
 
 echo "╔════════════════════════════════════════════╗"
-echo "║  VitusOS Ares - Build All Components      ║"
+echo "║  VitusOS Ares - Build All Components       ║"
 echo "╚════════════════════════════════════════════╝"
 echo ""
 
@@ -24,6 +24,8 @@ if [ "$1" == "clean" ]; then
     echo ""
 fi
 
+ROOT_DIR=$(pwd)
+
 # Build function
 build_component() {
     local component=$1
@@ -33,7 +35,7 @@ build_component() {
     echo "🔨 Building: $name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    cd "$component"
+    cd "$ROOT_DIR/$component"
     
     if [ ! -d "build" ]; then
         mkdir -p build
@@ -48,7 +50,7 @@ build_component() {
             # Shell needs framework path
             cmake .. -G Ninja \
                 -DCMAKE_BUILD_TYPE=Debug \
-                -DCMAKE_PREFIX_PATH="$(pwd)/../../../opensef-framework/build"
+                -DCMAKE_PREFIX_PATH="$ROOT_DIR/opensef/opensef-framework/build"
         else
             cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug
         fi
@@ -66,26 +68,32 @@ build_component() {
     fi
         
     echo ""
-    cd ../..
+    cd "$ROOT_DIR"
 }
 
 # Build in dependency order
 echo "Building components in correct order..."
 echo ""
 
-# 1. Framework (required by everything)
+# 1. Core (rendering logic)
+build_component "opensef/opensef-core" "openSEF Core"
+
+# 2. Base (foundational utilities)
+build_component "opensef/opensef-base" "openSEF Base"
+
+# 3. Framework (system API)
 build_component "opensef/opensef-framework" "openSEF Framework"
 
-# 2. Compositor (displays windows)
+# 4. Compositor (display server)
 build_component "opensef/opensef-compositor" "openSEF Compositor"
 
-# 3. GNUstep (required by native apps)
+# 5. GNUstep (AppKit bridge)
 build_component "opensef/opensef-gnustep" "GNUstep C++ Fork"
 
-# 4. Shell (Qt Quick UI)
+# 6. Shell (Main UI)
 build_component "opensef/opensef-shell-qt" "openSEF Shell"
 
-# 5. Native Apps
+# 8. Native Apps
 build_component "opensef/apps/osf-filer-native" "Filer (File Manager)"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

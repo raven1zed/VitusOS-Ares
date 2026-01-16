@@ -83,7 +83,7 @@ target_include_directories(opensef-compositor PRIVATE
 )
 
 target_link_libraries(opensef-compositor PRIVATE
-    opensef-framework
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-framework/build/libopensef-framework.so
     ${WLROOTS_LIBRARIES}
     ${WAYLAND_SERVER_LIBRARIES}
     ${XKB_LIBRARIES}

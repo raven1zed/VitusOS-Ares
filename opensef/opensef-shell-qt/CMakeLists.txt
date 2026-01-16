@@ -21,6 +21,10 @@ find_package(Qt6 REQUIRED COMPONENTS
     Core5Compat
 )
 
+# Find Cairo for core graphics
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CAIRO REQUIRED cairo)
+
 # Source files
 set(SOURCES
     src/main.cpp
@@ -52,8 +56,8 @@ add_executable(osf-shell-qt-v2
 # Include paths
 target_include_directories(osf-shell-qt-v2 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/opensef-framework/include
-    ${CMAKE_SOURCE_DIR}/opensef-base/include
+    ${PROJECT_SOURCE_DIR}/../opensef-framework/include
+    ${PROJECT_SOURCE_DIR}/../opensef-base/include
 )
 
 # Link libraries
@@ -66,14 +70,19 @@ target_link_libraries(osf-shell-qt-v2 PRIVATE
     Qt6::WaylandClient
     Qt6::Svg
     Qt6::Core5Compat
-    opensef-framework
-    opensef-base
-    opensef-gnustep-qtquick
+    -Wl,--whole-archive
+    ${PROJECT_SOURCE_DIR}/../opensef-gnustep/build/libopensef-gnustep-qtquick.a
+    ${PROJECT_SOURCE_DIR}/../opensef-gnustep/build/libopensef-gnustep.a
+    ${PROJECT_SOURCE_DIR}/../opensef-core/build/libopensef-core.a
+    -Wl,--no-whole-archive
+    ${PROJECT_SOURCE_DIR}/../opensef-base/build/libopensef-base.so
+    ${PROJECT_SOURCE_DIR}/../opensef-framework/build/libopensef-framework.so
+    ${CAIRO_LIBRARIES}
 )
 
 target_include_directories(osf-shell-qt-v2 PRIVATE
-    ${CMAKE_SOURCE_DIR}/opensef-gnustep/include
-    ${CMAKE_SOURCE_DIR}/opensef-gnustep/bridge
+    ${PROJECT_SOURCE_DIR}/../opensef-gnustep/include
+    ${PROJECT_SOURCE_DIR}/../opensef-gnustep/bridge
 )
 
 # Install

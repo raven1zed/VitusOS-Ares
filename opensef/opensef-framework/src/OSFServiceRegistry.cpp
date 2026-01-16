@@ -1,4 +1,4 @@
-#include "OSFServiceRegistry.h"
+#include <opensef/OSFServiceRegistry.h>
 #include <map>
 #include <mutex>
 

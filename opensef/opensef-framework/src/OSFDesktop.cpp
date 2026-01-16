@@ -1,10 +1,10 @@
-#include "OSFDesktop.h"
-#include "OSFEventBus.h"
-#include "OSFResourceCache.h"
-#include "OSFServiceRegistry.h"
-#include "OSFStateManager.h"
-#include "OSFThemeManager.h"
-#include "OSFWindowManager.h"
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
+#include <opensef/OSFResourceCache.h>
+#include <opensef/OSFServiceRegistry.h>
+#include <opensef/OSFStateManager.h>
+#include <opensef/OSFThemeManager.h>
+#include <opensef/OSFWindowManager.h>
 
 
 namespace OpenSEF {

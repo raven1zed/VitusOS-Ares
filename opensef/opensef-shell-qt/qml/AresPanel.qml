@@ -10,7 +10,7 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: panel

@@ -5,8 +5,8 @@
 #include <QTimer>
 #include <QVariantMap>
 
-#include <OSFDesktop.h>
-#include <OSFEventBus.h>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
 
 SystemTrayController::SystemTrayController(QObject *parent) : QObject(parent) {
   connectToFramework();

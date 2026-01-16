@@ -1,4 +1,4 @@
-#include "OSFResourceCache.h"
+#include <opensef/OSFResourceCache.h>
 #include <map>
 #include <mutex>
 #include <vector>

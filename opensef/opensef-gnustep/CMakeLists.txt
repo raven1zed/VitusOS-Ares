@@ -24,8 +24,8 @@ target_include_directories(opensef-gnustep PUBLIC
 )
 
 target_link_libraries(opensef-gnustep PUBLIC
-    opensef-framework
-    opensef-core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-framework/build/libopensef-framework.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/../opensef-core/build/libopensef-core.a
     Qt6::Core
 )
 

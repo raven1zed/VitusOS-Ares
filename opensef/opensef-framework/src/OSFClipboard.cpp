@@ -2,8 +2,8 @@
  * OSFClipboard.cpp - Universal Clipboard Implementation
  */
 
-#include "OSFClipboard.h"
-#include "OSFEventBus.h"
+#include <opensef/OSFClipboard.h>
+#include <opensef/OSFEventBus.h>
 
 namespace OpenSEF {
 

@@ -16,8 +16,8 @@
 #include <opensef/NSButton.h>
 
 // OpenSEF Native Framework
-#include <OSFDesktop.h>
-#include <OSFEventBus.h>
+#include <opensef/OSFDesktop.h>
+#include <opensef/OSFEventBus.h>
 
 using namespace OpenSEF;
 
@@ -36,7 +36,8 @@ public:
   int run() {
     // Enforce Alpha Buffer for Transparent Windows (Rounded Corners)
     QQuickWindow::setDefaultAlphaBuffer(true);
-    qputenv("QSG_RHI_BACKEND", "vulkan");
+    // qputenv("QSG_RHI_BACKEND", "vulkan"); // Let Qt decide (fixes WSL2 black
+    // screen)
 
     app.setApplicationName("Filer");
     app.setOrganizationName("VitusOS");
