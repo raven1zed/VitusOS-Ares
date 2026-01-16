@@ -4,6 +4,7 @@
 
 #include "OSFShortcutManager.h"
 #include "OSFEventBus.h"
+#include <cstdint>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace OpenSEF {

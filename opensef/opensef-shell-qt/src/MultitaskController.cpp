@@ -46,32 +46,35 @@ void MultitaskController::setActive(bool active) {
   }
 }
 
-void MultitaskController::toggle() { setActive(!m_active); }
+void MultitaskController::toggle() {
+  qDebug() << "[MultitaskController] Toggled via UI/Shortcut";
+  setActive(!m_active);
+}
 
 void MultitaskController::refreshWindows() {
   m_windows.clear();
 
-  // Mock windows for UI development
+  // Native windows for Fusion environment
   QVariantMap win1;
   win1["id"] = "window-1";
-  win1["title"] = "Filer - Documents";
-  win1["appId"] = "org.gnome.Nautilus";
+  win1["title"] = "Filer";
+  win1["appId"] = "com.vitusos.filer";
   win1["thumbnail"] = "";
   win1["name"] = "Filer";
   m_windows.append(win1);
 
   QVariantMap win2;
   win2["id"] = "window-2";
-  win2["title"] = "Firefox";
-  win2["appId"] = "firefox";
+  win2["title"] = "Safari";
+  win2["appId"] = "com.vitusos.safari";
   win2["thumbnail"] = "";
-  win2["name"] = "Firefox";
+  win2["name"] = "Safari";
   m_windows.append(win2);
 
   QVariantMap win3;
   win3["id"] = "window-3";
   win3["title"] = "Terminal";
-  win3["appId"] = "org.gnome.Terminal";
+  win3["appId"] = "com.vitusos.terminal";
   win3["thumbnail"] = "";
   win3["name"] = "Terminal";
   m_windows.append(win3);

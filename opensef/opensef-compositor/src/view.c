@@ -284,8 +284,23 @@ static void view_request_maximize(struct wl_listener *listener, void *data) {
   (void)data;
 
   if (view->xdg_toplevel->base->surface->mapped) {
-    wlr_xdg_toplevel_set_maximized(view->xdg_toplevel,
-                                   !view->xdg_toplevel->current.maximized);
+    bool next_max = !view->xdg_toplevel->current.maximized;
+    wlr_xdg_toplevel_set_maximized(view->xdg_toplevel, next_max);
+
+    /* Report to framework */
+    char window_id[64];
+    snprintf(window_id, sizeof(window_id), "window-%p", (void *)view);
+    struct wlr_box geo = view->xdg_toplevel->base->current.geometry;
+
+    /* If maximizing, we assume it takes full screen (or output size)
+     * In this compositor, we'll report the output size if maxed.
+     */
+    if (next_max) {
+      osf_window_set_geometry(window_id, 0, 28, 1920,
+                              1052); // Assuming 1080p - panel
+    } else {
+      osf_window_set_geometry(window_id, 50, 50, geo.width, geo.height);
+    }
   }
 }
 

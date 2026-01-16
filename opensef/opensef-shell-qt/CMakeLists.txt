@@ -18,6 +18,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     DBus
     WaylandClient
     Svg
+    Core5Compat
 )
 
 # Source files
@@ -64,8 +65,15 @@ target_link_libraries(osf-shell-qt-v2 PRIVATE
     Qt6::DBus
     Qt6::WaylandClient
     Qt6::Svg
+    Qt6::Core5Compat
     opensef-framework
     opensef-base
+    opensef-gnustep-qtquick
+)
+
+target_include_directories(osf-shell-qt-v2 PRIVATE
+    ${CMAKE_SOURCE_DIR}/opensef-gnustep/include
+    ${CMAKE_SOURCE_DIR}/opensef-gnustep/bridge
 )
 
 # Install

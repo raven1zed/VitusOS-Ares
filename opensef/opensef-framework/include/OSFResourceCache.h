@@ -1,34 +1,32 @@
 #pragma once
 
-#include <cairo.h>
 #include <memory>
 #include <string>
 
 namespace OpenSEF {
 
 /**
- * OSFResourceCache - Shared Resource Management
- *
- * Single cache for icons, fonts, images.
- * All components share resources instead of loading duplicates.
- *
- * Usage:
- *   auto* cache = desktop->resourceCache();
- *   auto* icon = cache->getIcon("application-menu", 24);
- *   auto* font = cache->getFont("Sans", 12);
+ * OSFResourceCache - Shared Resource Management (Renderer Agnostic)
  */
 class OSFResourceCache {
 public:
+  struct Surface {
+    void *m_data = nullptr;
+    int width = 0;
+    int height = 0;
+    int stride = 0;
+  };
+
   OSFResourceCache();
   ~OSFResourceCache();
 
   // Icon cache
-  cairo_surface_t *getIcon(const std::string &name, int size);
+  Surface *getIcon(const std::string &name, int size);
   void preloadIcon(const std::string &name);
   void clearIconCache();
 
   // Image cache
-  cairo_surface_t *getImage(const std::string &path);
+  Surface *getImage(const std::string &path);
   void clearImageCache();
 
   // Cache management

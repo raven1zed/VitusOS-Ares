@@ -7,7 +7,6 @@
 #include <QPainter>
 #include <QPainterPath>
 
-
 // ============================================================================
 // QQuickWindowButton
 // ============================================================================
@@ -55,19 +54,30 @@ void QQuickWindowButton::renderButton(QPainter *painter) {
 
   // Get color from NSWindowButton
   uint32_t color = m_button->currentColor();
-  QColor qcolor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
-
-  // Draw circular button
-  painter->setPen(Qt::NoPen);
-  painter->setBrush(qcolor);
+  QColor baseColor((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
 
   QRectF rect = boundingRect();
-  painter->drawEllipse(rect);
 
-  // Subtle inner shadow when pressed
+  // 1. Subtle Border (0.5px dark ring)
+  QPen borderPen(QColor(0, 0, 0, 30)); // 12% black opacity
+  borderPen.setWidthF(1.0);
+  painter->setPen(borderPen);
+
+  // 2. Vertical Gradient for depth
+  QLinearGradient gradient(rect.topLeft(), rect.bottomLeft());
+  gradient.setColorAt(0.0, baseColor.lighter(105)); // Top highlight
+  gradient.setColorAt(1.0, baseColor);              // Bottom base
+
+  painter->setBrush(gradient);
+
+  // Adjust rect for border width
+  painter->drawEllipse(rect.adjusted(0.5, 0.5, -0.5, -0.5));
+
+  // 3. Inner Shadow when pressed
   if (m_isPressed) {
-    QColor shadow(0, 0, 0, 40);
+    QColor shadow(0, 0, 0, 60);
     painter->setBrush(shadow);
+    painter->setPen(Qt::NoPen);
     painter->drawEllipse(rect.adjusted(1, 1, -1, -1));
   }
 }

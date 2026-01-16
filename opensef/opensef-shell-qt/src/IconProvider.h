@@ -2,11 +2,12 @@
 #define ICON_PROVIDER_H
 
 #include <QColor>
+#include <QFont>
 #include <QIcon>
+#include <QLinearGradient>
 #include <QPainter>
 #include <QPixmap>
 #include <QQuickImageProvider>
-
 
 /**
  * IconProvider - Resolves image://icon/<name> URLs
@@ -24,13 +25,30 @@ public:
 
     QIcon icon = QIcon::fromTheme(id);
     if (icon.isNull()) {
-      // Fallback: Generate a colored pixmap
+      // Professional Fusion Fallback
       QPixmap pixmap(width, height);
-      pixmap.fill(QColor("#4A9FD4")); // Vitus Blue default
+      pixmap.fill(Qt::transparent);
 
       QPainter painter(&pixmap);
+      painter.setRenderHint(QPainter::Antialiasing);
+
+      // Glassmorphism Placeholder Circle
+      QLinearGradient gradient(0, 0, width, height);
+      gradient.setColorAt(0, QColor("#3D5A80")); // Mission Blue
+      gradient.setColorAt(1, QColor("#1A1A1A"));
+
+      painter.setBrush(gradient);
+      painter.setPen(Qt::NoPen);
+      painter.drawEllipse(2, 2, width - 4, height - 4);
+
+      // Text initial
       painter.setPen(Qt::white);
-      painter.drawRect(0, 0, width - 1, height - 1);
+      QFont font = painter.font();
+      font.setBold(true);
+      font.setPixelSize(height / 2);
+      painter.setFont(font);
+      painter.drawText(pixmap.rect(), Qt::AlignCenter, id.left(1).toUpper());
+
       return pixmap;
     }
 
