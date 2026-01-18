@@ -27,7 +27,7 @@ void DockController::initDockItems() {
 
   QList<AppDef> apps = {
       {"Filer", "system-file-manager",
-       projectRoot + "/opensef/apps/osf-filer-native/build/osf-filer-native",
+       projectRoot + "/opensef/build/apps/osf-filer-native/osf-filer-native",
        "#4A9FD4", false},
       {"Terminal", "utilities-terminal",
        projectRoot + "/opensef/apps/osf-terminal/build/osf-terminal", "#333333",
@@ -141,21 +141,30 @@ void DockController::launchApp(int index) {
 
   qDebug() << "[DockController] Launching:" << command;
 
-  // Environment pass-through
+  // Use member QProcess to capture output/errors
+  QProcess *process = new QProcess(this);
+
+  // Forward environment
   const QByteArray waylandDisplay = qgetenv("WAYLAND_DISPLAY");
   const QByteArray runtimeDir = qgetenv("XDG_RUNTIME_DIR");
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+  env.insert("WAYLAND_DISPLAY", QString::fromUtf8(waylandDisplay));
+  env.insert("XDG_RUNTIME_DIR", QString::fromUtf8(runtimeDir));
+  env.insert("LIBGL_ALWAYS_SOFTWARE", "0");
+  process->setProcessEnvironment(env);
 
-  // Use GPU acceleration (Discrete GPU detected)
-  QString safeCommand = QString("env WAYLAND_DISPLAY=%1 XDG_RUNTIME_DIR=%2 "
-                                "LIBGL_ALWAYS_SOFTWARE=0 %3")
-                            .arg(QString::fromUtf8(waylandDisplay))
-                            .arg(QString::fromUtf8(runtimeDir))
-                            .arg(command);
+  connect(process, &QProcess::readyReadStandardOutput, [process]() {
+    qDebug() << "[Filer STDOUT]" << process->readAllStandardOutput();
+  });
+  connect(process, &QProcess::readyReadStandardError, [process]() {
+    qCritical() << "[Filer STDERR]" << process->readAllStandardError();
+  });
+  connect(process, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
+    qCritical() << "[Filer ERROR]" << error;
+  });
 
-  QProcess::startDetached("/bin/sh", {"-c", safeCommand});
-
-  // NOTE: We no longer simulate windows here because Filer/Terminal
-  // report their own creation via the openSEF framework once they start.
+  qDebug() << "[DockController] Launching (managed):" << command;
+  process->start(command, QStringList());
 }
 
 void DockController::onProcessFinished(int exitCode, int exitStatus) {

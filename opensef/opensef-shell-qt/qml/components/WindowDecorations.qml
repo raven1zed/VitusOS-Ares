@@ -8,8 +8,8 @@
  * - Warm Ceramic background
  */
 
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import OpenSEF.AppKit 1.0
 
 Rectangle {

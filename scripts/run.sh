@@ -15,7 +15,7 @@ if [ ! -f "opensef/opensef-compositor/build/opensef-compositor" ]; then
     exit 1
 fi
 
-if [ ! -f "opensef/opensef-shell-qt/build/osf-shell-qt-v2" ]; then
+if [ ! -f "opensef/build/opensef-shell-qt/osf-shell-qt-v2" ]; then
     echo "❌ Shell not built! Run ./scripts/build.sh first"
     exit 1
 fi
@@ -40,6 +40,9 @@ if [ -n "$D3D12_DRIVER_DIR" ]; then
 else
     echo "WARNING: d3d12_dri.so not found! Falling back to software rendering."
 fi
+
+# Export LD_LIBRARY_PATH so all components can find libopensef-framework.so
+export LD_LIBRARY_PATH=$PWD/opensef/build/opensef-framework:$LD_LIBRARY_PATH
 
 # Create cleanup function
 cleanup() {
@@ -81,10 +84,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "2️⃣  Starting Shell..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+LD_LIBRARY_PATH=$PWD/opensef/build/opensef-framework:$LD_LIBRARY_PATH \
 QT_QPA_PLATFORM=wayland \
 QSG_RHI_BACKEND=opengl \
 QT_WAYLAND_DISABLE_WINDOWDECORATION=1 \
-./opensef/opensef-shell-qt/build/osf-shell-qt-v2 &
+./opensef/build/opensef-shell-qt/osf-shell-qt-v2 &
 
 SHELL_PID=$!
 echo "✅ Shell started (PID: $SHELL_PID)"

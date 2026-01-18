@@ -58,3 +58,14 @@ compile_commands.json
 NixOS/
 opensef/build/
 *.log
+.VSCodeCounter/2026-01-17_14-15-16/details.md
+.VSCodeCounter/2026-01-17_14-15-16/diff-details.md
+.VSCodeCounter/2026-01-17_14-15-16/diff.csv
+.VSCodeCounter/2026-01-17_14-15-16/diff.md
+.VSCodeCounter/2026-01-17_14-15-16/diff.txt
+.VSCodeCounter/2026-01-17_14-15-16/results.csv
+.VSCodeCounter/2026-01-17_14-15-16/results.json
+.VSCodeCounter/2026-01-17_14-15-16/results.txt
+.VSCodeCounter/2026-01-17_14-15-16/results.md
+.VSCodeCounter/.VSCodeCounterCountRealtime
+config.json

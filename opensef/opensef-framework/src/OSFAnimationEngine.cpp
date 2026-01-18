@@ -108,23 +108,45 @@ void AnimationEngine::transitionToOnboarding() {
 }
 
 void AnimationEngine::fadeInWindow(void *windowHandle) {
-  std::cout << "[AnimationEngine] Fade in window: " << windowHandle
-            << std::endl;
+  LOG("Window fade-in animation [200ms ease-out-cubic]");
+  std::cout << "[AnimationEngine]   Window: " << windowHandle << std::endl;
+  // Shell will render actual fade using Qt Quick PropertyAnimation
 }
 
 void AnimationEngine::fadeOutWindow(void *windowHandle) {
-  std::cout << "[AnimationEngine] Fade out window: " << windowHandle
-            << std::endl;
+  LOG("Window fade-out animation [200ms ease-in-cubic]");
+  std::cout << "[AnimationEngine]   Window: " << windowHandle << std::endl;
+  // Shell will render actual fade using Qt Quick PropertyAnimation
 }
 
 void AnimationEngine::playWindowMinimize(void *windowHandle) {
-  std::cout << "[AnimationEngine] Window minimize: " << windowHandle
+  LOG("Window minimize animation [300ms ease-in-back]");
+  std::cout << "[AnimationEngine]   Window: " << windowHandle << std::endl;
+  std::cout << "[AnimationEngine]   Effect: Scale down to dock icon"
             << std::endl;
+  // Shell will render scale + position animation using Qt Quick
 }
 
 void AnimationEngine::playWindowMaximize(void *windowHandle) {
-  std::cout << "[AnimationEngine] Window maximize: " << windowHandle
+  LOG("Window maximize animation [250ms ease-out-cubic]");
+  std::cout << "[AnimationEngine]   Window: " << windowHandle << std::endl;
+  std::cout << "[AnimationEngine]   Effect: Smooth expand to fullscreen"
             << std::endl;
+  // Shell will render geometry animation using Qt Quick
+}
+
+void AnimationEngine::playWindowTileAnimation(void *windowHandle,
+                                              TilingFrame targetFrame) {
+  LOG("Window tile animation [200ms ease-out-cubic] - Hyprland-style");
+  std::cout << "[AnimationEngine]   Window: " << windowHandle << std::endl;
+  std::cout << "[AnimationEngine]   Target: x=" << targetFrame.x
+            << " y=" << targetFrame.y << " w=" << targetFrame.width
+            << " h=" << targetFrame.height << std::endl;
+  std::cout
+      << "[AnimationEngine]   Curve: Ease-out cubic (0.25, 0.46, 0.45, 0.94)"
+      << std::endl;
+  // Shell will render smooth geometry transition using Qt Quick NumberAnimation
+  // with easeOutCubic timing function
 }
 
 void AnimationEngine::playShutdownSequence() {

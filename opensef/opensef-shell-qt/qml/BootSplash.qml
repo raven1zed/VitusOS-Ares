@@ -92,9 +92,10 @@ Rectangle {
     }
 
     // Fade in animation when splash appears
-    opacity: 0
+    opacity: 1  // Start VISIBLE - desktop should never flash before boot splash
     Component.onCompleted: {
-        fadeIn.start()
+        // No fade-in needed - we start visible
+        // fadeIn.start()
     }
 
     NumberAnimation {
@@ -126,8 +127,8 @@ Rectangle {
     // Simulate progress for testing (remove in production)
     Timer {
         id: progressTimer
-        interval: 500
-        running: false // Set to true for testing
+        interval: 300  // Faster for testing
+        running: true  // ENABLED for testing
         repeat: true
         onTriggered: {
             if (bootSplash.progress < 1.0) {

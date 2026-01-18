@@ -28,6 +28,7 @@ pkg_check_modules(CAIRO REQUIRED cairo)
 # Source files
 set(SOURCES
     src/main.cpp
+    src/AnimationEngineController.cpp
     src/PanelController.cpp
     src/DockController.cpp
     src/MultitaskController.cpp
@@ -36,6 +37,7 @@ set(SOURCES
 )
 
 set(HEADERS
+    src/AnimationEngineController.h
     src/PanelController.h
     src/DockController.h
     src/MultitaskController.h
@@ -76,7 +78,7 @@ target_link_libraries(osf-shell-qt-v2 PRIVATE
     ${PROJECT_SOURCE_DIR}/../opensef-core/build/libopensef-core.a
     -Wl,--no-whole-archive
     ${PROJECT_SOURCE_DIR}/../opensef-base/build/libopensef-base.so
-    ${PROJECT_SOURCE_DIR}/../opensef-framework/build/libopensef-framework.so
+    ${PROJECT_SOURCE_DIR}/../build/opensef-framework/libopensef-framework.so
     ${CAIRO_LIBRARIES}
 )
 

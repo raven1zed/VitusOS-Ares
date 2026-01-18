@@ -14,6 +14,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 
+#include "AnimationEngineController.h"
 #include "DockController.h"
 #include "IconProvider.h"
 #include "MultitaskController.h"
@@ -71,6 +72,7 @@ int main(int argc, char *argv[]) {
   OpenSEF::OSFDesktop::shared()->initialize();
 
   // Create controllers
+  AnimationEngineController animationController;
   PanelController panelController;
   DockController dockController;
   MultitaskController multitaskController;
@@ -87,6 +89,7 @@ int main(int argc, char *argv[]) {
 
   // Expose controllers to QML
   QQmlContext *context = engine.rootContext();
+  context->setContextProperty("animationController", &animationController);
   context->setContextProperty("panelController", &panelController);
   context->setContextProperty("dockController", &dockController);
   context->setContextProperty("multitaskController", &multitaskController);

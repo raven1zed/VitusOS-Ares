@@ -11,6 +11,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick Core5Compat)
 
 add_executable(osf-filer-native
     main.cpp
+    FilerController.cpp
 )
 
 # Find Cairo for core graphics
@@ -24,18 +25,18 @@ target_include_directories(osf-filer-native PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/include
 )
 
-# Link to CMake targets (built in current build directory)
+# Link to libraries (absolute paths for standalone builds)
 target_link_libraries(osf-filer-native PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::Core5Compat
     -Wl,--whole-archive
-    opensef-gnustep-qtquick
-    opensef-gnustep
-    opensef-core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-gnustep/build/libopensef-gnustep-qtquick.a
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-gnustep/build/libopensef-gnustep.a
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-core/build/libopensef-core.a
     -Wl,--no-whole-archive
-    opensef-framework
-    opensef-base
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../build/opensef-framework/libopensef-framework.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../opensef-base/build/libopensef-base.so
     ${CAIRO_LIBRARIES}
 )
 

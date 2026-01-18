@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qt5Compat.GraphicalEffects 1.0
+import QtQuick
+import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
 
 /**
  * AresWindow.qml - Universal OpenSEF Window Base
@@ -9,56 +9,74 @@ import Qt5Compat.GraphicalEffects 1.0
 Item {
     id: aresWindow
     
-    property alias content: contentItem.data
+    // DEFAULT property so children automatically go into content
+    default property alias content: contentItem.data
     property string title: ""
     property bool showDecorations: true
     property color backgroundColor: "#FFFFFF"
     property real cornerRadius: 20
+    property var targetWindow: null
 
-    // Main frame with rounded corners
+    // Background with all 4 rounded corners
     Rectangle {
-        id: body
+        id: background
         anchors.fill: parent
         radius: aresWindow.cornerRadius
         color: aresWindow.backgroundColor
+    }
+
+    // WindowDecorations (OUTSIDE any layer.effect to avoid glitches)
+    WindowDecorations {
+        id: decorations
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        visible: aresWindow.showDecorations
+        windowTitle: aresWindow.title
+        targetWindow: aresWindow.targetWindow
+        z: 1  // Above content
+    }
+
+    // Content area with bottom corner masking
+    Item {
+        id: contentContainer
+        anchors.top: decorations.visible ? decorations.bottom : parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        
+        // Mask for bottom rounded corners only
         layer.enabled: true
         layer.effect: OpacityMask {
             maskSource: Rectangle {
-                width: body.width
-                height: body.height
-                radius: body.radius
+                width: contentContainer.width
+                height: contentContainer.height
+                radius: aresWindow.cornerRadius
+                // Square top corners (they're covered by decorations)
+                Rectangle {
+                    width: parent.width
+                    height: parent.radius
+                    color: "white"
+                }
             }
         }
 
-        // Titlebar / Decorations
-        WindowDecorations {
-            id: decorations
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            visible: aresWindow.showDecorations
-            windowTitle: aresWindow.title
-        }
-
-        // Content Container
+        // Content goes here
         Item {
             id: contentItem
-            anchors.top: decorations.visible ? decorations.bottom : parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.fill: parent
         }
     }
 
     // Shadow
     DropShadow {
-        anchors.fill: body
+        anchors.fill: background
         horizontalOffset: 0
-        verticalOffset: 12        // More depth
-        radius: 24                // Softer
-        samples: 32               // Optimized for performance
-        color: "#30000000"        // Muted shadow
-        source: body
+        verticalOffset: 12
+        radius: 24
+        samples: 32
+        color: "#30000000"
+        source: background
         z: -1
     }
 }

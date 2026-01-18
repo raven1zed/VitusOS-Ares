@@ -10,6 +10,7 @@
  * - Template for future native openSEF apps
  */
 
+#include "FilerController.h"
 #include <QDebug>
 #include <QDir>
 #include <QFontDatabase>
@@ -20,6 +21,7 @@
 #include <QQuickWindow>
 #include <QQuickWindowButton.h>
 #include <opensef/NSButton.h>
+
 
 // OpenSEF Native Framework
 #include <opensef/OSFDesktop.h>
@@ -187,6 +189,10 @@ protected:
     // Expose FilerApplication to QML for Pathfinder integration
     engine.rootContext()->setContextProperty("FilerApp", this);
 
+    // Expose FilerController for filesystem operations
+    engine.rootContext()->setContextProperty("filerController",
+                                             &m_filerController);
+
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated, &app,
         [url](QObject *obj, const QUrl &objUrl) {
@@ -203,6 +209,7 @@ protected:
 private:
   QGuiApplication app;
   QQmlApplicationEngine engine;
+  FilerController m_filerController;
 };
 
 int main(int argc, char *argv[]) {

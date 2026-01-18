@@ -1,139 +1,326 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Window
 import "../../opensef-shell-qt/qml/components"
 
 /**
  * Filer.qml - Native VitusOS File Manager
  * 
- * Re-aligned with Ares Design System using standardized components.
- * This ensures perfect 20px corners and "openSEF UI sake" decorations.
+ * GNUstep-inspired C++ file manager with Qt Quick UI.
+ * Uses FilerController (C++) for real filesystem operations.
  */
-AresWindow {
+ApplicationWindow {
     id: filerWindow
     
-    title: "Filer"
+    title: "Filer - " + filerController.currentPathName
     width: 900
     height: 600
-    cornerRadius: 20
-    backgroundColor: "#FBFBFB" // Soft Cream
-
-    // Sidebar + File Grid layout
-    Row {
+    visible: true
+    color: "transparent"
+    flags: Qt.FramelessWindowHint | Qt.Window
+    
+    AresWindow {
         anchors.fill: parent
-        
-        // Sidebar (Frosted Glass influence)
-        Rectangle {
-            id: sidebar
-            width: 200
-            height: parent.height
-            color: "#F5F5F4" // Muted Ceramic
+        title: filerController.currentPathName
+        cornerRadius: 20
+        backgroundColor: "#FBFBFB"
+        targetWindow: filerWindow
+
+        // Main Layout
+        Row {
+            anchors.fill: parent
             
-            Column {
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 4
+            // Sidebar
+            Rectangle {
+                id: sidebar
+                width: 200
+                height: parent.height
+                color: "#F5F5F4"
                 
-                Text {
-                    text: "Favorites"
-                    font.family: "Inter"
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    color: "#6B6B6B"
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8
-                    bottomPadding: 8
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 4
+                    
+                    // Favorites Header
+                    Text {
+                        text: "Favorites"
+                        font.family: "Inter"
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: "#6B6B6B"
+                        leftPadding: 8
+                        bottomPadding: 8
+                    }
+                    
+                    // Desktop
+                    SidebarItem {
+                        label: "Desktop"
+                        iconColor: "#3D5A80"
+                        onClicked: filerController.goToDesktop()
+                    }
+                    
+                    // Documents
+                    SidebarItem {
+                        label: "Documents"
+                        iconColor: "#3D5A80"
+                        onClicked: filerController.goToDocuments()
+                    }
+                    
+                    // Downloads
+                    SidebarItem {
+                        label: "Downloads"
+                        iconColor: "#3D5A80"
+                        onClicked: filerController.goToDownloads()
+                    }
+                    
+                    // Pictures
+                    SidebarItem {
+                        label: "Pictures"
+                        iconColor: "#3D5A80"
+                        onClicked: filerController.goToPictures()
+                    }
+                    
+                    // Music
+                    SidebarItem {
+                        label: "Music"
+                        iconColor: "#3D5A80"
+                        onClicked: filerController.goToMusic()
+                    }
+                    
+                    // Spacer
+                    Item { height: 20; width: 1 }
+                    
+                    // Locations Header
+                    Text {
+                        text: "Locations"
+                        font.family: "Inter"
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: "#6B6B6B"
+                        leftPadding: 8
+                        bottomPadding: 8
+                    }
+                    
+                    // Home
+                    SidebarItem {
+                        label: "Home"
+                        iconColor: "#E85D04"
+                        onClicked: filerController.goHome()
+                    }
                 }
+            }
+            
+            // Main Content Area
+            Rectangle {
+                width: parent.width - sidebar.width
+                height: parent.height
+                color: "white"
                 
-                Repeater {
-                    model: ["Desktop", "Documents", "Downloads", "Pictures", "Music"]
-                    delegate: Rectangle {
+                Column {
+                    anchors.fill: parent
+                    
+                    // Toolbar
+                    Rectangle {
                         width: parent.width
-                        height: 32
-                        radius: 6
-                        color: mouseArea.containsMouse ? "#EDECEB" : "transparent"
+                        height: 40
+                        color: "#FAFAF9"
                         
                         Row {
-                            anchors.fill: parent
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.left: parent.left
                             anchors.leftMargin: 12
-                            spacing: 10
+                            spacing: 8
                             
-                            // Placeholder Icon
-                            Rectangle {
-                                width: 14; height: 14; radius: 3
-                                color: "#3D5A80" // Mission Blue
-                                anchors.verticalCenter: parent.verticalCenter
+                            // Back Button
+                            ToolbarButton {
+                                text: "←"
+                                enabled: filerController.canGoBack
+                                onClicked: filerController.goBack()
                             }
                             
+                            // Forward Button
+                            ToolbarButton {
+                                text: "→"
+                                enabled: filerController.canGoForward
+                                onClicked: filerController.goForward()
+                            }
+                            
+                            // Path Display
                             Text {
-                                text: modelData
+                                text: filerController.currentPath
                                 font.family: "Inter"
-                                font.pixelSize: 13
-                                color: "#2D2D2D"
+                                font.pixelSize: 12
+                                color: "#666666"
                                 anchors.verticalCenter: parent.verticalCenter
+                                elide: Text.ElideMiddle
+                                width: 400
+                            }
+                        }
+                    }
+                    
+                    // Separator
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: "#E5E5E5"
+                    }
+                    
+                    // File Grid
+                    GridView {
+                        id: fileGrid
+                        width: parent.width
+                        height: parent.height - 41
+                        cellWidth: 100
+                        cellHeight: 100
+                        clip: true
+                        
+                        model: filerController.fileList
+                        
+                        delegate: Item {
+                            width: 100
+                            height: 100
+                            
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                radius: 8
+                                color: modelData.selected ? "#E3F2FD" : 
+                                       (itemMouse.containsMouse ? "#F5F5F5" : "transparent")
+                                
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 6
+                                    
+                                    // Icon
+                                    Rectangle {
+                                        width: 48
+                                        height: 48
+                                        radius: 10
+                                        color: modelData.isDir ? "#3D5A80" : "#FAFAF9"
+                                        border.width: modelData.isDir ? 0 : 1
+                                        border.color: "#E5E5E5"
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.isDir ? "📁" : "📄"
+                                            font.pixelSize: 24
+                                        }
+                                    }
+                                    
+                                    // Name
+                                    Text {
+                                        text: modelData.name
+                                        font.family: "Inter"
+                                        font.pixelSize: 11
+                                        color: "#2D2D2D"
+                                        width: 80
+                                        horizontalAlignment: Text.AlignHCenter
+                                        elide: Text.ElideMiddle
+                                        maximumLineCount: 2
+                                        wrapMode: Text.WrapAnywhere
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
+                                }
+                                
+                                MouseArea {
+                                    id: itemMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    
+                                    onClicked: {
+                                        filerController.selectItem(index, mouse.modifiers & Qt.ControlModifier)
+                                    }
+                                    
+                                    onDoubleClicked: {
+                                        filerController.openItem(index)
+                                    }
+                                }
                             }
                         }
                         
-                        MouseArea {
-                            id: mouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
+                        // Empty state
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Empty folder"
+                            font.family: "Inter"
+                            font.pixelSize: 14
+                            color: "#999999"
+                            visible: fileGrid.count === 0
                         }
                     }
                 }
             }
         }
+    }
+    
+    // Sidebar item component
+    component SidebarItem: Rectangle {
+        property string label: ""
+        property color iconColor: "#3D5A80"
+        signal clicked()
         
-        // Main Content Area
-        Rectangle {
-            width: parent.width - sidebar.width
-            height: parent.height
-            color: "white"
+        width: parent ? parent.width : 176
+        height: 32
+        radius: 6
+        color: sidebarMouse.containsMouse ? "#EDECEB" : "transparent"
+        
+        Row {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            spacing: 10
             
-            GridView {
-                id: fileGrid
-                anchors.fill: parent
-                anchors.margins: 20
-                cellWidth: 100
-                cellHeight: 120
-                model: 24 // Dummy data
-                
-                delegate: Item {
-                    width: 100
-                    height: 120
-                    
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 8
-                        
-                        // File Icon
-                        Rectangle {
-                            width: 64; height: 64; radius: 12
-                            color: "#FAFAF9"
-                            border.width: 1
-                            border.color: "#E5E5E5"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            
-                            Image {
-                                anchors.centerIn: parent
-                                width: 40; height: 40
-                                sourceSize: Qt.size(80, 80)
-                                opacity: 0.8
-                                // source: "../../assets/icons/file.svg" (Path placeholder)
-                            }
-                        }
-                        
-                        Text {
-                            text: "Document " + index
-                            font.family: "Inter"
-                            font.pixelSize: 12
-                            color: "#2D2D2D"
-                            width: 80
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
+            Rectangle {
+                width: 14
+                height: 14
+                radius: 3
+                color: iconColor
+                anchors.verticalCenter: parent.verticalCenter
             }
+            
+            Text {
+                text: label
+                font.family: "Inter"
+                font.pixelSize: 13
+                color: "#2D2D2D"
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+        
+        MouseArea {
+            id: sidebarMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: parent.clicked()
+        }
+    }
+    
+    // Toolbar button component
+    component ToolbarButton: Rectangle {
+        property string text: ""
+        property bool enabled: true
+        signal clicked()
+        
+        width: 28
+        height: 28
+        radius: 6
+        color: enabled ? (toolMouse.containsMouse ? "#E5E5E5" : "transparent") : "transparent"
+        opacity: enabled ? 1.0 : 0.4
+        
+        Text {
+            anchors.centerIn: parent
+            text: parent.text
+            font.pixelSize: 16
+            color: "#333333"
+        }
+        
+        MouseArea {
+            id: toolMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            enabled: parent.enabled
+            onClicked: parent.clicked()
         }
     }
 }

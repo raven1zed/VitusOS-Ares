@@ -26,12 +26,8 @@ Window {
             globalMenu.showAt(x, y, panelController.globalMenuItems[index].items, index)
         }
     }
-
-    // Component to properly load and show in debug log
-    Component.onCompleted: {
-        console.log("Shell Window loaded. Size:", width, "x", height)
-        console.log("Screen size:", Screen.width, "x", Screen.height)
-    }
+    
+    // Note: Main Component.onCompleted is at bottom, starts boot sequence
     
     // Wallpaper - FULL SCREEN, z: 0
     Wallpaper {
@@ -91,5 +87,22 @@ Window {
         sequence: "Escape"
         enabled: multitaskController.active
         onActivated: multitaskController.toggle()
+    }
+    
+    // BootSplash - TOP LAYER (z: 9999)
+    // Covers EVERYTHING during boot - hides all systemd logs
+    // Uses internal timer for progress simulation (testing in WSL)
+    BootSplash {
+        id: bootSplash
+        anchors.fill: parent
+        z: 9999  // Above everything
+        visible: opacity > 0
+    }
+    
+    // Start boot sequence when shell loads
+    Component.onCompleted: {
+        console.log("Shell Window loaded. Size:", width, "x", height)
+        console.log("Screen size:", Screen.width, "x", Screen.height)
+        console.log("BootSplash active - progress bar should animate")
     }
 }

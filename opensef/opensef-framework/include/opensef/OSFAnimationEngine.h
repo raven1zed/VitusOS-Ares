@@ -35,11 +35,17 @@ public:
   void transitionToDesktop();
   void transitionToOnboarding(); // First boot
 
-  // Desktop Transitions
+  // Desktop Transitions & Window Animations
   void fadeInWindow(void *windowHandle);
   void fadeOutWindow(void *windowHandle);
   void playWindowMinimize(void *windowHandle);
   void playWindowMaximize(void *windowHandle);
+
+  // Tiling Animations (Hyprland-style smooth snapping)
+  struct TilingFrame {
+    float x, y, width, height;
+  };
+  void playWindowTileAnimation(void *windowHandle, TilingFrame targetFrame);
 
   // Shutdown Sequence
   void playShutdownSequence();
